@@ -39,6 +39,7 @@ no telemetry anywhere.
 - [Project layout](#project-layout)
 - [Documentation](#documentation)
 - [Licence](#licence)
+- [Publishing to GitHub](#publishing-to-github)
 
 ---
 
@@ -236,3 +237,36 @@ tests/          pytest suite (auth, CSRF, scope guard, commands, reports)
 MIT. See [LICENSE](LICENSE). Third-party tools keep their own licences; see
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) — nmap in particular ships under
 the NPSL, which is not OSI-approved.
+
+---
+
+## Publishing to GitHub
+
+This tree is safe to push as-is: no secrets, no machine-specific absolute paths,
+and the commit author is a neutral project identity rather than a personal one.
+
+Three placeholders point at a repository that does not exist yet. Replace them
+after you create the repository:
+
+| Where | Placeholder | Replace with |
+| --- | --- | --- |
+| `pyproject.toml` | `Homepage = "https://github.com/your-org/..."` | your repository URL |
+| `catalog/tools.yaml` (the `report` tool) | `homepage: "https://github.com/your-org/..."` | your repository URL |
+| `README.md`, `CONTRIBUTING.md` | `<your-fork-url>` / `<your-fork>` | your fork URL |
+
+After editing `catalog/tools.yaml`, run `python tools/gen_docs.py` so the
+generated docs match, then push:
+
+```powershell
+# Create the repository first (web UI, or: gh repo create <you>/Kali-Windows-Substitute --source . --push)
+git remote add origin https://github.com/<you>/Kali-Windows-Substitute.git
+git push -u origin main
+```
+
+If you would rather your own name appear on the commits than the neutral
+identity, set it before you commit: `git config --local user.name "<name>"` and
+`git config --local user.email "<email>"`.
+
+CI (`.github/workflows/ci.yml`) runs lint, the test suite, generated-file
+drift checks and gitleaks on every push. It needs no secrets beyond the
+automatic `GITHUB_TOKEN`.
