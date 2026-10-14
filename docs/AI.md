@@ -71,3 +71,11 @@ guard still refuses it unless you confirm.
   what it sends.
 - If you do not want any of this, leave the provider set to **None**. The rest of
   the app is unaffected.
+
+## Verified live (2026-10-14)
+
+The full cloud path — Settings save, DPAPI key store, chat round-trip over the
+internet — was exercised against a real free OpenAI-compatible endpoint and a
+real model replied. A second request shape was declined by that endpoint's free
+tier (`402 Payment Required`); the app surfaced it as a readable chat error
+instead of failing. With a paid provider key the same code path applies.
