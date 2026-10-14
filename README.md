@@ -13,8 +13,11 @@ It gives you three things a bare Kali VM does not:
 - an **optional AI assistant** (local or cloud) that explains output and can
   propose a command, which you still have to confirm.
 
-Everything runs locally. The backend listens on loopback only, and the app sends
-no telemetry anywhere.
+The workbench itself stays on your machine: the backend listens on loopback
+only, and the app sends no telemetry anywhere. Downloading the runtime image,
+installing on-demand tools, and some tools (plus the optional cloud AI) still
+need an internet connection — see
+[docs/LIMITATIONS.md](docs/LIMITATIONS.md#network-access).
 
 > **Not affiliated with OffSec.** "Kali Linux" and the Kali logo are trademarks
 > of OffSec Services Limited. This project is an independent, unofficial
@@ -204,8 +207,11 @@ This repository is meant to be safe to clone and read.
 - **No secrets in the tree.** `.env.example` only, gitleaks in pre-commit and CI.
 - **No machine-specific absolute paths.** Paths are built at runtime from the
   user's own profile.
-- **No telemetry.** The backend is loopback-only and makes no outbound calls
-  except to the AI endpoint you configure.
+- **No telemetry.** The backend is loopback-only. The only network traffic it
+  ever initiates itself is to the AI endpoint you configure, or to download
+  the runtime image from a pinned URL you configure. Tool installs come from
+  the Kali package mirrors, and tools themselves only contact targets you
+  authorise.
 - **Defence in depth.** Bearer token + CSRF on writes, strict CSP, argv-only
   execution with `shell=False`, an in-runtime allowlist, a scope guard, timeouts,
   output caps, and a local audit log.

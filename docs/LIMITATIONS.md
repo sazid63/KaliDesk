@@ -18,6 +18,28 @@ WSL2 puts the Linux side behind a NAT. That has consequences:
   Ethernet traffic you need `pktmon`/`netsh trace` on Windows and to analyse the
   capture in the runtime.
 
+## Network access
+
+The app itself stays on your machine: the UI talks to the backend on
+`127.0.0.1:8788`, the backend talks to the in-runtime agent on
+`127.0.0.1:5055`, and there is no telemetry, update check, or phoning home
+anywhere in the code. But "local" does not mean "offline":
+
+- **Installing an on-demand tool needs internet.** The agent runs `apt-get`
+  against the Kali mirrors, so the Tool manager can only pull tools while you
+  are online. Baseline tools ship inside the image and need no connection.
+- **Some tools need internet to do their job** (fresh nuclei templates, the
+  wpscan vulnerability database, theHarvester sources, DNS/WHOIS lookups, and
+  of course anything pointed at a remote target). Fully offline tools —
+  hashcat, john, binwalk, exiftool and the like — work with no connection.
+- **The optional cloud AI needs internet.** The Ollama (local) provider does
+  not; the OpenAI-compatible provider calls whatever base URL you configure,
+  and only when you ask it something.
+- **The runtime image itself** is either built from the Kali/Debian mirrors
+  (internet at build time) or downloaded from a pinned URL with a SHA-256
+  check, and only if you configure `KWS_ROOTFS_URL`. With a local image
+  present, first-time setup needs no connection.
+
 ## Raw sockets
 
 `nmap -sS`, `masscan` and ARP-level tools want raw sockets. WSL2 generally allows
