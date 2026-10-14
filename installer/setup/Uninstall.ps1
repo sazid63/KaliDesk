@@ -17,7 +17,10 @@ Set-StrictMode -Version Latest
 $AppName    = 'Kali Linux Windows Substitute'
 $FolderName = 'KaliWindowsSubstitute'
 $Target     = Join-Path $env:LOCALAPPDATA "Programs\$FolderName"
-$DotFolder  = "$FolderName"
+# The private runtime is a WSL2 distribution owned by the app. Its name is
+# fixed in server/config.py (KWS_DISTRO, default "KaliSubstitute"), not the
+# app folder name.
+$RuntimeDistro = 'KaliSubstitute'
 
 Write-Host "Uninstalling $AppName" -ForegroundColor Green
 
@@ -64,5 +67,4 @@ if ($RemoveRuntime) {
         }
     }
 }
-
 Write-Host 'Uninstall complete.' -ForegroundColor Green

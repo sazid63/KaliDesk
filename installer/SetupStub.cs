@@ -2,7 +2,9 @@
 //
 // The directory produced by build.ps1 is embedded as a zip named
 // "<AppName>.payload". On run we extract it to a temporary folder and hand off
-// to setup\Setup.cmd, which performs the actual install in PowerShell.
+// to setup\Wizard.ps1, the graphical setup wizard (which in turn calls
+// Install.ps1). If the wizard is somehow missing we fall back to the silent
+// setup\Setup.cmd.
 //
 // This stub does no network access and writes only to the user's temp folder.
 
@@ -47,20 +49,40 @@ internal static class SetupStub
             string extractDir = Path.Combine(staging, "files");
             ZipFile.ExtractToDirectory(zipPath, extractDir);
 
-            string setup = Path.Combine(extractDir, "setup", "Setup.cmd");
-            if (!File.Exists(setup))
+            string appSource = Path.Combine(extractDir, "app");
+            string wizard = Path.Combine(extractDir, "setup", "Wizard.ps1");
+            string setupCmd = Path.Combine(extractDir, "setup", "Setup.cmd");
+
+            ProcessStartInfo start;
+            if (File.Exists(wizard))
             {
-                Fail("The installer is incomplete (Setup.cmd not found).");
+                start = new ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = string.Format(
+                        "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{0}\" -AppSource \"{1}\"",
+                        wizard, appSource),
+                    UseShellExecute = true,
+                    Verb = "open",
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                };
+            }
+            else if (File.Exists(setupCmd))
+            {
+                start = new ProcessStartInfo
+                {
+                    FileName = setupCmd,
+                    Arguments = string.Format("-AppSource \"{0}\"", appSource),
+                    UseShellExecute = true,
+                    Verb = "open",
+                };
+            }
+            else
+            {
+                Fail("The installer is incomplete (no setup wizard found).");
                 return 1;
             }
 
-            var start = new ProcessStartInfo
-            {
-                FileName = setup,
-                Arguments = string.Format("-AppSource \"{0}\"", Path.Combine(extractDir, "app")),
-                UseShellExecute = true,
-                Verb = "open",
-            };
             Process process = Process.Start(start);
             if (process == null)
             {
