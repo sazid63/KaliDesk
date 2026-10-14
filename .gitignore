@@ -1,0 +1,58 @@
+# --- Python ---------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Virtual environments -------------------------------------------------
+.venv/
+venv/
+env/
+
+# --- Build output ---------------------------------------------------------
+build/
+dist/
+*.spec.bak
+
+# --- Runtime image (large binary; built or downloaded, never committed) ---
+runtime/dist/
+*.tar
+*.tar.gz
+*.tgz
+
+# --- Secrets and local state: NEVER commit --------------------------------
+.env
+*.env
+!.env.example
+secrets/
+*.pem
+*.key
+*.pfx
+*.p12
+*.bin
+*.token
+credentials.json
+
+# --- Captures, evidence and reports (may contain sensitive data) ----------
+captures/
+evidence/
+reports/
+*.pcap
+*.pcapng
+*.cap
+*.sqlite
+*.sqlite3
+*.db
+
+# --- OS / editor ----------------------------------------------------------
+Thumbs.db
+desktop.ini
+.DS_Store
+*.swp
+.idea/
+.vscode/

@@ -1,0 +1,509 @@
+{
+  "generated_from": "catalog/tools.yaml",
+  "tools": [
+    {
+      "id": "aircrack-ng",
+      "name": "Aircrack-ng",
+      "binary": "aircrack-ng",
+      "packages": [
+        "aircrack-ng"
+      ],
+      "repo": "debian",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "bettercap",
+      "name": "Bettercap",
+      "binary": "bettercap",
+      "packages": [
+        "bettercap"
+      ],
+      "repo": "debian",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "binwalk",
+      "name": "Binwalk",
+      "binary": "binwalk",
+      "packages": [
+        "binwalk"
+      ],
+      "repo": "debian",
+      "baseline": true,
+      "max_args": 32
+    },
+    {
+      "id": "cewl",
+      "name": "CeWL",
+      "binary": "cewl",
+      "packages": [
+        "cewl"
+      ],
+      "repo": "kali",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "commix",
+      "name": "Commix",
+      "binary": "commix",
+      "packages": [
+        "commix"
+      ],
+      "repo": "kali",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "crunch",
+      "name": "Crunch",
+      "binary": "crunch",
+      "packages": [
+        "crunch"
+      ],
+      "repo": "kali",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "dns",
+      "name": "DNS Lookup (dig)",
+      "binary": "dig",
+      "packages": [
+        "dnsutils"
+      ],
+      "repo": "debian",
+      "baseline": true,
+      "max_args": 32
+    },
+    {
+      "id": "dnsrecon",
+      "name": "DNSRecon",
+      "binary": "dnsrecon",
+      "packages": [
+        "dnsrecon"
+      ],
+      "repo": "debian",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "exiftool",
+      "name": "ExifTool",
+      "binary": "exiftool",
+      "packages": [
+        "libimage-exiftool-perl"
+      ],
+      "repo": "debian",
+      "baseline": true,
+      "max_args": 32
+    },
+    {
+      "id": "ffuf",
+      "name": "ffuf",
+      "binary": "ffuf",
+      "packages": [
+        "ffuf"
+      ],
+      "repo": "debian",
+      "baseline": true,
+      "max_args": 32
+    },
+    {
+      "id": "foremost",
+      "name": "Foremost",
+      "binary": "foremost",
+      "packages": [
+        "foremost"
+      ],
+      "repo": "debian",
+      "baseline": true,
+      "max_args": 32
+    },
+    {
+      "id": "gdb",
+      "name": "GDB",
+      "binary": "gdb",
+      "packages": [
+        "gdb"
+      ],
+      "repo": "debian",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "gobuster",
+      "name": "Gobuster",
+      "binary": "gobuster",
+      "packages": [
+        "gobuster"
+      ],
+      "repo": "debian",
+      "baseline": true,
+      "max_args": 32
+    },
+    {
+      "id": "hashcat",
+      "name": "Hashcat",
+      "binary": "hashcat",
+      "packages": [
+        "hashcat"
+      ],
+      "repo": "debian",
+      "baseline": true,
+      "max_args": 32
+    },
+    {
+      "id": "hcxtools",
+      "name": "hcxtools",
+      "binary": "hcxpcapngtool",
+      "packages": [
+        "hcxtools"
+      ],
+      "repo": "kali",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "hydra",
+      "name": "Hydra",
+      "binary": "hydra",
+      "packages": [
+        "hydra"
+      ],
+      "repo": "debian",
+      "baseline": true,
+      "max_args": 32
+    },
+    {
+      "id": "john",
+      "name": "John the Ripper",
+      "binary": "john",
+      "packages": [
+        "john"
+      ],
+      "repo": "debian",
+      "baseline": true,
+      "max_args": 32
+    },
+    {
+      "id": "lynis",
+      "name": "Lynis",
+      "binary": "lynis",
+      "packages": [
+        "lynis"
+      ],
+      "repo": "kali",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "masscan",
+      "name": "Masscan",
+      "binary": "masscan",
+      "packages": [
+        "masscan"
+      ],
+      "repo": "debian",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "medusa",
+      "name": "Medusa",
+      "binary": "medusa",
+      "packages": [
+        "medusa"
+      ],
+      "repo": "kali",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "metasploit",
+      "name": "Metasploit Framework",
+      "binary": "msfconsole",
+      "packages": [
+        "metasploit-framework"
+      ],
+      "repo": "kali",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "msfvenom",
+      "name": "msfvenom",
+      "binary": "msfvenom",
+      "packages": [
+        "metasploit-framework"
+      ],
+      "repo": "kali",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "netcat",
+      "name": "Netcat",
+      "binary": "nc",
+      "packages": [
+        "netcat-openbsd"
+      ],
+      "repo": "debian",
+      "baseline": true,
+      "max_args": 32
+    },
+    {
+      "id": "nikto",
+      "name": "Nikto",
+      "binary": "nikto",
+      "packages": [
+        "nikto"
+      ],
+      "repo": "kali",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "nmap",
+      "name": "Nmap",
+      "binary": "nmap",
+      "packages": [
+        "nmap"
+      ],
+      "repo": "debian",
+      "baseline": true,
+      "max_args": 32
+    },
+    {
+      "id": "nuclei",
+      "name": "Nuclei",
+      "binary": "nuclei",
+      "packages": [
+        "nuclei"
+      ],
+      "repo": "kali",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "photorec",
+      "name": "PhotoRec",
+      "binary": "photorec",
+      "packages": [
+        "testdisk"
+      ],
+      "repo": "debian",
+      "baseline": true,
+      "max_args": 32
+    },
+    {
+      "id": "radare2",
+      "name": "Radare2",
+      "binary": "r2",
+      "packages": [
+        "radare2"
+      ],
+      "repo": "debian",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "report",
+      "name": "Report Builder",
+      "binary": "",
+      "packages": [],
+      "repo": "debian",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "responder",
+      "name": "Responder",
+      "binary": "responder",
+      "packages": [
+        "responder"
+      ],
+      "repo": "kali",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "searchsploit",
+      "name": "SearchSploit",
+      "binary": "searchsploit",
+      "packages": [
+        "exploitdb"
+      ],
+      "repo": "kali",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "sleuthkit",
+      "name": "The Sleuth Kit",
+      "binary": "fls",
+      "packages": [
+        "sleuthkit"
+      ],
+      "repo": "debian",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "socat",
+      "name": "Socat",
+      "binary": "socat",
+      "packages": [
+        "socat"
+      ],
+      "repo": "debian",
+      "baseline": true,
+      "max_args": 32
+    },
+    {
+      "id": "sqlmap",
+      "name": "SQLMap",
+      "binary": "sqlmap",
+      "packages": [
+        "sqlmap"
+      ],
+      "repo": "debian",
+      "baseline": true,
+      "max_args": 32
+    },
+    {
+      "id": "steghide",
+      "name": "Steghide",
+      "binary": "steghide",
+      "packages": [
+        "steghide"
+      ],
+      "repo": "kali",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "strace",
+      "name": "strace",
+      "binary": "strace",
+      "packages": [
+        "strace"
+      ],
+      "repo": "debian",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "tcpdump",
+      "name": "tcpdump",
+      "binary": "tcpdump",
+      "packages": [
+        "tcpdump"
+      ],
+      "repo": "debian",
+      "baseline": true,
+      "max_args": 32
+    },
+    {
+      "id": "theharvester",
+      "name": "theHarvester",
+      "binary": "theHarvester",
+      "packages": [
+        "theharvester"
+      ],
+      "repo": "debian",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "tshark",
+      "name": "Packet Analysis (tshark)",
+      "binary": "tshark",
+      "packages": [
+        "tshark"
+      ],
+      "repo": "debian",
+      "baseline": true,
+      "max_args": 32
+    },
+    {
+      "id": "volatility3",
+      "name": "Volatility 3",
+      "binary": "vol",
+      "packages": [
+        "volatility3"
+      ],
+      "repo": "kali",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "wapiti",
+      "name": "Wapiti",
+      "binary": "wapiti",
+      "packages": [
+        "wapiti"
+      ],
+      "repo": "kali",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "weevely",
+      "name": "Weevely",
+      "binary": "weevely",
+      "packages": [
+        "weevely"
+      ],
+      "repo": "kali",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "whatweb",
+      "name": "WhatWeb",
+      "binary": "whatweb",
+      "packages": [
+        "whatweb"
+      ],
+      "repo": "debian",
+      "baseline": true,
+      "max_args": 32
+    },
+    {
+      "id": "whois",
+      "name": "WHOIS Lookup",
+      "binary": "whois",
+      "packages": [
+        "whois"
+      ],
+      "repo": "debian",
+      "baseline": true,
+      "max_args": 32
+    },
+    {
+      "id": "wifite",
+      "name": "Wifite",
+      "binary": "wifite",
+      "packages": [
+        "wifite"
+      ],
+      "repo": "debian",
+      "baseline": false,
+      "max_args": 32
+    },
+    {
+      "id": "wpscan",
+      "name": "WPScan",
+      "binary": "wpscan",
+      "packages": [
+        "wpscan"
+      ],
+      "repo": "kali",
+      "baseline": false,
+      "max_args": 32
+    }
+  ]
+}

@@ -1,0 +1,953 @@
+# =============================================================================
+# Kali Linux Windows Substitute - tool catalog
+# =============================================================================
+# This file is the single source of truth for every tool the app knows about.
+# The dashboard, the Tool Manager, the in-app "What you need" / prerequisites
+# panels and docs/TOOLS.md are all generated from the entries below.
+#
+# Add a tool by adding an entry. There is no other place to register it.
+#
+# Field reference
+#   id            short unique id used in URLs and the runtime allowlist
+#   name          display name
+#   category      one of the ids under `categories:`
+#   summary       1-2 sentences, plain English, shown on the tile and panel
+#   packages      apt package name(s) that provide the tool
+#   repo          "debian" (default) or "kali" (needs the Kali repository)
+#   baseline      true = preinstalled in the runtime image
+#   danger        low | moderate | high (drives the safety copy and defaults)
+#   license       upstream licence, shown in THIRD_PARTY_NOTICES
+#   homepage      official documentation URL
+#   prerequisites list of things that must be true/installed for it to work
+#   usage         plain-English, in-depth how-to (rendered in the app and docs)
+#   examples      copy-pasteable example invocations
+# =============================================================================
+
+version: 1
+
+app:
+  name: "Kali Linux Windows Substitute"
+  runtime_distro: "KaliSubstitute"
+  agent_port: 5055
+
+categories:
+  - id: information-gathering
+    name: Information Gathering
+  - id: vulnerability-analysis
+    name: Vulnerability Analysis
+  - id: web-applications
+    name: Web Applications
+  - id: password-attacks
+    name: Password Attacks
+  - id: wireless-attacks
+    name: Wireless Attacks
+  - id: exploitation-tools
+    name: Exploitation Tools
+  - id: sniffing-spoofing
+    name: Sniffing & Spoofing
+  - id: post-exploitation
+    name: Post Exploitation
+  - id: forensics
+    name: Forensics
+  - id: reverse-engineering
+    name: Reverse Engineering
+  - id: reporting
+    name: Reporting
+
+tools:
+  # ---------------------------------------------------------------------------
+  # Information Gathering
+  # ---------------------------------------------------------------------------
+  - id: dns
+    name: DNS Lookup (dig)
+    category: information-gathering
+    summary: "Resolves a name and prints the DNS records a resolver returns."
+    packages: [dnsutils]
+    baseline: true
+    danger: low
+    license: "ISC"
+    homepage: "https://bind9.readthedocs.io/"
+    prerequisites:
+      - "A domain name, e.g. example.com."
+      - "The runtime must have outbound DNS (it does by default)."
+    usage: >
+      Type a domain and the app runs `dig +short` against it, showing A/AAAA
+      records. For a specific record type, prefix the query, e.g. `MX example.com`
+      or `TXT example.com`. DNS lookups are passive and generally safe.
+    examples:
+      - "example.com"
+      - "MX example.com"
+      - "TXT example.com"
+
+  - id: whois
+    name: WHOIS Lookup
+    category: information-gathering
+    summary: "Looks up the public registration record for a domain or IP address."
+    packages: [whois]
+    baseline: true
+    danger: low
+    license: "GPL-2.0"
+    homepage: "https://packages.debian.org/whois"
+    prerequisites:
+      - "A domain name or IP address."
+      - "The runtime needs the `/etc/services` database (bundled in the image)."
+    usage: >
+      Enter a domain or IP to see registrar, registration and expiry dates, and
+      name servers. WHOIS data is public; respect the registry's terms of use.
+    examples:
+      - "example.com"
+      - "8.8.8.8"
+
+  - id: nmap
+    name: Nmap
+    category: information-gathering
+    summary: "Discovers hosts and services by probing ports on a network you are authorised to scan."
+    packages: [nmap]
+    baseline: true
+    danger: moderate
+    license: "NPSL (not OSI-approved; bundled with the runtime for convenience)"
+    homepage: "https://nmap.org/book/man.html"
+    prerequisites:
+      - "A target you own or are authorised to scan (IP, hostname or CIDR)."
+      - "For SYN/host-discovery modes the runtime needs raw sockets; in WSL2 this is available but see docs/LIMITATIONS.md."
+    usage: >
+      Pick a profile. Host discovery sends pings to find live hosts; TCP quick
+      scan checks the 1000 most common ports; Service sends version probes;
+      OS tries operating-system fingerprinting (unreliable through WSL2's NAT).
+      Start small: a single host, TCP quick, then narrow down.
+    examples:
+      - "nmap -sV 192.168.1.10"
+      - "nmap -sn 192.168.1.0/24"
+      - "nmap -p- --min-rate 1000 192.168.1.10"
+
+  - id: masscan
+    name: Masscan
+    category: information-gathering
+    summary: "An extremely fast port scanner for wide address ranges you are authorised to test."
+    packages: [masscan]
+    danger: high
+    license: "AGPL-3.0"
+    homepage: "https://github.com/robertdavidgraham/masscan"
+    prerequisites:
+      - "A target range you are authorised to scan."
+      - "Raw-socket access (see docs/LIMITATIONS.md)."
+      - "Keep the rate low on a shared network; it can saturate a link."
+    usage: >
+      Masscan is like nmap but tuned for speed across large ranges. Use a low
+      `--rate` on a home or office network (e.g. 500 packets/second) so you do
+      not disrupt it. Confirm the range is in scope before running.
+    examples:
+      - "masscan 192.168.1.0/24 -p1-1000 --rate 500"
+      - "masscan 10.0.0.0/8 -p80,443 --rate 2000"
+
+  - id: whatweb
+    name: WhatWeb
+    category: information-gathering
+    summary: "Fingerprints the technologies behind a website (CMS, frameworks, servers)."
+    packages: [whatweb]
+    baseline: true
+    danger: moderate
+    license: "GPL-2.0"
+    homepage: "https://github.com/urbanadventurer/WhatWeb"
+    prerequisites:
+      - "The URL of a site you are authorised to test."
+      - "Ruby (bundled in the runtime image)."
+    usage: >
+      Enter a URL. WhatWeb reports the server, CMS, JavaScript libraries and
+      header hints it recognises. Aggression level 1 (the default) is a single
+      polite request; higher levels send more probes.
+    examples:
+      - "https://example.com"
+
+  - id: dnsrecon
+    name: DNSRecon
+    category: information-gathering
+    summary: "Enumerates DNS records, subdomains and zone-transfer weaknesses."
+    packages: [dnsrecon]
+    danger: moderate
+    license: "GPL-2.0"
+    homepage: "https://github.com/darkoperator/dnsrecon"
+    prerequisites:
+      - "A domain you are authorised to enumerate."
+    usage: >
+      Runs standard record enumeration and attempts a zone transfer (AXFR),
+      which fails on a correctly configured server. Useful early in an
+      engagement to map an organisation's public footprint.
+    examples:
+      - "dnsrecon -d example.com"
+
+  - id: theharvester
+    name: theHarvester
+    category: information-gathering
+    summary: "Collects emails, subdomains and names from public sources (OSINT)."
+    packages: [theharvester]
+    danger: low
+    license: "GPL-2.0"
+    homepage: "https://github.com/laramies/theHarvester"
+    prerequisites:
+      - "A domain you are authorised to investigate."
+      - "Some sources need API keys; without them theHarvester uses free sources only."
+    usage: >
+      Give it a domain and a source list (e.g. `-b duckduckgo,bing`). It builds a
+      picture of an organisation's public exposure. Use only on domains you are
+      authorised to assess.
+    examples:
+      - "theHarvester -d example.com -b duckduckgo"
+
+  # ---------------------------------------------------------------------------
+  # Vulnerability Analysis
+  # ---------------------------------------------------------------------------
+  - id: nikto
+    name: Nikto
+    category: vulnerability-analysis
+    summary: "Scans a web server for outdated software, risky files and misconfigurations."
+    packages: [nikto]
+    repo: kali
+    danger: moderate
+    license: "GPL-2.0"
+    homepage: "https://github.com/sullo/nikto"
+    prerequisites:
+      - "The host or URL of a web server you are authorised to test."
+      - "Perl (bundled in the runtime image)."
+      - "Installed on demand from the Kali repository."
+    usage: >
+      Point nikto at a base URL. It checks for thousands of potentially
+      dangerous files and server issues and prints a report. It is noisy; only
+      run it against systems in scope.
+    examples:
+      - "nikto -h https://example.com"
+
+  - id: nuclei
+    name: Nuclei
+    category: vulnerability-analysis
+    summary: "Runs a large community template library to detect known vulnerabilities and exposures."
+    packages: [nuclei]
+    repo: kali
+    danger: moderate
+    license: "MIT"
+    homepage: "https://github.com/projectdiscovery/nuclei"
+    prerequisites:
+      - "A target URL or host in scope."
+      - "The template library (downloaded on first run; needs internet)."
+      - "Installed on demand from the Kali repository."
+    usage: >
+      Nuclei matches targets against YAML templates. Start with a tag filter
+      (e.g. `-tags cve`) so a scan finishes quickly, then widen. Read the
+      template names to understand what each check does.
+    examples:
+      - "nuclei -u https://example.com -tags cve"
+      - "nuclei -u https://example.com -severity high,critical"
+
+  - id: lynis
+    name: Lynis
+    category: vulnerability-analysis
+    summary: "Audits the security posture of a Linux host (including the runtime itself)."
+    packages: [lynis]
+    repo: kali
+    danger: low
+    license: "GPL-3.0"
+    homepage: "https://cisofy.com/lynis/"
+    prerequisites:
+      - "A Linux host to audit (the app's runtime is a fine, safe target)."
+      - "Root for a full audit."
+    usage: >
+      Runs a local system audit and scores hardening. Practise on the app's own
+      runtime, then apply the advice to servers you manage. It changes nothing.
+    examples:
+      - "lynis audit system"
+
+  - id: searchsploit
+    name: SearchSploit
+    category: vulnerability-analysis
+    summary: "Searches the local Exploit-DB archive for published exploits and proofs-of-concept."
+    packages: [exploitdb]
+    repo: kali
+    danger: low
+    license: "GPL-2.0"
+    homepage: "https://www.exploit-db.com/"
+    prerequisites:
+      - "The Exploit-DB archive (bundled with the package)."
+    usage: >
+      Search by product and version to learn whether a known exploit exists for
+      something you maintain. Reading a PoC is not using it; use it only on
+      systems you are authorised to test.
+    examples:
+      - "searchsploit apache 2.4"
+      - "searchsploit -w openssh 8.2"
+
+  # ---------------------------------------------------------------------------
+  # Web Applications
+  # ---------------------------------------------------------------------------
+  - id: sqlmap
+    name: SQLMap
+    category: web-applications
+    summary: "Tests whether a web parameter is vulnerable to SQL injection, and can prove it."
+    packages: [sqlmap]
+    baseline: true
+    danger: high
+    license: "GPL-2.0"
+    homepage: "https://sqlmap.org/"
+    prerequisites:
+      - "A URL containing a parameter, e.g. https://target/item?id=1."
+      - "Written authorisation to test the target."
+      - "A reachable target; sqlmap is intrusive and will alter database state if it can."
+    usage: >
+      Give it a URL with a parameter. SQLMap detects the injection type, the
+      database engine, and (with more flags) enumerates data. Start with
+      `--batch` so it does not prompt, and keep to `--level 1 --risk 1` first.
+      Never point it at a site you do not own or have permission to test.
+    examples:
+      - "sqlmap -u 'https://example.com/item?id=1' --batch"
+      - "sqlmap -u 'https://example.com/item?id=1' --dbs --batch"
+
+  - id: gobuster
+    name: Gobuster
+    category: web-applications
+    summary: "Brute-forces hidden directories and files on a web server using a wordlist."
+    packages: [gobuster]
+    baseline: true
+    danger: moderate
+    license: "Apache-2.0"
+    homepage: "https://github.com/OJ/gobuster"
+    prerequisites:
+      - "A base URL in scope."
+      - "A wordlist (the runtime ships common wordlists)."
+    usage: >
+      Enter a base URL. Gobuster requests each word from a bundled wordlist and
+      reports non-404 responses. Directory brute-forcing generates a lot of
+      traffic; only use it where you have permission.
+    examples:
+      - "gobuster dir -u https://example.com -w /usr/share/wordlists/dirb/common.txt"
+
+  - id: ffuf
+    name: ffuf
+    category: web-applications
+    summary: "A fast web fuzzer for directories, parameters and virtual hosts."
+    packages: [ffuf]
+    baseline: true
+    danger: moderate
+    license: "MIT"
+    homepage: "https://github.com/ffuf/ffuf"
+    prerequisites:
+      - "A URL containing the word FUZZ where fuzzing should happen."
+      - "A wordlist (the runtime ships common wordlists)."
+    usage: >
+      Put FUZZ where the word should go, e.g. https://example.com/FUZZ. Add
+      `-mc 200,301,302` to filter to interesting status codes. Fuzzing is high
+      volume; only run it against systems in scope.
+    examples:
+      - "ffuf -u https://example.com/FUZZ -w /usr/share/wordlists/dirb/common.txt -mc 200,301,302"
+
+  - id: wpscan
+    name: WPScan
+    category: web-applications
+    summary: "Scans a WordPress site for vulnerable plugins, themes and users."
+    packages: [wpscan]
+    repo: kali
+    danger: moderate
+    license: "WPScan licence (source-available; see upstream)"
+    homepage: "https://wpscan.com/"
+    prerequisites:
+      - "A WordPress site you are authorised to test."
+      - "Ruby and its gems (bundled in the runtime image)."
+      - "Installed on demand from the Kali repository."
+    usage: >
+      Runs version, plugin and user enumeration against WordPress. Without a
+      WPScan API token the vulnerability feed is limited. Use only on sites you
+      own or manage.
+    examples:
+      - "wpscan --url https://example.com"
+      - "wpscan --url https://example.com --enumerate vp"
+
+  - id: commix
+    name: Commix
+    category: web-applications
+    summary: "Tests web parameters for OS command-injection flaws."
+    packages: [commix]
+    repo: kali
+    danger: high
+    license: "GPL-3.0"
+    homepage: "https://github.com/commixproject/commix"
+    prerequisites:
+      - "A URL with a parameter, in scope."
+      - "Explicit authorisation: command injection proves the most severe class of web flaw."
+    usage: >
+      Similar in spirit to sqlmap but for command injection. Point it at a
+      parameter. Only against targets you are authorised to test.
+    examples:
+      - "commix --url='https://example.com/ping?host=127.0.0.1' --batch"
+
+  - id: wapiti
+    name: Wapiti
+    category: web-applications
+    summary: "Black-box web scanner that audits pages for common vulnerabilities."
+    packages: [wapiti]
+    repo: kali
+    danger: moderate
+    license: "GPL-2.0"
+    homepage: "https://wapiti-scanner.github.io/"
+    prerequisites:
+      - "A target URL in scope."
+    usage: >
+      Crawls the site and tests forms and parameters. Reports findings by
+      category (SQLi, XSS, etc.). Run against a staging copy when possible.
+    examples:
+      - "wapiti -u https://example.com"
+
+  # ---------------------------------------------------------------------------
+  # Password Attacks
+  # ---------------------------------------------------------------------------
+  - id: hydra
+    name: Hydra
+    category: password-attacks
+    summary: "Tests whether a login service accepts weak credentials you supply."
+    packages: [hydra]
+    baseline: true
+    danger: high
+    license: "GPL-3.0"
+    homepage: "https://github.com/vanhauser-thc/thc-hydra"
+    prerequisites:
+      - "A target host in scope (SSH, FTP, HTTP basic/form are common)."
+      - "Small user and password lists. Large lists can lock accounts."
+      - "Explicit authorisation: unauthorised login attempts are a crime in most places."
+    usage: >
+      Provide the target, the service, and lists of usernames and passwords.
+      Start with a handful of credentials to avoid lockouts and account
+      disruption. Only ever against systems you are authorised to test.
+    examples:
+      - "hydra -L users.txt -P passwords.txt ssh://192.168.1.10"
+      - "hydra -l admin -P passwords.txt 192.168.1.10 http-get /"
+
+  - id: john
+    name: John the Ripper
+    category: password-attacks
+    summary: "Recovers passwords from hashes you already hold, using a wordlist or rules."
+    packages: [john]
+    baseline: true
+    danger: moderate
+    license: "GPL-2.0"
+    homepage: "https://www.openwall.com/john/"
+    prerequisites:
+      - "One or more password hashes (one per line)."
+      - "A wordlist for best results (the runtime ships common ones)."
+    usage: >
+      Paste hashes, then John identifies the format and attacks them. Use this
+      to check the strength of hashes you own (e.g. auditing your own systems).
+      Never crack hashes you are not authorised to possess.
+    examples:
+      - "john --wordlist=/usr/share/wordlists/rockyou.txt hashes.txt"
+      - "john --show hashes.txt"
+
+  - id: hashcat
+    name: Hashcat
+    category: password-attacks
+    summary: "Fast hash cracking with masks or wordlists; runs at a low workload by default."
+    packages: [hashcat]
+    baseline: true
+    danger: moderate
+    license: "MIT"
+    homepage: "https://hashcat.net/hashcat/"
+    prerequisites:
+      - "A single hash and its type (the app picks a mode for you)."
+      - "For usable speed: a GPU with an OpenCL/CUDA driver. CPU-only works but is very slow."
+      - "Explicit authorisation for any hash you did not create."
+    usage: >
+      Hashcat is the fastest open password cracker. Give it a hash and a mask
+      (e.g. ?d?d?d?d for four digits) or a wordlist. GPU acceleration needs a
+      driver on the Windows side; without one it runs on the CPU, slowly.
+    examples:
+      - "hashcat -m 0 -a 3 hash.txt ?d?d?d?d"
+      - "hashcat -m 1000 -a 0 hash.txt /usr/share/wordlists/rockyou.txt"
+
+  - id: medusa
+    name: Medusa
+    category: password-attacks
+    summary: "Parallel, speedy login brute-forcer for many protocols."
+    packages: [medusa]
+    repo: kali
+    danger: high
+    license: "GPL-2.0"
+    homepage: "https://github.com/jmk-foofus/medusa"
+    prerequisites:
+      - "A target host and service in scope."
+      - "Explicit authorisation; large thread counts can knock a service over."
+    usage: >
+      Like Hydra, a parallel login tester. Prefer Hydra unless you specifically
+      need Medusa's module, and keep `-t` (threads) low.
+    examples:
+      - "medusa -h 192.168.1.10 -u admin -P passwords.txt -M ssh"
+
+  - id: crunch
+    name: Crunch
+    category: password-attacks
+    summary: "Generates custom wordlists from character sets and patterns."
+    packages: [crunch]
+    repo: kali
+    danger: low
+    license: "GPL-2.0"
+    homepage: "https://sourceforge.net/projects/crunch-wordlist/"
+    prerequisites:
+      - "A length range and charset for the words you want."
+      - "Enough free disk space: generated lists grow fast."
+    usage: >
+      Describe the alphabet and length; Crunch prints every combination. Pipe
+      the output straight into another tool rather than saving huge files.
+    examples:
+      - "crunch 6 8 abc123"
+      - "crunch 8 8 -t pass@@@@"  # @ = lowercase letter
+
+  - id: cewl
+    name: CeWL
+    category: password-attacks
+    summary: "Builds a targeted wordlist by crawling a website's words."
+    packages: [cewl]
+    repo: kali
+    danger: moderate
+    license: "GPL-2.0"
+    homepage: "https://github.com/digininja/CeWL"
+    prerequisites:
+      - "A website in scope to crawl."
+      - "Ruby (bundled in the runtime image)."
+    usage: >
+      CeWL turns an organisation's own public pages into a wordlist of names,
+      products and jargon, which makes password guessing more realistic in a
+      test. Only crawl sites in scope.
+    examples:
+      - "cewl https://example.com -w words.txt -d 2 -m 6"
+
+  # ---------------------------------------------------------------------------
+  # Wireless Attacks
+  # ---------------------------------------------------------------------------
+  - id: aircrack-ng
+    name: Aircrack-ng
+    category: wireless-attacks
+    summary: "Audits Wi-Fi security using captured handshakes and packet files."
+    packages: [aircrack-ng]
+    danger: high
+    license: "GPL-2.0"
+    homepage: "https://www.aircrack-ng.org/"
+    prerequisites:
+      - "A Wi-Fi adapter that supports monitor mode. In WSL2 the physical radio is not exposed, so this needs a dedicated Linux machine or VM with USB passthrough (see docs/LIMITATIONS.md)."
+      - "A capture file (.cap) containing a handshake, if analysing offline."
+      - "Explicit authorisation: only test Wi-Fi networks you own or are contracted to test."
+    usage: >
+      Aircrack-ng analyses captures and recovers WPA/WEP keys. Because WSL2
+      cannot reach the Wi-Fi radio, use this to analyse captures made elsewhere;
+      live monitor-mode work needs real Linux hardware.
+    examples:
+      - "aircrack-ng -w /usr/share/wordlists/rockyou.txt capture.cap"
+
+  - id: bettercap
+    name: Bettercap
+    category: wireless-attacks
+    summary: "A modular framework for network, Wi-Fi and Bluetooth reconnaissance and attacks."
+    packages: [bettercap]
+    danger: high
+    license: "GPL-3.0"
+    homepage: "https://www.bettercap.org/"
+    prerequisites:
+      - "A network interface you are authorised to use."
+      - "Root and (for wireless) monitor-mode capable hardware."
+    usage: >
+      Bettercap has an interactive shell and web UI. Use it for ARP spoofing,
+      sniffing and Wi-Fi discovery on a lab network you own. Never on a network
+      you are not authorised to test.
+    examples:
+      - "bettercap -iface eth0"
+      - "bettercap -eval 'net.probe on; net.show'"
+
+  - id: wifite
+    name: Wifite
+    category: wireless-attacks
+    summary: "Automates the common Wi-Fi audit workflow around aircrack-ng and friends."
+    packages: [wifite]
+    danger: high
+    license: "GPL-2.0"
+    homepage: "https://github.com/derv82/wifite2"
+    prerequisites:
+      - "Monitor-mode Wi-Fi hardware (not available in WSL2)."
+      - "Explicit authorisation on the specific network."
+    usage: >
+      Wifite drives the capture and cracking steps for you. It is a convenience
+      wrapper; the platform limitation on wireless hardware still applies.
+    examples:
+      - "wifite"
+
+  - id: hcxtools
+    name: hcxtools
+    category: wireless-attacks
+    summary: "Converts and cleans Wi-Fi capture files into hashcat-ready formats."
+    packages: [hcxtools]
+    repo: kali
+    danger: moderate
+    license: "MIT"
+    homepage: "https://github.com/ZerBea/hcxtools"
+    prerequisites:
+      - "A .cap/.pcapng Wi-Fi capture file."
+    usage: >
+      Turns packet captures into hashcat/John-consumable files (e.g. .hccapx or
+      .pmkid), so you can brute-force a handshake you are authorised to test.
+    examples:
+      - "hcxpcapngtool -o out.hc22000 capture.pcapng"
+
+  # ---------------------------------------------------------------------------
+  # Exploitation Tools
+  # ---------------------------------------------------------------------------
+  - id: metasploit
+    name: Metasploit Framework
+    category: exploitation-tools
+    summary: "The standard exploitation framework: search, scan with auxiliary modules, and use exploits."
+    packages: [metasploit-framework]
+    repo: kali
+    danger: high
+    license: "BSD-3-Clause (plus module licences)"
+    homepage: "https://www.metasploit.com/"
+    prerequisites:
+      - "Installed on demand; it is large (several hundred MB)."
+      - "A target in scope and an understanding of the module you run."
+      - "Explicit authorisation for any exploit or scanner action."
+    usage: >
+      `msfconsole` opens an interactive session. This app wires the auxiliary
+      scanner path so you can run non-destructive checks (e.g.
+      auxiliary/scanner/http/http_version) from a form. Exploit modules are
+      launched in the terminal, deliberately not automated.
+    examples:
+      - "msfconsole -q -x 'use auxiliary/scanner/portscan/tcp; set RHOSTS 192.168.1.10; run; exit'"
+
+  - id: msfvenom
+    name: msfvenom
+    category: exploitation-tools
+    summary: "Generates payloads and shellcode in many formats."
+    packages: [metasploit-framework]
+    repo: kali
+    danger: high
+    license: "BSD-3-Clause"
+    homepage: "https://docs.metasploit.com/docs/using-metasploit/basics/how-to-use-msfvenom.html"
+    prerequisites:
+      - "Metasploit installed on demand."
+      - "A legitimate reason: payload generation is only for authorised testing."
+    usage: >
+      Builds a payload file (e.g. a reverse shell) for a lab. This is included
+      for completeness; the app never auto-delivers or executes payloads.
+    examples:
+      - "msfvenom -p linux/x64/shell_reverse_tcp LHOST=192.168.1.50 LPORT=4444 -f elf -o shell.elf"
+
+  # ---------------------------------------------------------------------------
+  # Sniffing & Spoofing
+  # ---------------------------------------------------------------------------
+  - id: tcpdump
+    name: tcpdump
+    category: sniffing-spoofing
+    summary: "Captures packet headers on an interface, or reads an existing capture."
+    packages: [tcpdump]
+    baseline: true
+    danger: moderate
+    license: "BSD-3-Clause"
+    homepage: "https://www.tcpdump.org/"
+    prerequisites:
+      - "For live capture, an interface you are allowed to capture on and root."
+      - "Because WSL2 sits behind a NAT it sees little of your real LAN; capture on Windows instead and analyse the file here."
+    usage: >
+      Use a capture expression to limit traffic (e.g. `port 53`). Write to a file
+      with `-w` and analyse it later. Only capture traffic you are authorised to see.
+    examples:
+      - "tcpdump -i eth0 -n port 53"
+      - "tcpdump -i any -w capture.pcap -c 500"
+
+  - id: tshark
+    name: Packet Analysis (tshark)
+    category: sniffing-spoofing
+    summary: "Reads a capture file and summarises conversations, talkers and protocol mix."
+    packages: [tshark]
+    baseline: true
+    danger: low
+    license: "GPL-2.0"
+    homepage: "https://www.wireshark.org/docs/man-pages/tshark.html"
+    prerequisites:
+      - "A .pcap/.pcapng capture file placed in the evidence folder."
+      - "For live capture on Windows, install Npcap/Wireshark; on the WSL2 side raw capture is limited."
+    usage: >
+      Give it a capture filename and the app prints conversation statistics. Use
+      it to understand a capture you already have without opening a GUI.
+    examples:
+      - "tshark -r capture.pcapng -q -z conv,tcp"
+      - "tshark -r capture.pcapng -Y 'http.request' -T fields -e http.host"
+
+  - id: responder
+    name: Responder
+    category: sniffing-spoofing
+    summary: "Answers broadcast name-resolution requests to reveal credentials on a Windows network."
+    packages: [responder]
+    repo: kali
+    danger: high
+    license: "GPL-3.0"
+    homepage: "https://github.com/lgandx/Responder"
+    prerequisites:
+      - "A network segment you own or are contracted to assess."
+      - "Root, and a bridged network (WSL2 NAT limits what it can see)."
+      - "Explicit authorisation: Responder captures credentials."
+    usage: >
+      Responder poisons LLMNR/NBT-NS/mDNS so clients send you their hashes. Only
+      ever run it on an authorised internal assessment; it is disruptive.
+    examples:
+      - "responder -I eth0 -wrf"
+
+  # ---------------------------------------------------------------------------
+  # Post Exploitation
+  # ---------------------------------------------------------------------------
+  - id: netcat
+    name: Netcat
+    category: post-exploitation
+    summary: "The TCP/IP Swiss-army knife: banners, port checks, simple transfers."
+    packages: [netcat-openbsd]
+    baseline: true
+    danger: moderate
+    license: "GPL-2.0"
+    homepage: "https://man.openbsd.org/nc"
+    prerequisites:
+      - "A host/port in scope."
+    usage: >
+      Grab a service banner, test whether a port is open, or move a file over a
+      controlled connection. Useful for quick checks during a test.
+    examples:
+      - "nc -vz 192.168.1.10 22"
+      - "nc -v 192.168.1.10 80"
+
+  - id: socat
+    name: Socat
+    category: post-exploitation
+    summary: "Establishes bidirectional streams between many kinds of endpoints."
+    packages: [socat]
+    baseline: true
+    danger: moderate
+    license: "GPL-2.0"
+    homepage: "http://www.dest-unreach.org/socat/"
+    prerequisites:
+      - "Endpoints you control."
+    usage: >
+      More capable than netcat: relays, TLS, UNIX sockets. Handy in labs for
+      building small listeners and tunnels between your own machines.
+    examples:
+      - "socat - TCP4:192.168.1.10:80"
+
+  - id: weevely
+    name: Weevely
+    category: post-exploitation
+    summary: "Generates and operates a small PHP webshell for authorised web tests."
+    packages: [weevely]
+    repo: kali
+    danger: high
+    license: "GPL-3.0"
+    homepage: "https://github.com/epinna/weevely3"
+    prerequisites:
+      - "A web server you are authorised to test."
+      - "Explicit authorisation: this is a backdoor tool."
+    usage: >
+      Creates a PHP agent you upload during an authorised web test to retain
+      access you are permitted to have. Handled here for completeness; never
+      against systems you do not own or have permission to test.
+    examples:
+      - "weevely generate s3cret agent.php"
+      - "weevely https://example.com/agent.php s3cret"
+
+  # ---------------------------------------------------------------------------
+  # Forensics
+  # ---------------------------------------------------------------------------
+  - id: foremost
+    name: Foremost
+    category: forensics
+    summary: "Carves files out of a disk image or binary by their headers and footers."
+    packages: [foremost]
+    baseline: true
+    danger: low
+    license: "Public domain (US Air Force)"
+    homepage: "https://foremost.sourceforge.net/"
+    prerequisites:
+      - "An image or binary file inside the evidence folder."
+    usage: >
+      Give it a filename. Foremost recovers files (images, documents, archives)
+      it can recognise inside the image. The recovered files land in an output
+      folder you can open.
+    examples:
+      - "foremost -i image.raw -o out"
+
+  - id: binwalk
+    name: Binwalk
+    category: forensics
+    summary: "Finds and extracts embedded files and filesystems inside firmware or binaries."
+    packages: [binwalk]
+    baseline: true
+    danger: low
+    license: "MIT"
+    homepage: "https://github.com/ReFirmLabs/binwalk"
+    prerequisites:
+      - "A firmware image or binary inside the evidence folder."
+    usage: >
+      Run it in scan mode first to see what is inside, then extract recognised
+      sections with `-e`. Common in IoT and firmware review.
+    examples:
+      - "binwalk firmware.bin"
+      - "binwalk -e firmware.bin"
+
+  - id: photorec
+    name: PhotoRec
+    category: forensics
+    summary: "Recovers deleted files of many types from disks, images and memory cards."
+    packages: [testdisk]
+    baseline: true
+    danger: low
+    license: "GPL-2.0"
+    homepage: "https://www.cgsecurity.org/wiki/PhotoRec"
+    prerequisites:
+      - "An image you are authorised to examine."
+      - "Enough free space for the recovered files."
+    usage: >
+      Operates on the runtime's own filesystems safely. In the app it targets an
+      evidence image. Recovered files go to a chosen output directory.
+    examples:
+      - "photorec /log /d out image.raw"
+
+  - id: exiftool
+    name: ExifTool
+    category: forensics
+    summary: "Reads and writes metadata in images, documents and media."
+    packages: [libimage-exiftool-perl]
+    baseline: true
+    danger: low
+    license: "Perl Artistic / GPL"
+    homepage: "https://exiftool.org/"
+    prerequisites:
+      - "A file inside the evidence folder."
+      - "Perl (bundled in the runtime image)."
+    usage: >
+      Shows EXIF/GPS and document metadata, which is very useful in OSINT and
+      incident work. Writing metadata is also possible but changes the file.
+    examples:
+      - "exiftool photo.jpg"
+      - "exiftool -a -G1 -s photo.jpg"
+
+  - id: steghide
+    name: Steghide
+    category: forensics
+    summary: "Hides or extracts data inside image and audio files."
+    packages: [steghide]
+    repo: kali
+    danger: low
+    license: "GPL-2.0"
+    homepage: "http://steghide.sourceforge.net/"
+    prerequisites:
+      - "A cover or suspect file inside the evidence folder."
+    usage: >
+      In forensics, try to extract a hidden payload you have been given the
+      passphrase for. It can also embed data, which is a CTF and research use.
+    examples:
+      - "steghide extract -sf suspect.jpg"
+
+  - id: volatility3
+    name: Volatility 3
+    category: forensics
+    summary: "Analyses memory dumps to list processes, connections and injected code."
+    packages: [volatility3]
+    repo: kali
+    danger: low
+    license: "GPL-2.0"
+    homepage: "https://github.com/volatilityfoundation/volatility3"
+    prerequisites:
+      - "A memory capture file inside the evidence folder."
+      - "The matching symbol table (Volatility downloads it for common OSes)."
+    usage: >
+      Point it at a memory image and run plugins (e.g. windows.pslist,
+      linux.bash) to understand what was running. Central to incident response.
+    examples:
+      - "vol -f memory.raw windows.pslist"
+      - "vol -f memory.raw linux.bash"
+
+  - id: sleuthkit
+    name: The Sleuth Kit
+    category: forensics
+    summary: "Command-line tools to examine disk images at the filesystem level."
+    packages: [sleuthkit]
+    danger: low
+    license: "CPL / IBM Public License"
+    homepage: "https://www.sleuthkit.org/sleuthkit/"
+    prerequisites:
+      - "A disk image inside the evidence folder."
+    usage: >
+      `mmls` lists partitions, `fls` lists directory entries (including deleted
+      ones), `icat` extracts a file by inode. The workhorse of disk forensics.
+    examples:
+      - "mmls image.raw"
+      - "fls -r -p image.raw"
+
+  # ---------------------------------------------------------------------------
+  # Reverse Engineering
+  # ---------------------------------------------------------------------------
+  - id: radare2
+    name: Radare2
+    category: reverse-engineering
+    summary: "A framework for disassembling, debugging and analysing binaries."
+    packages: [radare2]
+    danger: low
+    license: "LGPL-3.0"
+    homepage: "https://rada.re/n/"
+    prerequisites:
+      - "A binary inside the evidence folder."
+    usage: >
+      Open a binary, analyse it (`aaa`), then list functions and disassemble.
+      Use it to understand how a sample works before deciding anything.
+    examples:
+      - "r2 -A ./sample"
+      - "r2 -q -c 'aaa; afl' ./sample"
+
+  - id: gdb
+    name: GDB
+    category: reverse-engineering
+    summary: "The GNU debugger, for stepping through and inspecting running programs."
+    packages: [gdb]
+    danger: low
+    license: "GPL-3.0"
+    homepage: "https://www.gnu.org/software/gdb/"
+    prerequisites:
+      - "A program you compiled or are authorised to analyse."
+    usage: >
+      Break, step, inspect memory and registers. Pair it with a disassembler for
+      crash analysis and exploit development practice.
+    examples:
+      - "gdb ./program"
+      - "gdb -q -ex run -ex bt ./program"
+
+  - id: strace
+    name: strace
+    category: reverse-engineering
+    summary: "Traces the system calls a program makes."
+    packages: [strace]
+    danger: low
+    license: "GPL-2.0"
+    homepage: "https://strace.io/"
+    prerequisites:
+      - "A program you are authorised to run and observe."
+    usage: >
+      Shows exactly which files, sockets and syscalls a program touches. The
+      fastest way to understand what a binary is really doing.
+    examples:
+      - "strace -f -e trace=network ./program"
+
+  # ---------------------------------------------------------------------------
+  # Reporting
+  # ---------------------------------------------------------------------------
+  - id: report
+    name: Report Builder
+    category: reporting
+    summary: "Turns your findings and audit trail into an HTML, JSON or CSV report."
+    packages: []
+    builtin: true
+    danger: low
+    license: "MIT (part of this project)"
+    homepage: "https://github.com/your-org/kali-windows-substitute"
+    prerequisites:
+      - "Nothing extra. Uses the app's own findings database."
+    usage: >
+      Record findings as you work, then export a report (HTML for reading, JSON
+      or CSV for processing). All output is escaped so tool output cannot inject
+      into the report.
+    examples: []

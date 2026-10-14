@@ -1,0 +1,70 @@
+name: Release
+
+# Builds the Windows installer and attaches it to a GitHub release.
+# The rootfs image is NOT built here: debootstrap needs root and a lot of time,
+# and the image is hundreds of megabytes. Build it with runtime/build-rootfs.sh
+# and attach it to the release yourself, or host it and set KWS_ROOTFS_URL.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  installer:
+    name: Build installer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller
+
+      - name: Run the test suite first
+        run: |
+          python -m pip install "pytest>=8.0,<9"
+          python -m pytest -q
+
+      - name: Build the installer
+        shell: pwsh
+        run: ./installer/build.ps1
+
+      - name: Upload the installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: KaliWindowsSubstitute-Setup
+          path: installer/dist/KaliWindowsSubstitute-Setup.exe
+          if-no-files-found: error
+
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: installer/dist/KaliWindowsSubstitute-Setup.exe
+          generate_release_notes: true
+          body: |
+            ## Kali Linux Windows Substitute
+
+            Not affiliated with OffSec or the Kali Linux project. Use only on
+            systems you own or are authorised to test.
+
+            ### Before you install
+
+            You need WSL2 and the private runtime image. See
+            [docs/PREREQUISITES.md](docs/PREREQUISITES.md) and
+            [runtime/README.md](runtime/README.md).
+
+            The rootfs image is **not** bundled in this release. Build it with
+            `runtime/build-rootfs.sh`, or set `KWS_ROOTFS_URL` and
+            `KWS_ROOTFS_SHA256` so the app can download and verify one.

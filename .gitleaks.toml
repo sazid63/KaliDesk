@@ -1,0 +1,11 @@
+title = "Kali Linux Windows Substitute - gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Non-secret placeholders and test fixtures only."
+paths = [
+  '''\.env\.example$''',
+  '''tests/fixtures/''',
+]

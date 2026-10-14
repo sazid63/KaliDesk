@@ -1,0 +1,23 @@
+#!/bin/sh
+# Start the in-runtime tool agent if it is not already running.
+# Called by the Windows side as:  wsl -d KaliSubstitute -u root -- kalisub-agent-start
+set -eu
+
+ENV_FILE=/etc/kalisub/agent.env
+if [ -f "$ENV_FILE" ]; then
+  # shellcheck disable=SC1090
+  . "$ENV_FILE"
+fi
+
+PORT="${KALISUB_PORT:-5055}"
+PIDFILE=/run/kalisub-agent.pid
+
+if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+  exit 0
+fi
+
+mkdir -p /run /var/log
+nohup python3 /usr/local/lib/kalisub/agent.py >>/var/log/kalisub-agent.log 2>&1 &
+echo "$!" > "$PIDFILE"
+sleep 1
+exit 0

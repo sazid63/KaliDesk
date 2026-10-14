@@ -1,0 +1,31 @@
+[project]
+name = "kali-windows-substitute"
+version = "0.1.0"
+description = "A Kali-style security workbench for Windows that runs the real Linux tools in the app's own private WSL2 runtime."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Kali Linux Windows Substitute contributors" }]
+keywords = ["security", "windows", "wsl2", "pentest", "learning"]
+dependencies = [
+  "flask>=3.0,<4",
+  "PyYAML>=6.0,<7",
+  "pywebview>=5.0,<6",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0,<9", "ruff>=0.6,<1"]
+
+[project.urls]
+Homepage = "https://github.com/your-org/kali-windows-substitute"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

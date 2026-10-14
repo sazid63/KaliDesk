@@ -1,0 +1,36 @@
+Kali Linux Windows Substitute - installer notes
+==============================================
+
+What this installs
+------------------
+* The app, into %LOCALAPPDATA%\Programs\KaliWindowsSubstitute
+* A Start Menu shortcut
+* A per-user uninstall entry (Settings > Apps)
+
+What this does NOT do
+---------------------
+* It does not create a WSL distribution. The app creates its own private
+  distribution the first time you press "Set up runtime".
+* It does not run "wsl --shutdown".
+* It does not touch Docker Desktop or any other WSL distribution.
+
+Before you start
+----------------
+You need WSL2 (a one-time Windows feature). See docs/PREREQUISITES.md, or run
+enable-wsl.ps1 from an elevated PowerShell:
+
+    powershell -ExecutionPolicy Bypass -File enable-wsl.ps1
+
+After installing
+----------------
+1. Launch "Kali Linux Windows Substitute" from the Start Menu.
+2. Press "Set up runtime". The app imports its private Kali image.
+3. Pick a tool, read what it needs, then install it on demand.
+
+If the image is not bundled, build it with runtime/build-rootfs.sh (see
+runtime/README.md), or set KWS_ROOTFS_URL and KWS_ROOTFS_SHA256.
+
+Uninstalling
+------------
+Settings > Apps > Kali Linux Windows Substitute > Uninstall.
+The uninstaller asks separately whether to delete the private runtime.

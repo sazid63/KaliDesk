@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kali Linux Windows Substitute</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="prompt">kali@windows</span><span class="colon">:</span><span class="pwd">~</span>$ ./workbench
+  </div>
+  <div class="status">
+    <span id="runtime-dot" class="dot"></span>
+    <span id="runtime-text">checking runtime…</span>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <h2>Categories</h2>
+    <ul id="cat-list"></ul>
+    <hr>
+    <h2>Views</h2>
+    <ul id="view-list">
+      <li data-view="home" class="active">All tools</li>
+      <li data-view="manager-panel">Tool manager</li>
+      <li data-view="findings-panel">Findings</li>
+      <li data-view="audit-panel">Audit log</li>
+      <li data-view="chat-panel">AI chat</li>
+      <li data-view="settings-panel">Settings</li>
+    </ul>
+    <hr>
+    <p class="muted note">
+      Not affiliated with OffSec or Kali Linux. Test only systems you own or are
+      authorised to test.
+    </p>
+  </aside>
+
+  <main>
+    <div id="view-home">
+
+      <div id="setup-banner" class="banner">
+        <span class="grow" id="setup-message">checking runtime…</span>
+        <button class="primary" id="setup-ensure">Set up runtime</button>
+      </div>
+
+      <div id="intro" class="card">
+        <h2>Kali Linux Windows Substitute</h2>
+        <p>
+          A Kali-style workbench for Windows. The tools are the real Linux tools
+          running in the app's own private WSL2 runtime, not recompiled Windows
+          copies. Start with a tool below; each one tells you what it needs and
+          lets you install it on demand.
+        </p>
+        <p class="muted">
+          Record findings as you go, ask the optional AI to explain output, and
+          export a report. Everything runs locally.
+        </p>
+      </div>
+
+      <div class="toolbar">
+        <input id="search" class="grow" placeholder="Search tools…">
+        <select id="cat-filter">
+          <option value="">All categories</option>
+        </select>
+      </div>
+
+      <div id="tiles" class="grid"></div>
+      <div id="tool-panel" class="panel hidden">
+        <div class="panel-head">
+          <h2 id="tool-title">Tool</h2>
+          <button class="x" id="tool-close" title="Close">&times;</button>
+        </div>
+        <p id="tool-summary" class="summary muted"></p>
+
+        <div class="needs">
+          <h3>What this tool needs</h3>
+          <ul id="tool-prereqs"></ul>
+        </div>
+
+        <div id="tool-usage"></div>
+
+        <form id="tool-form"></form>
+
+        <p class="legal">
+          Use only on systems you own or are explicitly authorised to test.
+          Unauthorised access to computer systems is a criminal offence in most
+          countries.
+        </p>
+
+        <div class="actions">
+          <button type="button" class="primary" id="tool-run">Run</button>
+          <button type="button" class="ghost" id="tool-preview">Preview command</button>
+        </div>
+
+        <pre id="tool-output" class="hidden"></pre>
+
+        <div class="ai">
+          <label for="ai-explain-input">Ask the AI to explain the output (optional)</label>
+          <div class="ai-row">
+            <input id="ai-explain-input" placeholder="Optional extra question">
+            <button type="button" class="primary" id="ai-explain">Explain</button>
+          </div>
+          <div id="tool-ai-out" class="ai-out"></div>
+        </div>
+      </div>
+
+    </div><!-- /#view-home -->
+
+    <div id="manager-panel" class="panel hidden">
+      <div class="panel-head">
+        <h2>Tool manager</h2>
+        <button class="x" data-close="manager-panel">&times;</button>
+      </div>
+      <p class="muted">Install or uninstall any tool inside the app's private runtime.</p>
+      <div class="toolbar">
+        <input id="manager-search" class="grow" placeholder="Filter tools…">
+        <label class="muted"><input type="checkbox" id="manager-installed"> installed only</label>
+      </div>
+      <div id="manager-list" class="manager"></div>
+    </div>
+
+    <div id="findings-panel" class="panel hidden">
+      <div class="panel-head">
+        <h2>Findings</h2>
+        <button class="x" data-close="findings-panel">&times;</button>
+      </div>
+      <div class="toolbar">
+        <button class="ghost" id="finding-new">Add finding</button>
+        <span class="grow"></span>
+        <button class="ghost" id="report-html">HTML</button>
+        <button class="ghost" id="report-json">JSON</button>
+        <button class="ghost" id="report-csv">CSV</button>
+      </div>
+      <table>
+        <thead><tr><th>Severity</th><th>Tool</th><th>Target</th><th>Title</th><th>When</th></tr></thead>
+        <tbody id="findings-body"></tbody>
+      </table>
+    </div>
+
+    <div id="audit-panel" class="panel hidden">
+      <div class="panel-head">
+        <h2>Audit log</h2>
+        <button class="x" data-close="audit-panel">&times;</button>
+      </div>
+      <p class="muted">Every tool run, install and removal is recorded locally.</p>
+      <table>
+        <thead><tr><th>When</th><th>Action</th><th>Target</th><th>Result</th></tr></thead>
+        <tbody id="audit-body"></tbody>
+      </table>
+    </div>
+
+    <div id="chat-panel" class="panel hidden">
+      <div class="panel-head">
+        <h2>AI chat (optional)</h2>
+        <button class="x" data-close="chat-panel">&times;</button>
+      </div>
+      <p class="muted">The AI can suggest commands and propose a tool run. It never runs anything without your confirmation.</p>
+      <div id="chat-log" class="chat"></div>
+      <div class="chat-input">
+        <input id="chat-input" placeholder="Ask about a tool or a command…">
+        <button class="primary" id="chat-send">Send</button>
+      </div>
+    </div>
+
+    <div id="settings-panel" class="panel hidden">
+      <div class="panel-head">
+        <h2>Settings</h2>
+        <button class="x" data-close="settings-panel">&times;</button>
+      </div>
+
+      <h3>Runtime</h3>
+      <dl class="kv">
+        <dt>WSL2 available</dt><dd id="set-wsl">—</dd>
+        <dt>Runtime installed</dt><dd id="set-installed">—</dd>
+        <dt>Tool agent</dt><dd id="set-agent">—</dd>
+        <dt>Message</dt><dd id="set-message">—</dd>
+      </dl>
+
+      <h3>AI provider</h3>
+      <form id="ai-form">
+        <label for="ai-provider">Provider</label>
+        <select id="ai-provider">
+          <option value="none">None (tools work without it)</option>
+          <option value="ollama">Ollama (local)</option>
+          <option value="openai">OpenAI-compatible (cloud)</option>
+        </select>
+
+        <label for="ai-base">Base URL</label>
+        <input id="ai-base" placeholder="http://127.0.0.1:11434 or https://api.example.com/v1">
+
+        <label for="ai-model">Model</label>
+        <input id="ai-model" placeholder="llama3 / gpt-4o-mini / …">
+
+        <label for="ai-key">API key (cloud only, stored with Windows DPAPI)</label>
+        <input id="ai-key" type="password" placeholder="leave empty to keep the saved key">
+
+        <div class="actions">
+          <button type="submit" class="primary" id="ai-save">Save AI settings</button>
+        </div>
+      </form>
+      <p class="muted" id="ai-status"></p>
+    </div>
+
+  </main>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>
