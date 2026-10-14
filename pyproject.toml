@@ -17,7 +17,7 @@ dependencies = [
 dev = ["pytest>=8.0,<9", "ruff>=0.6,<1"]
 
 [project.urls]
-Homepage = "https://github.com/your-org/kali-windows-substitute"
+Homepage = "https://github.com/sazid63/KaliDesk"
 
 [tool.ruff]
 line-length = 100
