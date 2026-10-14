@@ -1,0 +1,5 @@
+# DUMMY WORDLIST - for testing only
+admin
+password
+test
+123456

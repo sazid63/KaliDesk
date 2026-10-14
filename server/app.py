@@ -63,6 +63,8 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
             "categories": catalog.categories(),
             "tools": catalog.tools(),
             "automated": commands.automated_ids(),
+            "required": {tid: commands.required_for(tid)
+                         for tid in commands.automated_ids()},
         })
 
     # --- run a tool -------------------------------------------------------
@@ -226,7 +228,7 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
 
 
 def tools_target(payload: dict) -> str:
-    for key in ("target", "url", "query", "name", "file"):
+    for key in ("target", "url", "name"):
         if payload.get(key):
             return str(payload[key])
     return ""

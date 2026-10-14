@@ -21,6 +21,21 @@ import server.security as security
 AGENT_TOKEN_SECRET = "agent_token"
 DEFAULT_TIMEOUT = 180
 
+# Friendly names for the fields a one-click form must fill.
+_FIELD_LABELS = {
+    "target": "target",
+    "url": "URL",
+    "name": "domain",
+    "query": "query",
+    "user": "username",
+    "users": "usernames",
+    "passwords": "passwords",
+    "hash": "hash",
+    "hashes": "hashes",
+    "module": "module",
+    "file": "evidence file",
+}
+
 
 # --- agent transport ------------------------------------------------------
 
@@ -59,7 +74,10 @@ def agent_online(cfg) -> bool:
 # --- helpers --------------------------------------------------------------
 
 def _target_of(payload: dict[str, Any]) -> str:
-    for key in ("target", "url", "query", "name", "file"):
+    # Only genuine network targets count for the scope guard. Provider names
+    # (e.g. searchsploit's query) and evidence file names are local and must
+    # not be mistaken for hosts.
+    for key in ("target", "url", "name"):
         if payload.get(key):
             return str(payload[key])
     return ""
@@ -93,6 +111,25 @@ def technology_status(cfg) -> dict[str, Any]:
     return {"online": online, "distro": cfg.runtime_distro}
 
 
+def _build(tool_id: str, payload: dict[str, Any]):
+    """Return ``(argv, None)`` or ``(None, (error_body, status))``."""
+    try:
+        argv = commands.build(tool_id, payload, _ctx(payload, tool_id))
+    except commands.MissingInput as exc:
+        key = str(exc.args[0]) if exc.args else "input"
+        label = _FIELD_LABELS.get(key, key)
+        return None, ({"error": f"the {label} field is required",
+                       "detail": "Fill in that field and try again."}, 400)
+    if argv is None:
+        return None, ({
+            "error": "this tool has no one-click form yet",
+            "detail": ("The app knows this tool, but there is no safe one-click "
+                       "form for it. Install it, then run it from the runtime "
+                       "shell (or open its docs)."),
+        }, 501)
+    return argv, None
+
+
 def run(cfg, tool_id: str, payload: dict[str, Any], timeout: int = DEFAULT_TIMEOUT):
     tool = catalog.get(tool_id)
     if tool is None:
@@ -104,15 +141,9 @@ def run(cfg, tool_id: str, payload: dict[str, Any], timeout: int = DEFAULT_TIMEO
     if not allowed:
         return {"error": "target is out of scope", "detail": reason}, 403
 
-    argv = commands.build(tool_id, payload, _ctx(payload, tool_id))
-    if argv is None:
-        return {
-            "error": "this tool is not automated yet",
-            "detail": (
-                "The app knows this tool, but there is no safe one-click form "
-                "for it. Open the runtime shell and run it interactively."
-            ),
-        }, 501
+    argv, error = _build(tool_id, payload)
+    if error is not None:
+        return error
 
     body = {
         "tool": tool_id,
@@ -137,10 +168,9 @@ def preview(cfg, tool_id: str, payload: dict[str, Any]):
     """Return the argv that would run, without running it."""
     if catalog.get(tool_id) is None:
         return {"error": "unknown tool"}, 404
-    argv = commands.build(tool_id, payload, _ctx(payload, tool_id))
-    if argv is None:
-        return {"error": "this tool is not automated yet",
-                "detail": "Run it from the runtime shell instead."}, 501
+    argv, error = _build(tool_id, payload)
+    if error is not None:
+        return error
     return {"argv": argv}, 200
 
 

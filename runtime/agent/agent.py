@@ -100,7 +100,7 @@ def host_of(target: str) -> str:
 
 
 def in_scope(target: str, confirmed: bool) -> tuple[bool, str]:
-    host = target.strip()
+    host = host_of(target)
     if not host:
         return True, "no target"
     if host.lower() in {"localhost", "localhost.localdomain"}:

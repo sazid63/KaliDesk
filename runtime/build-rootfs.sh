@@ -29,6 +29,8 @@ SUITE="${KALI_SUITE:-kali-rolling}"
 # installed on demand from inside the app.
 BASELINE_PACKAGES=(
   ca-certificates curl wget gnupg less file
+  unzip
+  kali-archive-keyring
   python3
   dnsutils whois nmap
   whatweb
@@ -63,7 +65,19 @@ bootstrap() {
   echo "==> bootstrapping $SUITE from $MIRROR"
   rm -rf "$WORK"
   mkdir -p "$WORK"
-  debootstrap --variant=minbase --arch=amd64 --include=apt,gnupg,ca-certificates \
+
+  # Some hosts ship debootstrap without the Kali suite script. Kali is
+  # Debian-based, so the Debian "sid" script is a safe stand-in. We also
+  # install kali-archive-keyring explicitly: without it apt inside the image
+  # cannot verify the Kali mirror, and every tool install would fail later.
+  local scripts=/usr/share/debootstrap/scripts
+  if [ ! -e "$scripts/$SUITE" ] && [ -e "$scripts/sid" ]; then
+    echo "    debootstrap has no '$SUITE' script; aliasing to sid"
+    cp "$scripts/sid" "$scripts/$SUITE"
+  fi
+
+  debootstrap --variant=minbase --arch=amd64 \
+    --include=apt,gnupg,ca-certificates,kali-archive-keyring \
     "$SUITE" "$WORK" "$MIRROR"
 }
 
@@ -86,6 +100,19 @@ install_packages() {
   "
 }
 
+verify_apt() {
+  # Guard against shipping an image whose apt cannot verify the mirror (for
+  # example a missing kali-archive-keyring). If this fails, tool install and
+  # uninstall would be broken for every user, so fail the build loudly.
+  echo "==> verifying apt inside the image"
+  chroot "$WORK" /bin/bash -c "
+    set -e
+    apt-get update -qq
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*
+  "
+}
+
 install_overlay() {
   echo "==> installing overlay + agent"
   mkdir -p "$WORK/etc/kalisub" "$WORK/usr/local/bin" "$WORK/usr/local/lib/kalisub" "$WORK/var/log"
@@ -103,6 +130,8 @@ AGENT_TOKEN=change-me-on-first-run
 KALISUB_PORT=5055
 EOF
   chmod 600 "$WORK/etc/kalisub/agent.env"
+
+  verify_apt
 }
 
 pack() {

@@ -176,6 +176,7 @@ async function loadCatalog() {
   state.tools = data.tools || [];
   state.categories = data.categories || [];
   state.automated = data.automated || [];
+  state.required = data.required || {};
   renderCategories();
   renderTiles();
 }
@@ -228,7 +229,7 @@ function renderTiles() {
   matches.forEach((tool) => {
     const card = document.createElement("div");
     card.className = "card tile";
-    automated = state.automated.indexOf(tool.id) >= 0;
+    const automated = state.automated.indexOf(tool.id) >= 0;
     const kind = tool.builtin ? "built-in" : (tool.baseline ? "preinstalled" : "on demand");
     card.innerHTML =
       '<span class="badge">' + kind + "</span>" +
@@ -325,9 +326,11 @@ function renderToolForm(tool) {
   $("#tool-run").disabled = false;
   $("#tool-preview").disabled = false;
 
+  const required = state.required[tool.id] || [];
   spec.forEach((field) => {
+    const isRequired = required.indexOf(field.k) >= 0;
     const label = document.createElement("label");
-    label.textContent = field.label;
+    label.textContent = isRequired ? field.label + " *" : field.label;
     label.setAttribute("for", "f-" + field.k);
     form.appendChild(label);
 
@@ -368,6 +371,7 @@ function renderToolForm(tool) {
     input.id = "f-" + field.k;
     input.dataset.key = field.k;
     input.dataset.type = field.type || "text";
+    if (isRequired) input.required = true;
     form.appendChild(input);
   });
 
@@ -418,8 +422,34 @@ async function runTool(id, payload) {
   return data;
 }
 
+function missingRequired(toolId) {
+  const required = state.required[toolId] || [];
+  for (const key of required) {
+    const el = document.getElementById("f-" + key);
+    if (!el) continue;
+    const value = el.type === "checkbox" ? el.checked : (el.value || "").trim();
+    if (!value) {
+      const label = document.querySelector('label[for="f-' + key + '"]');
+      const text = label ? label.textContent.replace(/\s*\*$/, "") : key;
+      return { key, label: text, el };
+    }
+  }
+  return null;
+}
+
+function requireInputs(toolId) {
+  const miss = missingRequired(toolId);
+  if (miss) {
+    toast("Please fill in: " + miss.label, true);
+    if (miss.el && miss.el.focus) miss.el.focus();
+    return false;
+  }
+  return true;
+}
+
 async function previewCommand() {
   if (!state.currentTool) return;
+  if (!requireInputs(state.currentTool.id)) return;
   const payload = collectPayload();
   const { data } = await api("POST", "/api/tool/" + state.currentTool.id + "/preview", payload);
   const out = $("#tool-output");
@@ -725,7 +755,9 @@ function wire() {
 
   $("#tool-close").addEventListener("click", closeTool);
   $("#tool-run").addEventListener("click", () => {
-    if (state.currentTool) runTool(state.currentTool.id, collectPayload());
+    if (!state.currentTool) return;
+    if (!requireInputs(state.currentTool.id)) return;
+    runTool(state.currentTool.id, collectPayload());
   });
   $("#tool-preview").addEventListener("click", previewCommand);
   $("#ai-explain").addEventListener("click", explainOutput);

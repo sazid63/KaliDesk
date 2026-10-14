@@ -1,0 +1,1 @@
+-----BEGIN DUMMY FAKE KEY-----\nnot-a-real-key\n-----END DUMMY FAKE KEY-----

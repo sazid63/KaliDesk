@@ -48,6 +48,69 @@ def _ev(ctx: Context, payload: dict[str, Any], key: str = "file") -> str:
     return ctx.get("evidence", {}).get(name, "")
 
 
+class MissingInput(ValueError):
+    """Raised when a required one-click form field is empty.
+
+    The single argument is the field name; callers turn it into a friendly
+    message rather than running the tool with a missing argument.
+    """
+
+
+# Fields a one-click form must fill before a tool can run. Keys match the form
+# fields in ui/app.js and the payload the browser posts. Tools whose defaults
+# are complete (lynis, crunch, tcpdump) are intentionally absent.
+REQUIRED: dict[str, tuple[str, ...]] = {
+    "dns": ("name",),
+    "whois": ("query",),
+    "nmap": ("target",),
+    "masscan": ("target",),
+    "whatweb": ("url",),
+    "dnsrecon": ("target",),
+    "theharvester": ("target",),
+    "nikto": ("url",),
+    "nuclei": ("url",),
+    "searchsploit": ("query",),
+    "sqlmap": ("url",),
+    "gobuster": ("url",),
+    "ffuf": ("url",),
+    "wpscan": ("url",),
+    "commix": ("url",),
+    "wapiti": ("url",),
+    "hydra": ("target", "users", "passwords"),
+    "john": ("hashes",),
+    "hashcat": ("hash",),
+    "medusa": ("target", "user", "passwords"),
+    "cewl": ("url",),
+    "metasploit": ("module", "target"),
+    "netcat": ("target",),
+    "aircrack-ng": ("file",),
+    "hcxtools": ("file",),
+    "tshark": ("file",),
+    "foremost": ("file",),
+    "binwalk": ("file",),
+    "exiftool": ("file",),
+    "steghide": ("file",),
+    "volatility3": ("file",),
+    "sleuthkit": ("file",),
+    "radare2": ("file",),
+    "gdb": ("file",),
+    "strace": ("file",),
+}
+
+
+def required_for(tool_id: str) -> list[str]:
+    """Field names a one-click form must fill for this tool (may be empty)."""
+    return list(REQUIRED.get(tool_id, ()))
+
+
+def first_missing(tool_id: str, payload: dict[str, Any]) -> str | None:
+    """Return the first empty required field name, or None if all are filled."""
+    for key in REQUIRED.get(tool_id, ()):
+        if not _s(payload, key):
+            return key
+    return None
+
+
 # --- individual builders --------------------------------------------------
 
 def _dns(p: dict, ctx: Context) -> list[str]:
@@ -288,4 +351,7 @@ def build(tool_id: str, payload: dict[str, Any], ctx: Context) -> list[str] | No
     fn = BUILDERS.get(tool_id)
     if fn is None:
         return None
+    missing = first_missing(tool_id, payload)
+    if missing is not None:
+        raise MissingInput(missing)
     return [str(part) for part in fn(payload, ctx) if part]

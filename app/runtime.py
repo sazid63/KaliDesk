@@ -105,6 +105,19 @@ def image_path() -> Path | None:
         candidate = base / name
         if candidate.exists():
             return candidate
+    # Fallback: installer may drop the image under the user's data directory.
+    # The CLI-only install uses %LOCALAPPDATA%\KaliWindowsSubstitute; also check
+    # that location for a packaged image.
+    try:
+        user_data = Path(kws_paths.user_data_dir())
+        for name in ("kalisub-rootfs.tar", "kalisub-rootfs.tar.gz", "rootfs.tar"):
+            candidate = user_data / name
+            if candidate.exists():
+                return candidate
+        # Some installers put it alongside the install dir? Unlikely. Also check
+        # one level up from user_data if it's nested.
+    except Exception:
+        pass
     return None
 
 
