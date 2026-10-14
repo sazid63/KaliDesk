@@ -28,12 +28,36 @@ def test_sqlmap_enumerate_adds_flag():
 
 def test_hydra_uses_files_from_the_context():
     ctx = {"files": {"users.txt": "/w/users.txt", "passwords.txt": "/w/passwords.txt"}}
-    assert commands.build("hydra", {"target": "10.0.0.5", "service": "ssh"}, ctx) == [
+    base = {"users": "admin", "passwords": "pw"}
+    assert commands.build("hydra", {**base, "target": "10.0.0.5", "service": "ssh"}, ctx) == [
         "hydra", "-L", "/w/users.txt", "-P", "/w/passwords.txt", "ssh://10.0.0.5"
     ]
-    assert commands.build("hydra", {"target": "10.0.0.5", "service": "http-get"}, ctx) == [
-        "hydra", "-L", "/w/users.txt", "-P", "/w/passwords.txt", "10.0.0.5", "http-get", "/"
+    assert commands.build(
+        "hydra", {**base, "target": "10.0.0.5", "service": "http-get"}, ctx
+    ) == ["hydra", "-L", "/w/users.txt", "-P", "/w/passwords.txt", "10.0.0.5", "http-get", "/"]
+
+
+def test_required_inputs_are_enforced():
+    import pytest
+
+    assert commands.first_missing("nmap", {}) == "target"
+    assert commands.first_missing("nmap", {"target": "10.0.0.1"}) is None
+    assert commands.first_missing("lynis", {}) is None
+    with pytest.raises(commands.MissingInput):
+        commands.build("nmap", {}, {})
+    with pytest.raises(commands.MissingInput):
+        commands.build("tshark", {}, {})
+
+
+def test_masscan_rejects_hostnames_with_a_clear_error():
+    import pytest
+
+    assert commands.build("masscan", {"target": "45.33.32.156"}, {})[:2] == [
+        "masscan", "45.33.32.156",
     ]
+    assert commands.build("masscan", {"target": "10.0.0.0/24"}, {})[1] == "10.0.0.0/24"
+    with pytest.raises(commands.BadInput):
+        commands.build("masscan", {"target": "scanme.nmap.org"}, {})
 
 
 def test_files_for_returns_expected_names():
@@ -61,10 +85,10 @@ def test_nothing_returns_a_shell_string():
     for tool_id in commands.automated_ids():
         payload = {
             "target": "10.0.0.1", "url": "https://10.0.0.1/", "query": "x",
-            "name": "example.com", "file": "a.bin", "user": "u", "passwords": "p",
-            "hashes": "h", "hash": "h", "min": "1", "max": "2", "charset": "ab",
-            "module": "auxiliary/x", "filter": "port 53", "port": "22", "service": "ssh",
-            "profile": "service", "mode": "0", "mask": "",
+            "name": "example.com", "file": "a.bin", "user": "u", "users": "u",
+            "passwords": "p", "hashes": "h", "hash": "h", "min": "1", "max": "2",
+            "charset": "ab", "module": "auxiliary/x", "filter": "port 53",
+            "port": "22", "service": "ssh", "profile": "service", "mode": "0", "mask": "",
         }
         ctx = {"files": {"users.txt": "/w/u", "passwords.txt": "/w/p",
                          "hashes.txt": "/w/h", "hash.txt": "/w/h"},

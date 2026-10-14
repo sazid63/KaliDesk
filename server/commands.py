@@ -9,6 +9,8 @@ Rules that keep this safe:
 """
 from __future__ import annotations
 
+import ipaddress
+import re
 from collections.abc import Callable
 from typing import Any
 
@@ -53,6 +55,15 @@ class MissingInput(ValueError):
 
     The single argument is the field name; callers turn it into a friendly
     message rather than running the tool with a missing argument.
+    """
+
+
+class BadInput(ValueError):
+    """Raised when a field is filled but unusable for this tool.
+
+    Unlike :class:`MissingInput`, the message itself is the user-facing
+    explanation (no field-name lookup), e.g. masscan cannot resolve
+    hostnames.
     """
 
 
@@ -134,7 +145,33 @@ def _nmap(p: dict, ctx: Context) -> list[str]:
 
 
 def _masscan(p: dict, ctx: Context) -> list[str]:
-    return ["masscan", _s(p, "target"), "-p1-1000", "--rate", "500"]
+    target = _s(p, "target")
+    if not _ip_target_ok(target):
+        raise BadInput(
+            "masscan needs an IP address, CIDR or range "
+            "(it cannot resolve hostnames — use the target's IP)"
+        )
+    return ["masscan", target, "-p1-1000", "--rate", "500"]
+
+
+def _ip_target_ok(value: str) -> bool:
+    """True if masscan can parse this target (IP, CIDR or dash range)."""
+    text = (value or "").strip()
+    if not text:
+        return False
+    if "/" in text:
+        try:
+            ipaddress.ip_network(text, strict=False)
+            return True
+        except ValueError:
+            return False
+    if "-" in text:
+        return re.fullmatch(r"[0-9a-fA-F.:]+-[0-9a-fA-F.:]+", text) is not None
+    try:
+        ipaddress.ip_address(text)
+        return True
+    except ValueError:
+        return False
 
 
 def _whatweb(p: dict, ctx: Context) -> list[str]:

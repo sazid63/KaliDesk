@@ -115,6 +115,9 @@ def _build(tool_id: str, payload: dict[str, Any]):
     """Return ``(argv, None)`` or ``(None, (error_body, status))``."""
     try:
         argv = commands.build(tool_id, payload, _ctx(payload, tool_id))
+    except commands.BadInput as exc:
+        return None, ({"error": str(exc) or "that value cannot be used here",
+                       "detail": "Fix that field and try again."}, 400)
     except commands.MissingInput as exc:
         key = str(exc.args[0]) if exc.args else "input"
         label = _FIELD_LABELS.get(key, key)
