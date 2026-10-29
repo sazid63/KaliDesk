@@ -3,8 +3,8 @@
     justify-content: space-between;
     align-items: center;
     padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
 }
 
 .strix-status {
@@ -23,16 +23,16 @@
     top: 100%;
     left: 0;
     right: 0;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 4px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
     padding: 12px;
     font-size: 13px;
     line-height: 1.4;
-    color: var(--fg);
+    color: var(--text);
     z-index: 1000;
     margin-top: 4px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: var(--shadow);
 }
 
 .strix-tooltip a {
@@ -55,20 +55,20 @@
 
 .strix-iframe {
     flex: 1;
-    border: 1px solid var(--border);
-    border-radius: 4px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
 }
 
 .strix-log {
     flex: 1;
     padding: 16px;
-    background: var(--bg-dark);
-    border: 1px solid var(--border);
-    border-radius: 4px;
+    background: #f8fafc;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
     font-family: var(--font-mono);
     font-size: 13px;
     line-height: 1.5;
-    color: var(--fg);
+    color: var(--text);
     overflow-y: auto;
     white-space: pre-wrap;
 }

@@ -1,31 +1,37 @@
-/* Kali Linux Windows Substitute - Containers Panel Styles */
+/* Kali Linux Windows Substitute - Containers Panel Styles
+   Updated to match Claude-inspired theme */
+
+/* --- Tabs -------------------------------------------------------------- */
 
 .tabs {
   display: flex;
   gap: 0;
-  border-bottom: 2px solid var(--line);
-  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 1.5rem;
 }
 
 .tabs .button {
-  padding: 0.5rem 1rem;
+  flex: 1;
+  padding: 0.75rem 1rem;
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
   color: var(--muted);
-  cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-weight: 500;
   transition: all 0.2s;
+  text-align: center;
 }
 
 .tabs .button:hover {
   color: var(--text);
+  background: var(--panel-hover);
 }
 
 .tabs .button.active {
-  color: var(--green);
-  border-bottom-color: var(--green);
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  background: var(--accent-light);
 }
 
 .tab-content {
@@ -41,28 +47,35 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* --- Warning ----------------------------------------------------------- */
+
 .warning {
-  background: #2a1a00;
-  border: 1px solid #5a4a00;
-  border-radius: 6px;
+  background: #fffbeb;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--warning);
+  border-radius: var(--radius);
   padding: 0.6rem;
   margin-bottom: 1rem;
   font-size: 0.85rem;
-  color: #ffcc00;
+  color: #92400e;
 }
+
+/* --- Logs -------------------------------------------------------------- */
 
 .logs {
   max-height: 400px;
   overflow: auto;
-  background: #060a08;
+  background: #f8fafc;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius);
   padding: 0.5rem;
-  font-family: var(--mono);
+  font-family: var(--font-mono);
   font-size: 0.8rem;
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* --- Modal ------------------------------------------------------------- */
 
 .modal {
   position: fixed;
@@ -70,27 +83,30 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   animation: fadeIn 0.2s;
+  backdrop-filter: blur(4px);
 }
 
 .modal-content {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 1rem;
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
   max-width: 90vw;
   max-height: 80vh;
   width: 800px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-lg);
 }
 
 .modal-content h3 {
   margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  color: var(--text);
 }
 
 .modal-content .actions {
@@ -98,30 +114,35 @@
   text-align: right;
 }
 
-/* Grid for images */
+/* --- Grid for images --------------------------------------------------- */
+
 .grid .card {
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius);
   overflow: hidden;
+  transition: all 0.2s;
+}
+
+.grid .card:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--accent);
 }
 
 .grid .card .manager-info {
   padding: 0.75rem;
 }
 
-.grid .card .manager-actions {
-  padding: 0.5rem 0.75rem;
-  border-top: 1px solid var(--line);
-  display: flex;
-  gap: 0.5rem;
-  justify-content: flex-end;
-}
-
 /* Manager list for containers */
 .manager .card {
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius);
   margin-bottom: 0.5rem;
+  transition: all 0.2s;
+}
+
+.manager .card:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--accent);
 }
 
 .manager .card .manager-info {
@@ -136,23 +157,26 @@
   justify-content: flex-end;
 }
 
+/* Manager info */
 .manager-info h3 {
-  margin: 0 0 0.25rem 0;
+  margin: 0 0 0.25rem;
   font-size: 0.9rem;
+  color: var(--text);
 }
 
 .manager-info p {
   margin: 0.15rem 0;
   font-size: 0.8rem;
+  color: var(--muted);
 }
 
 /* Search inputs in toolbar */
 .toolbar input {
   padding: 0.4rem 0.6rem;
-  background: var(--panel-2);
+  background: var(--panel);
   color: var(--text);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius);
   font-family: inherit;
   font-size: 0.85rem;
   min-width: 200px;
@@ -160,7 +184,8 @@
 
 .toolbar input:focus {
   outline: none;
-  border-color: var(--green);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
 /* Responsive */
@@ -186,6 +211,7 @@
   
   .manager-actions {
     flex-direction: column;
+    gap: 0.5rem;
   }
   
   .manager-actions button {

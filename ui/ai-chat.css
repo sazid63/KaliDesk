@@ -1,18 +1,29 @@
-/* Kali Linux Windows Substitute - AI CyberSecurity Chat Panel Styles */
+/* Kali Linux Windows Substitute - AI CyberSecurity Chat Panel Styles
+   Updated to match Claude-inspired theme */
+
+/* --- Chat Input -------------------------------------------------------- */
 
 .chat-input textarea {
   width: 100%;
   min-height: 60px;
   resize: vertical;
-  padding: 0.5rem 0.6rem;
-  background: var(--panel-2);
+  padding: 0.6rem 0.8rem;
+  background: var(--panel);
   color: var(--text);
   border: 1px solid var(--line);
-  border-radius: 6px;
-  font-family: var(--mono);
-  font-size: 0.85rem;
-  font-family: inherit;
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  transition: all 0.2s;
 }
+
+.chat-input textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+/* --- Tools Strip ------------------------------------------------------- */
 
 .tools-strip {
   display: flex;
@@ -22,32 +33,36 @@
   padding: 0.5rem;
   background: var(--panel-2);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius);
   font-size: 0.8rem;
 }
 
 .chip {
-  background: #123524;
-  color: var(--green);
-  border: 1px solid #1f5c3a;
-  border-radius: 999px;
+  background: var(--accent-light);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-full);
   padding: 0.2rem 0.5rem;
   cursor: pointer;
   font-size: 0.75rem;
   white-space: nowrap;
+  transition: all 0.2s;
 }
 
 .chip:hover {
-  background: #17452e;
+  background: var(--accent);
+  color: white;
 }
 
+/* --- Tool Proposal ----------------------------------------------------- */
+
 .tool-proposal {
-  border: 2px solid var(--amber);
-  border-left: 4px solid var(--amber);
-  border-radius: 8px;
-  padding: 0.6rem 0.7rem;
+  border: 2px solid var(--warning);
+  border-left: 4px solid var(--warning);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.9rem;
   margin: 0.5rem 0;
-  background: #1a1508;
+  background: #fffbeb;
   font-size: 0.85rem;
 }
 
@@ -55,28 +70,30 @@
   margin: 0.5rem 0;
   max-height: 200px;
   overflow: auto;
-  font-family: var(--mono);
+  font-family: var(--font-mono);
   font-size: 0.8rem;
-  background: #060a08;
+  background: #f8fafc;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius);
   padding: 0.35rem 0.5rem;
 }
 
+/* --- Tool Result ------------------------------------------------------- */
+
 .tool-result {
-  border: 2px solid var(--green);
-  border-left: 4px solid var(--green);
-  border-radius: 8px;
-  padding: 0.6rem 0.7rem;
+  border: 2px solid var(--success);
+  border-left: 4px solid var(--success);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.9rem;
   margin: 0.5rem 0;
   background: var(--panel);
 }
 
 .tool-result .tool-badge {
-  background: var(--green);
-  color: var(--panel);
-  border: 1px solid #1f5c3a;
-  border-radius: 999px;
+  background: var(--success);
+  color: white;
+  border: 1px solid #059669;
+  border-radius: var(--radius-full);
   padding: 0.1rem 0.5rem;
   font-size: 0.7rem;
   display: inline-block;
@@ -87,43 +104,48 @@
   margin: 0.5rem 0;
   max-height: 300px;
   overflow: auto;
-  font-family: var(--mono);
+  font-family: var(--font-mono);
   font-size: 0.8rem;
-  background: #060a08;
+  background: #f8fafc;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius);
   padding: 0.35rem 0.5rem;
 }
 
+/* --- Code Block -------------------------------------------------------- */
+
 .code-block {
-  background: #060a08;
+  background: #f8fafc;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius);
   padding: 0.35rem 0.5rem;
   margin: 0.5rem 0;
   overflow: auto;
-  font-family: var(--mono);
+  font-family: var(--font-mono);
   font-size: 0.8rem;
 }
 
+/* --- Message Styles ---------------------------------------------------- */
+
 .msg {
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 0.6rem 0.7rem;
+  border-radius: var(--radius);
+  padding: 0.6rem 0.9rem;
   font-size: 0.88rem;
   white-space: pre-wrap;
   max-width: 80%;
+  transition: all 0.2s;
 }
 
 .msg.user {
   margin-left: auto;
-  background: #10201a;
-  border-color: #1f5c3a;
+  background: var(--accent-light);
+  border-color: var(--accent);
 }
 
 .msg.assistant {
   margin-right: auto;
-  background: var(--panel-2);
+  background: var(--panel);
 }
 
 .msg.system {
@@ -134,22 +156,23 @@
 }
 
 .msg.error {
-  border-color: var(--red);
-  color: #ffd0d0;
-  background: #2a1010;
+  border-color: var(--error);
+  color: var(--error);
+  background: #fef2f2;
 }
 
-.actions {
-  display: flex;
-  gap: 0.6rem;
-  margin-top: 1rem;
-  justify-content: flex-end;
-}
+/* --- Buttons ----------------------------------------------------------- */
 
 button {
   font-family: inherit;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: var(--radius);
+  border: 1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+  transition: all 0.2s;
 }
 
 button.ghost {
@@ -164,26 +187,28 @@ button.ghost {
 }
 
 button.ghost:hover {
-  border-color: var(--green);
-  color: var(--green);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 button.primary {
-  background: #123524;
-  color: var(--green);
-  border: 1px solid #1f5c3a;
-  padding: 0.55rem 1rem;
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  padding: 0.55rem 1.2rem;
   font-weight: 600;
 }
 
 button.primary:hover {
-  background: #17452e;
+  background: #4338ca;
 }
 
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* --- Toolbar ----------------------------------------------------------- */
 
 .toolbar {
   display: flex;
@@ -196,6 +221,19 @@ button:disabled {
 .toolbar input, .toolbar select {
   width: auto;
   min-width: 180px;
+  padding: 0.4rem 0.6rem;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 0.85rem;
+  min-width: 200px;
+}
+
+.toolbar input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
 .toolbar .grow {
