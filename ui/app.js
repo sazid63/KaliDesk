@@ -1227,28 +1227,323 @@ function wire() {
     btn.addEventListener("click", () => showPanel("home"));
   });
 
+  // Command palette buttons
+  const paletteBtn = $("#cmd-palette-btn");
+  const sidebarPalette = $("#cmd-palette-sidebar");
+  const helpBtn = $("#help-btn");
+  
+  if (paletteBtn) paletteBtn.addEventListener("click", toggleCommandPalette);
+  if (sidebarPalette) sidebarPalette.addEventListener("click", toggleCommandPalette);
+  if (helpBtn) helpBtn.addEventListener("click", showKeyboardHelp);
 
-  // Keyboard shortcuts (1-9)
+  // Keyboard shortcuts
   document.addEventListener("keydown", (e) => {
-    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.ctrlKey || e.altKey || e.metaKey) return;
-    const map = {
-      "1": "manager-panel",
-      "2": "findings-panel",
-      "3": "audit-panel",
-      "4": "chat-panel",
-      "5": "history-panel",
-      "6": "playground-panel",
-      "7": "cheat-sheets-panel",
-      "8": "achievements-panel",
-      "9": "notebook-panel"
-    };
-    const panel = map[e.key];
-    if (panel) {
+    // Ctrl+K for command palette
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
       e.preventDefault();
-      showPanel(panel);
+      toggleCommandPalette();
+      return;
+    }
+    
+    // F1 for help
+    if (e.key === "F1") {
+      e.preventDefault();
+      showKeyboardHelp();
+      return;
+    }
+    
+    // Escape to close palette/panels
+    if (e.key === "Escape") {
+      const palette = document.getElementById("command-palette-overlay");
+      if (palette) {
+        palette.remove();
+        return;
+      }
+      // Close open panels
+      const openPanel = $$(".panel").find(p => !p.classList.contains("hidden") && p.id !== "view-home");
+      if (openPanel) {
+        showPanel("home");
+        return;
+      }
+    }
+    
+    // Number shortcuts (1-9) - only when not in input
+    if (e.target.tagName !== "INPUT" && e.target.tagName !== "TEXTAREA" && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      const map = {
+        "1": "manager-panel",
+        "2": "findings-panel",
+        "3": "audit-panel",
+        "4": "chat-panel",
+        "5": "history-panel",
+        "6": "playground-panel",
+        "7": "cheat-sheets-panel",
+        "8": "achievements-panel",
+        "9": "notebook-panel"
+      };
+      const panel = map[e.key];
+      if (panel) {
+        e.preventDefault();
+        showPanel(panel);
+      }
+    }
+    
+    // Ctrl+H for home
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "h") {
+      e.preventDefault();
+      showPanel("home");
+    }
+    
+    // Ctrl+M for manager
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "m") {
+      e.preventDefault();
+      showPanel("manager-panel");
+    }
+    
+    // Ctrl+T to focus search
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "t") {
+      e.preventDefault();
+      const search = $("#search");
+      if (search) search.focus();
     }
   });
 
+}
+
+/* --- Command Palette --------------------------------------------------- */
+let commandPaletteOpen = false;
+
+function buildCommandPaletteCommands() {
+  const commands = [];
+  
+  // Navigation commands
+  const navItems = [
+    { label: "Go to All tools", action: () => showPanel("home"), shortcut: "Ctrl+H" },
+    { label: "Go to Tool manager", action: () => showPanel("manager-panel"), shortcut: "Ctrl+M" },
+    { label: "Go to Findings", action: () => showPanel("findings-panel"), shortcut: "Ctrl+F" },
+    { label: "Go to Audit log", action: () => showPanel("audit-panel"), shortcut: "Ctrl+A" },
+    { label: "Go to AI chat", action: () => showPanel("chat-panel") },
+    { label: "Go to AI CyberSecurity", action: () => showPanel("ai-chat-panel") },
+    { label: "Go to AI Settings", action: () => showPanel("settings-ai-panel") },
+    { label: "Go to Containers", action: () => showPanel("containers-panel") },
+    { label: "Go to History", action: () => showPanel("history-panel") },
+    { label: "Go to Playground", action: () => showPanel("playground-panel") },
+    { label: "Go to Cheat Sheets", action: () => showPanel("cheat-sheets-panel") },
+    { label: "Go to Notebook", action: () => showPanel("notebook-panel") },
+    { label: "Go to Recordings", action: () => showPanel("recordings-panel") },
+    { label: "Go to Achievements", action: () => showPanel("achievements-panel") },
+    { label: "Go to Portable", action: () => showPanel("portable-panel") },
+    { label: "Go to Settings", action: () => showPanel("settings-panel") },
+    { label: "Go to Onboarding", action: () => showPanel("onboarding-panel") },
+  ];
+  commands.push(...navItems);
+  
+  // Tool commands - add all tools
+  state.tools.forEach(tool => {
+    commands.push({
+      label: `Run ${tool.name}`,
+      action: () => { showPanel("home"); setTimeout(() => openTool(tool.id), 100); },
+      shortcut: tool.id
+    });
+  });
+  
+  // Actions
+  commands.push(
+    { label: "Focus search bar", action: () => { const s = $("#search"); if (s) s.focus(); }, shortcut: "Ctrl+T" },
+    { label: "Close panels", action: () => showPanel("home"), shortcut: "Escape" },
+    { label: "Keyboard shortcuts", action: () => showKeyboardHelp(), shortcut: "F1" }
+  );
+  
+  return commands;
+}
+
+function toggleCommandPalette() {
+  if (commandPaletteOpen) {
+    closeCommandPalette();
+    return;
+  }
+  
+  const commands = buildCommandPaletteCommands();
+  
+  const overlay = document.createElement("div");
+  overlay.id = "command-palette-overlay";
+  overlay.style.cssText = `
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
+    z-index: 9999; display: flex; align-items: flex-start;
+    justify-content: center; padding-top: 80px;
+  `;
+  
+  const palette = document.createElement("div");
+  palette.style.cssText = `
+    width: 560px; max-width: 90vw; max-height: 70vh;
+    background: var(--panel, #fff); border: 1px solid var(--line, #e9ecef);
+    border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    overflow: hidden; display: flex; flex-direction: column;
+  `;
+  
+  const input = document.createElement("input");
+  input.placeholder = "Search commands or tools...";
+  input.style.cssText = `
+    width: 100%; padding: 1rem 1.25rem; border: none;
+    border-bottom: 1px solid var(--line, #e9ecef);
+    font-size: 1rem; outline: none; background: transparent;
+    color: var(--text, #212529); font-family: var(--font-sans);
+  `;
+  
+  const listContainer = document.createElement("div");
+  listContainer.style.cssText = "max-height: 500px; overflow-y: auto;";
+  
+  const list = document.createElement("ul");
+  list.style.cssText = "list-style: none; margin: 0; padding: 0.5rem;";
+  
+  let selectedIndex = -1;
+  
+  function render(filter = "") {
+    list.innerHTML = "";
+    const filtered = commands.filter(cmd =>
+      !filter || cmd.label.toLowerCase().includes(filter.toLowerCase()) ||
+      (cmd.shortcut && cmd.shortcut.toLowerCase().includes(filter.toLowerCase()))
+    );
+    
+    if (!filtered.length) {
+      const li = document.createElement("li");
+      li.style.cssText = "padding: 1rem; color: var(--muted, #6c757d); text-align: center;";
+      li.textContent = "No matching commands";
+      list.appendChild(li);
+      return;
+    }
+    
+    selectedIndex = 0;
+    filtered.forEach((cmd, index) => {
+      const li = document.createElement("li");
+      li.style.cssText = `
+        padding: 0.6rem 1rem; cursor: pointer; display: flex;
+        justify-content: space-between; align-items: center;
+        border-radius: 6px; font-size: 0.9rem;
+        ${index === selectedIndex ? "background: var(--accent-light, #e0e7ff); color: var(--accent, #4f46e5);" : ""}
+      `;
+      li.innerHTML = `
+        <span>${esc(cmd.label)}</span>
+        ${cmd.shortcut ? `<span style="font-size:0.7rem;color:var(--muted, #6c757d);background:var(--panel-hover,#f3f4f6);padding:0.2rem 0.5rem;border-radius:4px;">${esc(cmd.shortcut)}</span>` : ""}
+      `;
+      li.addEventListener("click", () => { cmd.action(); closeCommandPalette(); });
+      li.addEventListener("mouseenter", () => {
+        selectedIndex = index;
+        render(filter);
+      });
+      list.appendChild(li);
+    });
+  }
+  
+  function closePalette() {
+    overlay.remove();
+    commandPaletteOpen = false;
+  }
+  
+  window.closeCommandPalette = closePalette;
+  
+  input.addEventListener("input", (e) => render(e.target.value));
+  input.addEventListener("keydown", (e) => {
+    const items = list.querySelectorAll("li");
+    if (e.key === "Escape") closePalette();
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+      render(input.value);
+      items[selectedIndex]?.scrollIntoView({ block: "nearest" });
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      selectedIndex = Math.max(selectedIndex - 1, 0);
+      render(input.value);
+      items[selectedIndex]?.scrollIntoView({ block: "nearest" });
+    }
+    if (e.key === "Enter" && items[selectedIndex]) {
+      items[selectedIndex].click();
+    }
+  });
+  
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closePalette();
+  });
+  
+  listContainer.appendChild(list);
+  palette.appendChild(input);
+  palette.appendChild(listContainer);
+  overlay.appendChild(palette);
+  document.body.appendChild(overlay);
+  commandPaletteOpen = true;
+  input.focus();
+  render();
+}
+
+/* --- Keyboard Help Modal ----------------------------------------------- */
+function showKeyboardHelp() {
+  const existing = document.getElementById("keyboard-help-overlay");
+  if (existing) existing.remove();
+  
+  const shortcuts = [
+    { keys: "Ctrl + K", desc: "Command palette" },
+    { keys: "Ctrl + H", desc: "Go to home" },
+    { keys: "Ctrl + M", desc: "Tool manager" },
+    { keys: "Ctrl + T", desc: "Focus search bar" },
+    { keys: "1", desc: "Tool manager" },
+    { keys: "2", desc: "Findings" },
+    { keys: "3", desc: "Audit log" },
+    { keys: "4", desc: "AI chat" },
+    { keys: "5", desc: "History" },
+    { keys: "6", desc: "Playground" },
+    { keys: "7", desc: "Cheat Sheets" },
+    { keys: "8", desc: "Achievements" },
+    { keys: "9", desc: "Notebook" },
+    { keys: "Escape", desc: "Close panels" },
+    { keys: "F1", desc: "This help" },
+  ];
+  
+  const overlay = document.createElement("div");
+  overlay.id = "keyboard-help-overlay";
+  overlay.style.cssText = `
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
+    z-index: 9999; display: flex; align-items: center; justify-content: center;
+  `;
+  
+  const modal = document.createElement("div");
+  modal.style.cssText = `
+    width: 440px; max-width: 90vw; background: var(--panel, #fff);
+    border: 1px solid var(--line, #e9ecef); border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2); padding: 1.5rem;
+  `;
+  
+  let html = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <h2 style="margin:0;font-size:1.1rem;">Keyboard Shortcuts</h2>
+      <button onclick="this.closest('#keyboard-help-overlay').remove()" style="width:32px;height:32px;border-radius:50%;background:transparent;border:none;font-size:1.2rem;cursor:pointer;">&times;</button>
+    </div>
+    <div style="display:grid;gap:0.5rem;">
+  `;
+  
+  shortcuts.forEach(s => {
+    html += `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0.75rem;background:var(--panel-2,#f8f9fa);border-radius:8px;">
+        <span style="font-size:0.9rem;">${s.desc}</span>
+        <span style="font-size:0.75rem;color:var(--muted,#6c757d);background:var(--panel,#fff);padding:0.2rem 0.6rem;border-radius:4px;border:1px solid var(--line,#e9ecef);font-family:var(--font-mono);">${s.keys}</span>
+      </div>
+    `;
+  });
+  
+  html += "</div>";
+  modal.innerHTML = html;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+  
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") overlay.remove();
+  }, { once: true });
 }
 
 async function init() {

@@ -47,6 +47,9 @@
 
 /* --- Global Styles ------------------------------------------------------ */
 
+/* Icon font (Font Awesome) */
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css');
+
 * { box-sizing: border-box; }
 
 html, body {
@@ -362,12 +365,23 @@ form .check {
   box-shadow: var(--shadow-sm);
 }
 
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .brand {
   font-family: var(--font-mono);
   font-size: 0.9rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.brand .brand-logo {
+  font-size: 1.1rem;
+  color: var(--accent);
 }
 
 .brand .prompt {
@@ -385,6 +399,136 @@ form .check {
   font-family: var(--font-mono);
   font-size: 0.85rem;
   color: var(--muted);
+}
+
+.palette-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.palette-btn:hover {
+  color: var(--accent);
+  background: var(--panel-hover);
+  border-color: var(--accent);
+}
+
+.palette-btn .kbd-hint {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--panel-2);
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  margin-left: 0.25rem;
+}
+
+/* --- Sidebar ------------------------------------------------------------- */
+
+.sidebar {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  position: sticky;
+  top: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s;
+}
+
+.sidebar.sidebar-mobile {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: 280px;
+  z-index: 100;
+  box-shadow: var(--shadow-lg);
+}
+
+.sidebar.sidebar-open {
+  transform: translateX(0);
+}
+
+.sidebar h2 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 0 0 1rem;
+  font-weight: 600;
+}
+
+.sidebar ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar li {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: all 0.2s;
+}
+
+.sidebar li:hover {
+  background: var(--panel-hover);
+  color: var(--accent);
+}
+
+.sidebar li.active {
+  background: var(--accent-light);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.sidebar li .nav-icon {
+  font-size: 0.9rem;
+  min-width: 1.2rem;
+  text-align: center;
+}
+
+.sidebar li:hover .nav-icon {
+  color: var(--accent);
+}
+
+.sidebar li.active .nav-icon {
+  color: var(--accent);
+}
+
+.sidebar hr {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 1rem 0;
+}
+
+/* Sidebar palette button */
+.sidebar-palette {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  width: 100%;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.sidebar-palette:hover {
+  background: var(--accent-light);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .dot {
@@ -876,6 +1020,26 @@ a { color: var(--accent); }
   to { transform: rotate(360deg); }
 }
 
+/* --- Command Palette --------------------------------------------------- */
+#command-palette-overlay {
+  z-index: 9999 !important;
+}
+
+#command-palette-overlay input {
+  font-family: var(--font-sans) !important;
+}
+
+/* --- Keyboard Help Modal ----------------------------------------------- */
+#keyboard-help-overlay {
+  z-index: 9999 !important;
+}
+
+#keyboard-help-overlay button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* --- Responsive --------------------------------------------------------- */
 
 @media (max-width: 760px) {
@@ -908,6 +1072,15 @@ a { color: var(--accent); }
   }
   
   .grid { grid-template-columns: 1fr; }
+  
+  .topbar-right {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .sidebar.sidebar-mobile {
+    width: 100%;
+  }
 }
 
 /* --- Dark Mode (optional) ----------------------------------------------- */

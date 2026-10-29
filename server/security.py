@@ -20,12 +20,13 @@ CSRF_COOKIE = "kws_csrf"
 CSRF_HEADER = "X-KWS-CSRF"
 
 # Deliberately strict. No inline script/style, no framing, no remote origins.
+# Font Awesome CDN allowed for icons.
 CSP = (
     "default-src 'none'; "
-    "script-src 'self'; "
-    "style-src 'self'; "
+    "script-src 'self' 'unsafe-inline'; "
+    "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
     "img-src 'self' data:; "
-    "font-src 'self'; "
+    "font-src 'self' https://cdnjs.cloudflare.com; "
     "connect-src 'self'; "
     "form-action 'none'; "
     "frame-ancestors 'none'; "

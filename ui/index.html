@@ -10,40 +10,54 @@
 
 <header class="topbar">
   <div class="brand">
+    <span class="brand-logo"><i class="fa-solid fa-shield-halved"></i></span>
     <span class="prompt">kali@windows</span><span class="colon">:</span><span class="pwd">~</span>$ ./workbench
   </div>
-  <div class="status">
-    <span id="runtime-dot" class="dot"></span>
-    <span id="runtime-text">checking runtime…</span>
+  <div class="topbar-right">
+    <button class="palette-btn ghost" id="cmd-palette-btn" title="Command palette (Ctrl+K)">
+      <i class="fa-solid fa-terminal"></i>
+      <span class="kbd-hint">Ctrl K</span>
+    </button>
+    <button class="palette-btn ghost" id="help-btn" title="Keyboard shortcuts (F1)">
+      <i class="fa-solid fa-keyboard"></i>
+    </button>
+    <div class="status">
+      <span id="runtime-dot" class="dot"></span>
+      <span id="runtime-text">checking runtime…</span>
+    </div>
   </div>
 </header>
 
 <div class="layout">
-  <aside class="sidebar">
+  <aside class="sidebar" id="app-sidebar">
     <h2>Categories</h2>
     <ul id="cat-list"></ul>
     <hr>
     <h2>Views</h2>
     <ul id="view-list">
-      <li data-view="home" class="active">All tools</li>
-      <li data-view="manager-panel">Tool manager</li>
-      <li data-view="findings-panel">Findings</li>
-      <li data-view="audit-panel">Audit log</li>
-      <li data-view="chat-panel">AI chat</li>
-      <li data-view="settings-panel">Settings</li>
-      <li data-view="containers-panel">Containers</li>
-      <li data-view="ai-chat-panel">AI CyberSecurity</li>
-      <li data-view="settings-ai-panel">AI Settings</li>
-      <li data-view="history-panel">History</li>
-      <li data-view="playground-panel">Playground</li>
-      <li data-view="cheat-sheets-panel">Cheat Sheets</li>
-      <li data-view="achievements-panel">Achievements</li>
-      <li data-view="notebook-panel">Notebook</li>
-      <li data-view="recordings-panel">Recordings</li>
-      <li data-view="portable-panel">Portable</li>
-      <li data-view="onboarding-panel">Onboarding</li>
+      <li data-view="home" class="active"><i class="fa-solid fa-toolbox nav-icon"></i> All tools</li>
+      <li data-view="manager-panel"><i class="fa-solid fa-download nav-icon"></i> Tool manager</li>
+      <li data-view="findings-panel"><i class="fa-solid fa-bug nav-icon"></i> Findings</li>
+      <li data-view="audit-panel"><i class="fa-solid fa-list-check nav-icon"></i> Audit log</li>
+      <li data-view="chat-panel"><i class="fa-solid fa-comment nav-icon"></i> AI chat</li>
+      <li data-view="ai-chat-panel"><i class="fa-solid fa-robot nav-icon"></i> AI CyberSecurity</li>
+      <li data-view="settings-ai-panel"><i class="fa-solid fa-brain nav-icon"></i> AI Settings</li>
+      <li data-view="containers-panel"><i class="fa-solid fa-box nav-icon"></i> Containers</li>
+      <li data-view="history-panel"><i class="fa-solid fa-clock-rotate-left nav-icon"></i> History</li>
+      <li data-view="playground-panel"><i class="fa-solid fa-flask nav-icon"></i> Playground</li>
+      <li data-view="cheat-sheets-panel"><i class="fa-solid fa-book-open nav-icon"></i> Cheat Sheets</li>
+      <li data-view="notebook-panel"><i class="fa-solid fa-book nav-icon"></i> Notebook</li>
+      <li data-view="recordings-panel"><i class="fa-solid fa-circle-play nav-icon"></i> Recordings</li>
+      <li data-view="achievements-panel"><i class="fa-solid fa-trophy nav-icon"></i> Achievements</li>
+      <li data-view="portable-panel"><i class="fa-solid fa-plug nav-icon"></i> Portable</li>
+      <li data-view="settings-panel"><i class="fa-solid fa-gear nav-icon"></i> Settings</li>
+      <li data-view="onboarding-panel"><i class="fa-solid fa-wand-magic-sparkles nav-icon"></i> Onboarding</li>
     </ul>
     <hr>
+    <button class="palette-btn ghost sidebar-palette" id="cmd-palette-sidebar">
+      <i class="fa-solid fa-magnifying-glass nav-icon"></i> Search / command…
+      <span class="kbd-hint">Ctrl K</span>
+    </button>
     <p class="muted note">
       Not affiliated with OffSec or Kali Linux. Test only systems you own or are
       authorised to test.
