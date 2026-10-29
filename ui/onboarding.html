@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kali Linux Windows Substitute - Onboarding</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div id="onboarding-panel" class="panel hidden">
+    <div class="panel-head">
+      <h2>Onboarding</h2>
+      <button class="x" data-close="onboarding-panel">&times;</button>
+    </div>
+
+    <div class="onboarding-progress">
+      <div class="progress-bar" id="onboarding-progress"></div>
+    </div>
+
+    <div id="onboarding-content">
+      <h3 id="onboarding-title">Welcome</h3>
+      <div id="onboarding-body" class="muted">
+        — Loading onboarding steps —
+      </div>
+    </div>
+
+    <div class="actions" style="margin-top: 1rem; display: flex; justify-content: space-between;">
+      <button class="ghost" id="onboarding-prev">Previous</button>
+      <div>
+        <button class="ghost" id="onboarding-skip">Skip</button>
+        <button class="primary" id="onboarding-next">Next</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,194 @@
+/* Kali Linux Windows Substitute - Containers Panel Styles */
+
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--line);
+  margin-bottom: 1rem;
+}
+
+.tabs .button {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.tabs .button:hover {
+  color: var(--text);
+}
+
+.tabs .button.active {
+  color: var(--green);
+  border-bottom-color: var(--green);
+}
+
+.tab-content {
+  animation: fadeIn 0.2s ease;
+}
+
+.tab-content.hidden {
+  display: none;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.warning {
+  background: #2a1a00;
+  border: 1px solid #5a4a00;
+  border-radius: 6px;
+  padding: 0.6rem;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  color: #ffcc00;
+}
+
+.logs {
+  max-height: 400px;
+  overflow: auto;
+  background: #060a08;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s;
+}
+
+.modal-content {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 1rem;
+  max-width: 90vw;
+  max-height: 80vh;
+  width: 800px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.modal-content h3 {
+  margin: 0 0 0.5rem 0;
+}
+
+.modal-content .actions {
+  margin-top: 1rem;
+  text-align: right;
+}
+
+/* Grid for images */
+.grid .card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.grid .card .manager-info {
+  padding: 0.75rem;
+}
+
+.grid .card .manager-actions {
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+/* Manager list for containers */
+.manager .card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.manager .card .manager-info {
+  padding: 0.75rem;
+}
+
+.manager .card .manager-actions {
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.manager-info h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.9rem;
+}
+
+.manager-info p {
+  margin: 0.15rem 0;
+  font-size: 0.8rem;
+}
+
+/* Search inputs in toolbar */
+.toolbar input {
+  padding: 0.4rem 0.6rem;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  min-width: 200px;
+}
+
+.toolbar input:focus {
+  outline: none;
+  border-color: var(--green);
+}
+
+/* Responsive */
+@media (max-width: 760px) {
+  .tabs {
+    flex-wrap: wrap;
+  }
+  
+  .tabs .button {
+    flex: 1;
+    min-width: 80px;
+    text-align: center;
+  }
+  
+  .toolbar {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .toolbar input {
+    width: 100%;
+  }
+  
+  .manager-actions {
+    flex-direction: column;
+  }
+  
+  .manager-actions button {
+    width: 100%;
+  }
+}

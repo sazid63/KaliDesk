@@ -29,6 +29,8 @@ import re
 import shlex
 import subprocess
 import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ENV_FILE = "/etc/kalisub/agent.env"
@@ -44,13 +46,16 @@ PRIVATE_RANGES = (
     "192.168.0.0/16", "169.254.0.0/16", "::1/128", "fc00::/7", "fe80::/10",
 )
 
+_LOG_LOCK = threading.Lock()
 SAFE_ARG = re.compile(r"^[^\x00\r\n]*$")
 
 
 def log(message: str) -> None:
     try:
-        with open(LOG, "a", encoding="utf-8") as handle:
-            handle.write(message.rstrip() + "\n")
+        line = message.rstrip() + "\n"
+        with _LOG_LOCK:
+            with open(LOG, "a", encoding="utf-8") as handle:
+                handle.write(line)
     except OSError:
         pass
 
@@ -269,7 +274,10 @@ class Handler(BaseHTTPRequestHandler):
             ]
             message = f"installed: {', '.join(packages)}"
         else:
-            steps = [["apt-get", "remove", "-y", *packages]]
+            steps = [
+                ["apt-get", "remove", "-y", "--purge", *packages],
+                ["apt-get", "-y", "autoremove", "--purge"],
+            ]
             message = f"removed: {', '.join(packages)}"
 
         output = ""
@@ -290,6 +298,28 @@ class Handler(BaseHTTPRequestHandler):
                      "detail": output[-4000:], "tool": tool_id}
 
 
+class _LimitedThreadingHTTPServer(ThreadingHTTPServer):
+    """ThreadingHTTPServer with bounded concurrency via ThreadPoolExecutor."""
+
+    def process_request(self, request, client_address):
+        """Submit each request to the bounded executor."""
+        self.request_queue.put((request, client_address))
+        self._thread_pool.submit(self.process_request_thread, request, client_address)
+
+    def process_request_thread(self, request, client_address):
+        """Handle one request in the executor."""
+        try:
+            self.finish_request(request, client_address)
+            self.shutdown_request(request)
+        except Exception:
+            self.handle_error(request, client_address)
+
+    def server_close(self):
+        """Shutdown the executor when the server stops."""
+        self._thread_pool.shutdown(wait=False)
+        super().server_close()
+
+
 def main() -> int:
     env = load_env()
     Handler.token = env.get("AGENT_TOKEN", "")
@@ -300,7 +330,8 @@ def main() -> int:
         return 2
 
     port = int(env.get("KALISUB_PORT", "5055"))
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    server = _LimitedThreadingHTTPServer(("127.0.0.1", port), Handler)
+    server._thread_pool = ThreadPoolExecutor(max_workers=8, thread_name_prefix="kalisub-agent")
     log(f"agent listening on 127.0.0.1:{port} with {len(Handler.tools)} tools")
     try:
         server.serve_forever()

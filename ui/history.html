@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kali Linux Windows Substitute - Run History</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div id="history-panel" class="panel hidden">
+    <div class="panel-head">
+      <h2>Run History</h2>
+      <button class="x" data-close="history-panel">&times;</button>
+    </div>
+
+    <div class="toolbar">
+      <input id="history-filter-tool" class="grow" placeholder="Filter by tool...">
+      <select id="history-filter-success">
+        <option value="">All</option>
+        <option value="true">Successful</option>
+        <option value="false">Failed</option>
+      </select>
+      <button class="ghost" id="history-clear">Clear History</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Tool</th>
+          <th>Target</th>
+          <th>RC</th>
+          <th>Duration</th>
+          <th>Success</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="history-table-body"></tbody>
+    </table>
+
+    <div class="toolbar" style="margin-top: 1rem; justify-content: flex-end;">
+      <button class="ghost" id="history-export">Export CSV</button>
+    </div>
+  </div>
+</body>
+</html>

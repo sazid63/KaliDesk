@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kali Linux Windows Substitute - OSINT Notebook</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div id="notebook-panel" class="panel hidden">
+    <div class="panel-head">
+      <h2>OSINT Notebook</h2>
+      <button class="x" data-close="notebook-panel">&times;</button>
+    </div>
+
+    <div class="toolbar">
+      <input id="notebook-search" class="grow" placeholder="Search entries...">
+      <button class="ghost" id="notebook-export">Export Markdown</button>
+    </div>
+
+    <div class="toolbar" style="margin-top: 0.5rem;">
+      <button class="primary" id="notebook-add">Add Entry</button>
+    </div>
+
+    <div class="entry-form" id="entry-form" style="display: none;">
+      <div class="field">
+        <label for="notebook-type">Type</label>
+        <select id="notebook-type">
+          <option value="url">URL</option>
+          <option value="ip">IP Address</option>
+          <option value="finding">Finding</option>
+          <option value="note">Note</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="notebook-content">Content</label>
+        <textarea id="notebook-content" placeholder="Enter URL, IP, finding, or note..."></textarea>
+      </div>
+      <div class="field">
+        <label for="notebook-tags">Tags (comma-separated)</label>
+        <input id="notebook-tags" type="text" placeholder="e.g., phishing, malware">
+      </div>
+    </div>
+
+    <div id="entries-list"></div>
+  </div>
+</body>
+</html>

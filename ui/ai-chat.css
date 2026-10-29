@@ -1,0 +1,224 @@
+/* Kali Linux Windows Substitute - AI CyberSecurity Chat Panel Styles */
+
+.chat-input textarea {
+  width: 100%;
+  min-height: 60px;
+  resize: vertical;
+  padding: 0.5rem 0.6rem;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  font-family: inherit;
+}
+
+.tools-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 0.8rem;
+}
+
+.chip {
+  background: #123524;
+  color: var(--green);
+  border: 1px solid #1f5c3a;
+  border-radius: 999px;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.chip:hover {
+  background: #17452e;
+}
+
+.tool-proposal {
+  border: 2px solid var(--amber);
+  border-left: 4px solid var(--amber);
+  border-radius: 8px;
+  padding: 0.6rem 0.7rem;
+  margin: 0.5rem 0;
+  background: #1a1508;
+  font-size: 0.85rem;
+}
+
+.tool-proposal pre {
+  margin: 0.5rem 0;
+  max-height: 200px;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  background: #060a08;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+}
+
+.tool-result {
+  border: 2px solid var(--green);
+  border-left: 4px solid var(--green);
+  border-radius: 8px;
+  padding: 0.6rem 0.7rem;
+  margin: 0.5rem 0;
+  background: var(--panel);
+}
+
+.tool-result .tool-badge {
+  background: var(--green);
+  color: var(--panel);
+  border: 1px solid #1f5c3a;
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.7rem;
+  display: inline-block;
+  margin-bottom: 0.3rem;
+}
+
+.tool-result pre {
+  margin: 0.5rem 0;
+  max-height: 300px;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  background: #060a08;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+}
+
+.code-block {
+  background: #060a08;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  margin: 0.5rem 0;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+.msg {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.6rem 0.7rem;
+  font-size: 0.88rem;
+  white-space: pre-wrap;
+  max-width: 80%;
+}
+
+.msg.user {
+  margin-left: auto;
+  background: #10201a;
+  border-color: #1f5c3a;
+}
+
+.msg.assistant {
+  margin-right: auto;
+  background: var(--panel-2);
+}
+
+.msg.system {
+  margin: 0.5rem auto;
+  background: transparent;
+  color: var(--muted);
+  border-style: dashed;
+}
+
+.msg.error {
+  border-color: var(--red);
+  color: #ffd0d0;
+  background: #2a1010;
+}
+
+.actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  justify-content: flex-end;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+button.ghost {
+  display: inline-block;
+  text-align: left;
+  margin: 0.25rem 0;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+  padding: 0.45rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+button.ghost:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+button.primary {
+  background: #123524;
+  color: var(--green);
+  border: 1px solid #1f5c3a;
+  padding: 0.55rem 1rem;
+  font-weight: 600;
+}
+
+button.primary:hover {
+  background: #17452e;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toolbar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.toolbar input, .toolbar select {
+  width: auto;
+  min-width: 180px;
+}
+
+.toolbar .grow {
+  flex: 1;
+}
+
+/* Responsive */
+@media (max-width: 760px) {
+  .tools-strip {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .msg {
+    max-width: 90%;
+  }
+  
+  .toolbar {
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  
+  .toolbar input, .toolbar select {
+    width: 100%;
+  }
+}

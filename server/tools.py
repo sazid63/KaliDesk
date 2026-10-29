@@ -88,20 +88,33 @@ def _ctx(payload: dict[str, Any], tool_id: str) -> dict[str, Any]:
     file_paths: dict[str, str] = {}
     for name, content in commands.files_for(tool_id, payload).items():
         path = work / name
-        path.write_text(content, encoding="utf-8")
+        try:
+            path.write_text(content, encoding="utf-8")
+        except OSError as exc:
+            raise _WorkDirError(str(exc), name) from exc
         file_paths[name] = kws_paths.to_wsl_path(path)
 
     evidence: dict[str, str] = {}
     ev_dir = kws_paths.evidence_dir()
     for item in ev_dir.iterdir() if ev_dir.exists() else []:
-        if item.is_file():
-            evidence[item.name] = kws_paths.to_wsl_path(item)
+        if item.is_symlink() or not item.is_file():
+            continue
+        evidence[item.name] = kws_paths.to_wsl_path(item)
 
     return {
         "work": kws_paths.to_wsl_path(work),
         "files": file_paths,
         "evidence": evidence,
     }
+
+
+class _WorkDirError(ValueError):
+    """Raised when a work-dir file cannot be written (disk full / perms)."""
+
+    def __init__(self, detail: str, file_name: str):
+        super().__init__(f"could not write work file '{file_name}': {detail}")
+        self.file_name = file_name
+        self.detail = detail
 
 
 # --- public operations ----------------------------------------------------
@@ -123,6 +136,8 @@ def _build(tool_id: str, payload: dict[str, Any]):
         label = _FIELD_LABELS.get(key, key)
         return None, ({"error": f"the {label} field is required",
                        "detail": "Fill in that field and try again."}, 400)
+    except _WorkDirError as exc:
+        return None, ({"error": str(exc), "detail": exc.detail}, 400)
     if argv is None:
         return None, ({
             "error": "this tool has no one-click form yet",

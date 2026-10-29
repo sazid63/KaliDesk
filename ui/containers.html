@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kali Linux Windows Substitute - Containers</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div id="containers-panel" class="panel hidden">
+    <div class="panel-head">
+      <h2>Containers (Advanced)</h2>
+      <button class="x" data-close="containers-panel">&times;</button>
+    </div>
+
+    <p class="muted warning">
+      Containers run in WSL2. Do not run privileged containers. Rootless Podman ensures isolation.
+    </p>
+
+    <div class="toolbar">
+      <button class="primary" id="containers-refresh">Refresh</button>
+      <button class="primary" id="containers-install-podman">Install Podman</button>
+      <span class="grow"></span>
+      <span id="containers-status" class="muted"></span>
+    </div>
+
+    <div class="tabs">
+      <button class="tabs button active" data-tab="images">Images</button>
+      <button class="tabs button" data-tab="containers">Containers</button>
+      <button class="tabs button" data-tab="run">Run New</button>
+    </div>
+
+    <div id="containers-images" class="tab-content">
+      <h3>Container Images</h3>
+      <div class="toolbar">
+        <input id="containers-image-search" class="grow" placeholder="Search images...">
+        <button class="ghost" id="containers-pull-custom">Pull Custom</button>
+      </div>
+      <div id="containers-images-list" class="grid"></div>
+      <div class="muted" id="containers-images-empty">No images found. Pull pre-built images or custom images.</div>
+    </div>
+
+    <div id="containers-containers" class="tab-content hidden">
+      <h3>Running Containers</h3>
+      <div class="toolbar">
+        <input id="containers-container-search" class="grow" placeholder="Search containers...">
+        <button class="ghost" id="containers-refresh-containers">Refresh</button>
+      </div>
+      <div id="containers-containers-list" class="manager"></div>
+      <div class="muted" id="containers-containers-empty">No containers found. Run a container to get started.</div>
+    </div>
+
+    <div id="containers-run" class="tab-content hidden">
+      <h3>Run New Container</h3>
+      <form id="containers-run-form">
+        <div class="field">
+          <label for="containers-run-image">Image</label>
+          <select id="containers-run-image" class="grow">
+            <option value="ghcr.io/juice-shop/juice-shop:latest">OWASP Juice Shop</option>
+            <option value="vulnerables/web-dvwa">DVWA</option>
+            <option value="alpine:latest">Alpine (base)</option>
+            <option value="custom">Custom...</option>
+          </select>
+        </div>
+        <div class="field" id="containers-run-custom-image" style="display: none;">
+          <label for="containers-run-custom-image-input">Custom Image</label>
+          <input id="containers-run-custom-image-input" type="text" placeholder="nginx:latest">
+        </div>
+        <div class="field">
+          <label for="containers-run-name">Container Name</label>
+          <input id="containers-run-name" type="text" placeholder="juice-shop">
+        </div>
+        <div class="field">
+          <label for="containers-run-ports">Port Mapping (host:container)</label>
+          <input id="containers-run-ports" type="text" placeholder="3000:3000, 8080:80">
+          <p class="muted">Example: 3000:3000, 8080:80</p>
+        </div>
+        <div class="field">
+          <label for="containers-run-volumes">Volume Mapping (host:container)</label>
+          <input id="containers-run-volumes" type="text" placeholder="C:/temp:/data">
+          <p class="muted">Example: C:/temp:/data</p>
+        </div>
+        <div class="actions">
+          <button class="primary" id="containers-run-submit">Run Container</button>
+          <button class="ghost" id="containers-run-cancel">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

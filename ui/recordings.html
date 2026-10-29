@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kali Linux Windows Substitute - Recordings</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div id="recordings-panel" class="panel hidden">
+    <div class="panel-head">
+      <h2>Terminal Recordings</h2>
+      <button class="x" data-close="recordings-panel">&times;</button>
+    </div>
+
+    <div class="toolbar">
+      <button class="primary" id="recordings-start">Start Recording</button>
+      <button class="ghost" id="recordings-stop">Stop</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Tool</th>
+          <th>Duration</th>
+          <th>Size</th>
+          <th>Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="recordings-table-body"></tbody>
+    </table>
+  </div>
+</body>
+</html>

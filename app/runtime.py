@@ -17,6 +17,7 @@ import hashlib
 import os
 import secrets
 import subprocess
+import threading
 import time
 import urllib.request
 from pathlib import Path
@@ -28,6 +29,10 @@ import kws_secrets
 AGENT_TOKEN_SECRET = "agent_token"
 CREATE_NO_WINDOW = 0x08000000
 AGENT_PORT = 5055
+
+# Provisioning lock to prevent concurrent ensure() calls
+_PROVISION_LOCK = None
+_PROVISION_STATUS: dict[str, Any] = {}
 
 
 # --- low level: talking to wsl.exe ----------------------------------------
@@ -185,6 +190,11 @@ def _agent_up(cfg) -> bool:
     return tool_api.agent_online(cfg)
 
 
+def provisioning_status(cfg) -> dict[str, Any] | None:
+    """Return current provisioning status or None if idle."""
+    return _PROVISION_STATUS.copy() if _PROVISION_STATUS else None
+
+
 def status(cfg) -> dict[str, Any]:
     available = wsl_available()
     installed = distro_exists(cfg) if available else False
@@ -210,38 +220,83 @@ def status(cfg) -> dict[str, Any]:
 
 
 def ensure(cfg) -> dict[str, Any]:
-    """Provision and start the private runtime. Safe to call repeatedly."""
-    if not wsl_available():
-        return {"ok": False, "message": (
-            "WSL2 is not available on this machine. Enable it (see "
-            "docs/PREREQUISITES.md), restart Windows, then try again.")}
-
-    if not distro_exists(cfg):
-        image = image_path()
-        if image is None:
-            ok, detail = _download_image(cfg)
-            if not ok:
-                return {"ok": False, "message": (
-                    "The runtime image was not found and could not be downloaded. "
-                    "Build it with runtime/build-rootfs.sh, or set KWS_ROOTFS_URL "
-                    f"and KWS_ROOTFS_SHA256. ({detail})")}
-            image = Path(kws_paths.user_data_dir()) / "kalisub-rootfs.tar"
-        ok, message = _import_distro(cfg, image)
-        if not ok:
-            return {"ok": False, "message": message}
-
-    token = _token()
-    _write_agent_env(cfg, token)
-
-    ok, message = _start_agent(cfg)
-    if not ok:
-        return {"ok": False, "message": message}
-
-    deadline = time.time() + 90
-    while time.time() < deadline:
-        if _agent_up(cfg):
-            return {"ok": True, "message": "Runtime ready."}
-        time.sleep(2)
-    return {"ok": False, "message": (
-        "The runtime started but the tool agent did not answer. Check "
-        "runtime/README.md for troubleshooting.")}
+    """Provision and start the private runtime. Safe to call repeatedly.
+    
+    If a provision is already running, returns a provisional success response.
+    """
+    global _PROVISION_LOCK
+    if _PROVISION_LOCK is None:
+        _PROVISION_LOCK = threading.Lock()
+    
+    if _PROVISION_LOCK.locked():
+        return {"ok": True, "provisioning": True,
+                "message": "Provision already in progress. Please wait."}
+    
+    # Start provisioning in a daemon thread so Flask requests don't block
+    def _provision_worker():
+        global _PROVISION_STATUS
+        _PROVISION_STATUS = {}
+        try:
+            with _PROVISION_LOCK:
+                _PROVISION_STATUS["phase"] = "preparing"
+                _PROVISION_STATUS["ok"] = False
+                _PROVISION_STATUS["message"] = "Preparing runtime..."
+                
+                if not wsl_available():
+                    _PROVISION_STATUS["message"] = (
+                        "WSL2 is not available on this machine. Enable it (see "
+                        "docs/PREREQUISITES.md), restart Windows, then try again.")
+                    return
+                
+                _PROVISION_STATUS["phase"] = "importing"
+                _PROVISION_STATUS["message"] = "Importing runtime..."
+                
+                if not distro_exists(cfg):
+                    image = image_path()
+                    if image is None:
+                        ok, detail = _download_image(cfg)
+                        if not ok:
+                            _PROVISION_STATUS["message"] = (
+                                "The runtime image was not found and could not be downloaded. "
+                                "Build it with runtime/build-rootfs.sh, or set KWS_ROOTFS_URL "
+                                f"and KWS_ROOTFS_SHA256. ({detail})")
+                            return
+                        image = Path(kws_paths.user_data_dir()) / "kalisub-rootfs.tar"
+                    ok, message = _import_distro(cfg, image)
+                    if not ok:
+                        _PROVISION_STATUS["message"] = message
+                        return
+                
+                _PROVISION_STATUS["phase"] = "configuring"
+                _PROVISION_STATUS["message"] = "Configuring agent..."
+                
+                token = _token()
+                _write_agent_env(cfg, token)
+                
+                _PROVISION_STATUS["phase"] = "starting"
+                _PROVISION_STATUS["message"] = "Starting agent..."
+                
+                ok, message = _start_agent(cfg)
+                if not ok:
+                    _PROVISION_STATUS["message"] = message
+                    return
+                
+                _PROVISION_STATUS["phase"] = "waiting"
+                _PROVISION_STATUS["message"] = "Waiting for agent to be ready..."
+                
+                deadline = time.time() + 90
+                while time.time() < deadline:
+                    if _agent_up(cfg):
+                        _PROVISION_STATUS["ok"] = True
+                        _PROVISION_STATUS["message"] = "Runtime ready."
+                        return
+                    time.sleep(2)
+                _PROVISION_STATUS["message"] = (
+                    "The runtime started but the tool agent did not answer. Check "
+                    "runtime/README.md for troubleshooting.")
+        except Exception as exc:
+            _PROVISION_STATUS["message"] = f"Provisioning failed: {exc}"
+    
+    # Start worker thread
+    threading.Thread(target=_provision_worker, daemon=True).start()
+    return {"ok": True, "provisioning": True, "message": "Starting runtime provisioning..."}

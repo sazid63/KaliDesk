@@ -43,7 +43,7 @@ if (Test-Path $uninstallKey) {
     Write-Host '  removed uninstall entry'
 }
 
-$dataDir = Join-Path $env:LOCALAPPDATA $DotFolder
+$dataDir = Join-Path $env:LOCALAPPDATA $FolderName
 if (Test-Path $dataDir) {
     Remove-Item -Path $dataDir -Recurse -Force -ErrorAction SilentlyContinue
     Write-Host "  removed user data ($dataDir)"
@@ -59,11 +59,11 @@ if ($RemoveRuntime) {
 if ($RemoveRuntime) {
     $wsl = Get-Command wsl.exe -ErrorAction SilentlyContinue
     if ($wsl) {
-        & $wsl.Source --unregister $DotFolder 2>&1 | Out-Null
+        & $wsl.Source --unregister $RuntimeDistro 2>&1 | Out-Null
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "  removed the $DotFolder runtime"
+            Write-Host "  removed the $RuntimeDistro runtime"
         } else {
-            Write-Host "  runtime '$DotFolder' was not present"
+            Write-Host "  runtime '$RuntimeDistro' was not present"
         }
     }
 }

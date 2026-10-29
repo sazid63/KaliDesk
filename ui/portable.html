@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kali Linux Windows Substitute - Portable Mode</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div id="portable-panel" class="panel hidden">
+    <div class="panel-head">
+      <h2>Portable Mode</h2>
+      <button class="x" data-close="portable-panel">&times;</button>
+    </div>
+
+    <p class="muted warning">
+      Switch to USB drive mode. This moves your data (runtime, findings, settings) to a
+      removable drive so the workbench runs entirely from USB.
+    </p>
+
+    <div class="toolbar">
+      <select id="portable-drive-select" class="grow">
+        <option value="">— Select USB drive —</option>
+      </select>
+      <button class="ghost" id="portable-refresh-drives">Refresh</button>
+      <button class="primary" id="portable-switch">Switch to USB</button>
+    </div>
+
+    <div class="muted" id="portable-status">Detecting removable drives…</div>
+  </div>
+</body>
+</html>

@@ -55,7 +55,7 @@ def require_auth(view: Callable) -> Callable:
         from flask import current_app
 
         expected = current_app.config.get("KWS_TOKEN", "")
-        supplied = request.cookies.get(AUTH_COOKIE) or request.args.get("token") or ""
+        supplied = request.cookies.get(AUTH_COOKIE) or ""
         if not expected or not hmac.compare_digest(str(supplied), str(expected)):
             return jsonify({"error": "unauthorised"}), 401
         return view(*args, **kwargs)

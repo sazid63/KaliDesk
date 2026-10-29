@@ -1,0 +1,55 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kali Linux Windows Substitute - AI Settings</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div id="settings-ai-panel" class="panel hidden">
+    <div class="panel-head">
+      <h2>AI Settings</h2>
+      <button class="x" data-close="settings-ai-panel">&times;</button>
+    </div>
+
+    <p class="muted">Configure AI providers for chat and tool explanations. API keys are stored securely with Windows DPAPI.</p>
+
+    <div class="toolbar">
+      <select id="ai-provider-select" class="grow" placeholder="Select provider">
+        <option value=""> — Add provider — </option>
+        <option value="none"> — None (tools work without AI) — </option>
+        <option value="openai">OpenAI</option>
+        <option value="anthropic">Anthropic</option>
+        <option value="gemini">Gemini</option>
+        <option value="ollama">Ollama</option>
+        <option value="local">Local AI (GGUF)</option>
+        <option value="opencode">OpenCode</option>
+        <option value="deepseek">DeepSeek (OpenAI-compatible)</option>
+        <option value="deepseek_harness">DeepSeek Harness</option>
+      </select>
+      <button class="primary" id="ai-provider-save">Save</button>
+      <button class="ghost" id="ai-provider-test">Test</button>
+      <button class="ghost" id="ai-provider-delete">Delete</button>
+    </div>
+
+    <div class="ai-provider-form" id="ai-provider-form">
+      <h3 id="ai-provider-form-title">Provider Settings</h3>
+
+      <!-- Provider forms will be dynamically inserted here -->
+      <div id="ai-provider-form-content"></div>
+
+      <div class="actions">
+        <button class="primary" id="ai-provider-submit">Save</button>
+        <button class="ghost" id="ai-provider-cancel">Cancel</button>
+      </div>
+    </div>
+
+    <div class="ai-providers-list" id="ai-providers-list">
+      <h3>Configured Providers</h3>
+      <div id="ai-providers-container" class="manager"></div>
+    </div>
+  </div>
+</body>
+</html>

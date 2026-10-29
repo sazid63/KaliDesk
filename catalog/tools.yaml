@@ -867,6 +867,7 @@ tools:
     category: forensics
     summary: "Command-line tools to examine disk images at the filesystem level."
     packages: [sleuthkit]
+    baseline: true
     danger: low
     license: "CPL / IBM Public License"
     homepage: "https://www.sleuthkit.org/sleuthkit/"

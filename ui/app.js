@@ -140,6 +140,14 @@ async function refreshRuntime() {
   const text = $("#runtime-text");
   const banner = $("#setup-banner");
   dot.className = "dot";
+  if (!data || data.error) {
+    dot.classList.add("bad");
+    text.textContent = "runtime check failed";
+    banner.classList.remove("hidden");
+    banner.classList.add("bad");
+    $("#setup-message").textContent = (data && data.error) || "Could not check the runtime.";
+    return;
+  }
   if (data.agent) {
     dot.classList.add("ok");
     text.textContent = "runtime online";
@@ -165,6 +173,11 @@ async function ensureRuntime() {
   const { data } = await api("POST", "/api/runtime/ensure", {});
   btn.disabled = false;
   btn.textContent = "Set up runtime";
+  if (!data || data.error) {
+    toast(data.error || "setup failed", true);
+    refreshRuntime();
+    return;
+  }
   toast(data.message || "done", !data.ok);
   refreshRuntime();
 }
@@ -172,6 +185,7 @@ async function ensureRuntime() {
 /* --- catalog ------------------------------------------------------------- */
 async function loadCatalog() {
   const { data } = await api("GET", "/api/catalog");
+  if (!data || data.error) { toast(data.error || "could not load catalog", true); return; }
   state.catalog = data.app || {};
   state.tools = data.tools || [];
   state.categories = data.categories || [];
@@ -251,6 +265,7 @@ function closeTool() {
 
 async function refreshEvidence() {
   const { data } = await api("GET", "/api/evidence");
+  if (!data || data.error) return;
   state.evidence = data.files || [];
 }
 
@@ -477,6 +492,14 @@ async function explainOutput() {
 /* --- tool manager -------------------------------------------------------- */
 async function loadManager() {
   const { data } = await api("GET", "/api/tools/manage");
+  if (!data || data.error) {
+    state.manager = [];
+    state.managerOnline = false;
+    $("#manager-list").innerHTML =
+      '<p class="muted">Could not load the tool manager: ' +
+      esc((data && data.error) || "request failed") + "</p>";
+    return;
+  }
   state.manager = data.tools || [];
   state.managerOnline = !!data.online;
   renderManager();
@@ -551,6 +574,10 @@ async function removeTool(id) {
 async function loadFindings() {
   const { data } = await api("GET", "/api/findings");
   const body = $("#findings-body");
+  if (!data || data.error) {
+    body.innerHTML = '<tr><td colspan="5" class="muted">Could not load findings.</td></tr>';
+    return;
+  }
   body.innerHTML = "";
   (data.findings || []).forEach((f) => {
     const tr = document.createElement("tr");
@@ -602,7 +629,11 @@ function toggleFindingForm() {
 }
 
 async function downloadReport(fmt) {
-  const resp = await fetch("/api/report?format=" + fmt);
+  const resp = await fetch("/api/report?format=" + fmt, { credentials: "same-origin" });
+  if (!resp.ok) {
+    toast("Report download failed (" + resp.status + ")", true);
+    return;
+  }
   const blob = await resp.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -617,6 +648,10 @@ async function downloadReport(fmt) {
 async function loadAudit() {
   const { data } = await api("GET", "/api/audit");
   const body = $("#audit-body");
+  if (!data || data.error) {
+    body.innerHTML = '<tr><td colspan="4" class="muted">Could not load the audit log.</td></tr>';
+    return;
+  }
   body.innerHTML = "";
   (data.audits || []).forEach((a) => {
     const tr = document.createElement("tr");
@@ -643,7 +678,7 @@ function renderChat() {
   state.chat.forEach((m) => {
     const div = document.createElement("div");
     div.className = "msg " + m.role;
-    div.textContent = msg.content;
+    div.textContent = m.content;
     $("#chat-log").appendChild(div);
   });
   $("#chat-log").scrollTop = $("#chat-log").scrollHeight;
@@ -688,9 +723,27 @@ function renderProposal(toolId, payload) {
   box.querySelector('[data-act="run"]').addEventListener("click", async () => {
     box.remove();
     state.chat.push({ role: "user", content: "Confirmed: run " + toolId });
-    await runTool(toolId, Object.assign({}, payload, { confirm_external: !!payload.confirm_external }));
-    toast("Ran " + toolId);
     renderChat();
+    const { data } = await api("POST", "/api/tool/" + encodeURIComponent(toolId),
+      Object.assign({}, payload, { confirm_external: !!payload.confirm_external }));
+    let resultText;
+    if (!data || data.error) {
+      resultText = "ERROR: " + ((data && data.error) || "unknown error") +
+        ((data && data.detail) ? "\n" + data.detail : "");
+    } else {
+      const argv = data.argv ? data.argv.join(" ") : "\u2026";
+      const rc = data.rc != null ? data.rc
+        : (data.returncode != null ? data.returncode : "?");
+      resultText = "$ " + argv + "\n(exit " + rc + ")" +
+        (data.stdout ? "\n\n" + data.stdout : "") +
+        (data.stderr ? "\n[stderr]\n" + data.stderr : "") +
+        (data.truncated ? "\n\n[output truncated]" : "");
+    }
+    if (resultText.length > 4000) resultText = resultText.slice(0, 4000) + "\n\n[truncated in chat]";
+    state.chat.push({ role: "system", content: "[ran " + toolId + "]\n" + resultText });
+    renderChat();
+    if (!data || data.error) toast((data && data.error) || "run failed", true);
+    else toast("Ran " + toolId);
   });
   box.querySelector('[data-act="cancel"]').addEventListener("click", () => {
     box.remove();
@@ -704,6 +757,10 @@ function renderProposal(toolId, payload) {
 /* --- settings ------------------------------------------------------------ */
 async function loadAiConfig() {
   const { data } = await api("GET", "/api/ai/config");
+  if (!data || data.error) {
+    $("#ai-status").textContent = "Could not load AI settings.";
+    return;
+  }
   $("#ai-provider").value = data.provider || "none";
   $("#ai-base").value = data.base_url || "";
   $("#ai-model").value = data.model || "";
@@ -712,7 +769,384 @@ async function loadAiConfig() {
     ". Local models need no key.";
 }
 
-async function saveAiConfig(event) {
+
+async function loadSettingsAI() {
+  const { data } = await api("GET", "/api/ai/providers");
+  const container = $("#ai-providers-container");
+  container.innerHTML = "";
+
+  if (!(data || []).length) {
+    container.innerHTML = '<p class="muted">No providers configured.</p>';
+    return;
+  }
+
+  data.forEach((provider) => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML =
+      '<div class="manager-info">' +
+      "<h3>" + esc(provider.name) + "</h3>" +
+      '<p>' + esc(provider.type) + "</p>" +
+      (provider.model ? '<p class="muted">Model: ' + esc(provider.model) + "</p>" : "") +
+      "</div>" +
+      '<div class="manager-actions"></div>';
+    
+    const actions = card.querySelector(".manager-actions");
+    const editBtn = document.createElement("button");
+    editBtn.className = "ghost";
+    editBtn.textContent = "Edit";
+    editBtn.addEventListener("click", () => editProvider(provider));
+    actions.appendChild(editBtn);
+
+    const delBtn = document.createElement("button");
+    delBtn.className = "ghost";
+    delBtn.textContent = "Delete";
+    delBtn.addEventListener("click", () => deleteProvider(provider.name));
+    actions.appendChild(delBtn);
+
+    container.appendChild(card);
+  });
+}
+
+function editProvider(provider) {
+  currentProvider = provider;
+  $("#ai-provider-select").value = provider.type;
+  $("#ai-provider-form-title").textContent = "Edit: " + provider.name;
+  showProviderForm(provider.type, provider.config);
+  $("#ai-provider-submit").textContent = "Update";
+  $("#ai-provider-delete").disabled = false;
+  $("#ai-provider-form").classList.remove("hidden");
+}
+
+async function deleteProvider(name) {
+  if (!confirm(`Delete provider "${name}"?`)) return;
+  const { data } = await api("DELETE", "/api/ai/providers/" + encodeURIComponent(name));
+  toast(data.message || "Provider deleted");
+  loadProviders();
+  clearForm();
+}
+
+function clearForm() {
+  currentProvider = null;
+  $("#ai-provider-select").value = "";
+  $("#ai-provider-form-title").textContent = "Provider Settings";
+  $("#ai-provider-form-content").innerHTML = "";
+  $("#ai-provider-submit").textContent = "Save";
+  $("#ai-provider-delete").disabled = true;
+  $("#ai-provider-form").classList.add("hidden");
+}
+
+function showProviderForm(type, config = {}) {
+  const content = $("#ai-provider-form-content");
+  content.innerHTML = "";
+
+  // Common fields
+  const nameField = document.createElement("div");
+  nameField.className = "field";
+  nameField.innerHTML = `
+    <label for="ai-provider-name">Name</label>
+    <input id="ai-provider-name" type="text" placeholder="My OpenAI Account" ${config.name ? 'value="' + esc(config.name) + '"' : ""}>
+  `;
+  content.appendChild(nameField);
+
+  switch (type) {
+    case "openai":
+    case "anthropic":
+    case "gemini":
+      content.innerHTML += `
+        <div class="field">
+          <label for="ai-api-key">API Key</label>
+          <input id="ai-api-key" type="password" placeholder="••••••••" ${config.api_key ? 'value="' + "•".repeat(8) + '"' : ""}>
+        </div>
+        <div class="field">
+          <label for="ai-base-url">Base URL (optional)</label>
+          <input id="ai-base-url" type="text" placeholder="https://api.openai.com/v1" value="${config.base_url || ""}">
+        </div>
+        <div class="field">
+          <label for="ai-model">Model</label>
+          <select id="ai-model" class="grow"></select>
+        </div>
+      `;
+      break;
+
+    case "ollama":
+      content.innerHTML += `
+        <div class="field">
+          <label for="ai-ollama-url">Base URL</label>
+          <input id="ai-ollama-url" type="text" placeholder="http://127.0.0.1:11434" value="${config.base_url || "http://127.0.0.1:11434"}">
+        </div>
+        <div class="field">
+          <label for="ai-ollama-model">Model</label>
+          <select id="ai-ollama-model" class="grow"></select>
+        </div>
+        <button class="ghost" id="ai-ollama-refresh">Refresh models</button>
+      `;
+      break;
+
+    case "local":
+      content.innerHTML += `
+        <div class="field">
+          <label for="ai-local-model">Model</label>
+          <select id="ai-local-model" class="grow"></select>
+        </div>
+        <div class="field">
+          <label for="ai-llama-path">llama.cpp path (optional)</label>
+          <input id="ai-llama-path" type="text" placeholder="Auto-detected" value="${config.llama_path || ""}">
+        </div>
+        <button class="ghost" id="ai-local-refresh">Refresh models</button>
+      `;
+      break;
+
+    case "opencode":
+    case "deepseek":
+      content.innerHTML += `
+        <div class="field">
+          <label for="ai-host-port">Host:Port</label>
+          <input id="ai-host-port" type="text" placeholder="${type === "opencode" ? "127.0.0.1:11434" : "127.0.0.1:11434"}" value="${config.host_port || (type === "opencode" ? "127.0.0.1:11434" : "127.0.0.1:11434")}">
+        </div>
+      `;
+      break;
+
+    default:
+      content.innerHTML = "<p class="muted">Select a provider to configure.</p>";
+      return;
+  }
+
+  content.innerHTML += `
+    <div class="field">
+      <label for="ai-auto-detect">Auto-detect available models</label>
+      <button class="ghost" id="ai-auto-detect-btn">Detect</button>
+    </div>
+  `;
+
+  // Load models for applicable providers
+  if (["openai", "anthropic", "gemini", "local"].includes(type)) {
+    loadModels(type);
+  }
+
+  // Auto-detect buttons
+  if (type === "ollama") {
+    document.getElementById("ai-ollama-refresh").addEventListener("click", () => loadOllamaModels());
+  }
+  if (type === "local") {
+    document.getElementById("ai-local-refresh").addEventListener("click", () => loadLocalModels());
+  }
+  document.getElementById("ai-auto-detect-btn").addEventListener("click", () => {
+    if (type === "opencode") autoDetectOpenCode();
+    else if (type === "deepseek") autoDetectDeepSeek();
+    else if (type === "ollama") loadOllamaModels();
+    else if (type === "local") loadLocalModels();
+  });
+}
+
+async function loadModels(type) {
+  try {
+    const { data } = await api("GET", "/api/ai/models?type=" + type);
+    let select;
+    if (type === "local") {
+      select = $("#ai-local-model");
+      select.innerHTML = '<option value=""> — Select model — </option>';
+      data.forEach((m) => {
+        const opt = document.createElement("option");
+        opt.value = m.path;
+        opt.textContent = m.name + " (" + (m.size_mb || 0) + "MB)";
+        select.appendChild(opt);
+      });
+    } else {
+      select = $("#ai-model");
+      select.innerHTML = '<option value=""> — Select model — </option>';
+      (data || []).forEach((m) => {
+        const opt = document.createElement("option");
+        opt.value = m;
+        opt.textContent = m;
+        select.appendChild(opt);
+      });
+    }
+  } catch (e) {
+    toast("Could not load models", true);
+  }
+}
+
+async function loadOllamaModels() {
+  try {
+    const { data } = await api("GET", "/api/ai/models?type=ollama");
+    const select = $("#ai-ollama-model");
+    select.innerHTML = '<option value=""> — Select model — </option>';
+    (data || []).forEach((m) => {
+      const opt = document.createElement("option");
+      opt.value = m;
+      opt.textContent = m;
+      select.appendChild(opt);
+    });
+  } catch (e) {
+    toast("Ollama not reachable", true);
+  }
+}
+
+async function loadLocalModels() {
+  try {
+    const { data } = await api("GET", "/api/ai/models?type=local");
+    const select = $("#ai-local-model");
+    select.innerHTML = '<option value=""> — Select model — </option>';
+    (data || []).forEach((m) => {
+      const opt = document.createElement("option");
+      opt.value = m.path;
+      opt.textContent = m.name + " (" + (m.size_mb || 0) + "MB)";
+      select.appendChild(opt);
+    });
+  } catch (e) {
+    toast("Local AI not initialized", true);
+  }
+}
+
+async function autoDetectOpenCode() {
+  // Scan localhost ports 11434, 11435, etc.
+  const ports = [11434, 11435, 8080, 8000, 3000];
+  const found = [];
+  for (const port of ports) {
+    try {
+      const res = await fetch("http://127.0.0.1:" + port + "/health", { timeout: 500 });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.app && data.app.name.includes("OpenCode")) {
+          found.push(port);
+        }
+      } catch (_) {}
+    }
+  }
+  if (found.length) {
+    $("#ai-host-port").value = "127.0.0.1:" + found[0];
+    toast("OpenCode detected on port " + found[0]);
+  } else {
+    toast("OpenCode not detected on common ports", true);
+  }
+}
+
+async function autoDetectDeepSeek() {
+  // Scan for DeepSeek Harness
+  const ports = [55551, 55552, 8080, 8000];
+  const found = [];
+  for (const port of ports) {
+    try {
+      const res = await fetch("http://127.0.0.1:" + port + "/health", { timeout: 500 });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.app && data.app.name.includes("DeepSeek")) {
+          found.push(port);
+        }
+      } catch (_) {}
+    }
+  }
+  if (found.length) {
+    $("#ai-host-port").value = "127.0.0.1:" + found[0];
+    toast("DeepSeek Harness detected on port " + found[0]);
+  } else {
+    toast("DeepSeek Harness not detected", true);
+  }
+}
+
+async function testProvider() {
+  const type = $("#ai-provider-select").value;
+  if (!type || type === "none") {
+    toast("Select a provider to test", true);
+    return;
+  }
+
+  const payload = { type };
+  // Collect form fields
+  const fields = $$("#ai-provider-form-content input, #ai-provider-form-content select");
+  fields.forEach((el) => {
+    if (el.type === "password" && el.value === "•".repeat(8)) return; // Don't send masked key
+    payload[el.id] = el.value;
+  });
+
+  const btn = $("#ai-provider-test");
+  btn.disabled = true;
+  btn.textContent = "Testing...";
+  try {
+    const { data } = await api("POST", "/api/ai/test", payload);
+    if (data.ok) {
+      toast("Connection successful", false);
+    } else {
+      toast("Connection failed: " + (data.error || "unknown"), true);
+    }
+  } catch (e) {
+    toast("Test failed", true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Test";
+  }
+}
+
+async function saveProvider() {
+  const type = $("#ai-provider-select").value;
+  if (!type || type === "none") {
+    toast("Select a provider", true);
+    return;
+  }
+
+  const name = $("#ai-provider-name").value.trim();
+  if (!name) {
+    toast("Provider name is required", true);
+    return;
+  }
+
+  const payload = { type, name };
+  // Collect form fields
+  const fields = $$("#ai-provider-form-content input, #ai-provider-form-content select");
+  fields.forEach((el) => {
+    if (el.type === "password" && el.value === "•".repeat(8)) return; // Don't send masked key
+    payload[el.id] = el.value;
+  });
+
+  const url = currentProvider ? "/api/ai/providers/" + encodeURIComponent(currentProvider.name) : "/api/ai/providers";
+  const method = currentProvider ? "POST" : "POST"; // POST for both create and update
+  
+  const btn = $("#ai-provider-submit");
+  btn.disabled = true;
+  btn.textContent = "Saving...";
+  try {
+    const { data } = await api("POST", url, payload);
+    toast(data.message || "Provider saved");
+    loadProviders();
+    clearForm();
+  } catch (e) {
+    toast("Save failed", true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = currentProvider ? "Update" : "Save";
+  }
+}
+
+// Wiring
+function wireSettingsAI() {
+  $("#ai-provider-select").addEventListener("change", () => {
+    if (currentProvider && !confirm("Switching providers will discard unsaved changes.")) {
+      $("#ai-provider-select").value = currentProvider.type;
+      return;
+    }
+    clearForm();
+    const type = $("#ai-provider-select").value;
+    if (type && type !== "none") {
+      showProviderForm(type);
+    }
+  });
+
+  $("#ai-provider-save").addEventListener("click", () => {
+    const type = $("#ai-provider-select").value;
+    if (type && type !== "none") {
+      showProviderForm(type);
+    }
+  });
+
+  $("#ai-provider-test").addEventListener("click", testProvider);
+  $("#ai-provider-delete").addEventListener("click", () => {
+    if (currentProvider) deleteProvider(currentProvider.name);
+  });
+
+  $("#ai-provider-cancel").addEventListener("click", clearForm);
+  $("#ai-provider-submit").addEventListener("click", saveProvider);
+}async function saveAiConfig(event) {
   event.preventDefault();
   const provider = $("#ai-provider").value;
   const base = $("#ai-base").value.trim();
@@ -729,7 +1163,7 @@ async function saveAiConfig(event) {
 
 /* --- navigation ---------------------------------------------------------- */
 function showPanel(view) {
-  const panels = ["manager-panel", "findings-panel", "audit-panel", "chat-panel", "settings-panel"];
+  const panels = ["manager-panel", "findings-panel", "audit-panel", "chat-panel", "settings-panel", "settings-ai-panel", "containers-panel", "ai-chat-panel", "history-panel", "playground-panel", "cheat-sheets-panel", "achievements-panel", "notebook-panel", "recordings-panel", "portable-panel", "onboarding-panel"];
   $$("#view-list li").forEach((li) => li.classList.toggle("active", li.dataset.view === view));
   if (view === "home") {
     $("#view-home").classList.remove("hidden");
@@ -742,6 +1176,17 @@ function showPanel(view) {
     if (view === "audit-panel") loadAudit();
     if (view === "chat-panel") renderChat();
     if (view === "settings-panel") { refreshRuntime(); loadAiConfig(); }
+    if (view === "settings-ai-panel") { loadSettingsAI(); }
+    if (view === "ai-chat-panel") { initAiChat(); }
+    if (view === "containers-panel") { initContainers(); }
+    if (view === "history-panel") { initHistory(); }
+    if (view === "playground-panel") { initPlayground(); }
+    if (view === "cheat-sheets-panel") { initCheatSheets(); }
+    if (view === "achievements-panel") { initAchievements(); }
+    if (view === "notebook-panel") { initNotebook(); }
+    if (view === "recordings-panel") { initRecordings(); }
+    if (view === "portable-panel") { initPortable(); }
+    if (view === "onboarding-panel") { initOnboarding(); }
   }
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -781,6 +1226,29 @@ function wire() {
   $$("[data-close]").forEach((btn) => {
     btn.addEventListener("click", () => showPanel("home"));
   });
+
+
+  // Keyboard shortcuts (1-9)
+  document.addEventListener("keydown", (e) => {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.ctrlKey || e.altKey || e.metaKey) return;
+    const map = {
+      "1": "manager-panel",
+      "2": "findings-panel",
+      "3": "audit-panel",
+      "4": "chat-panel",
+      "5": "history-panel",
+      "6": "playground-panel",
+      "7": "cheat-sheets-panel",
+      "8": "achievements-panel",
+      "9": "notebook-panel"
+    };
+    const panel = map[e.key];
+    if (panel) {
+      e.preventDefault();
+      showPanel(panel);
+    }
+  });
+
 }
 
 async function init() {

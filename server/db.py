@@ -32,11 +32,82 @@ CREATE TABLE IF NOT EXISTS settings (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS conversations (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    created   TEXT NOT NULL,
+    tool      TEXT NOT NULL DEFAULT '',
+    target    TEXT NOT NULL DEFAULT '',
+    role      TEXT NOT NULL DEFAULT 'user',
+    content   TEXT NOT NULL DEFAULT '',
+    encrypted INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS mcp_servers (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    name      TEXT NOT NULL UNIQUE,
+    type      TEXT NOT NULL,
+    config    TEXT NOT NULL DEFAULT '{}',
+    enabled   INTEGER NOT NULL DEFAULT 1
+);
+CREATE TABLE IF NOT EXISTS skills (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    name      TEXT NOT NULL UNIQUE,
+    description TEXT NOT NULL DEFAULT '',
+    category  TEXT NOT NULL DEFAULT 'general',
+    enabled   INTEGER NOT NULL DEFAULT 1
+);
+CREATE TABLE IF NOT EXISTS scan_profiles (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    name      TEXT NOT NULL,
+    tool      TEXT NOT NULL,
+    config    TEXT NOT NULL DEFAULT '{}',
+    created   TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS run_history (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    created       TEXT NOT NULL,
+    tool          TEXT NOT NULL,
+    target        TEXT NOT NULL DEFAULT '',
+    argv          TEXT NOT NULL DEFAULT '[]',
+    rc            INTEGER NOT NULL DEFAULT 0,
+    duration_ms   INTEGER NOT NULL DEFAULT 0,
+    output_preview TEXT NOT NULL DEFAULT '',
+    success       INTEGER NOT NULL DEFAULT 1
+);
+CREATE TABLE IF NOT EXISTS workspaces (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    name      TEXT NOT NULL UNIQUE,
+    description TEXT NOT NULL DEFAULT '',
+    created   TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS local_models (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    name          TEXT NOT NULL UNIQUE,
+    path          TEXT NOT NULL,
+    size_mb       REAL NOT NULL DEFAULT 0,
+    quantization  TEXT NOT NULL DEFAULT '',
+    capabilities  TEXT NOT NULL DEFAULT 'chat',
+    loaded        INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS achievements (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    key       TEXT NOT NULL UNIQUE,
+    name      TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    unlocked  INTEGER NOT NULL DEFAULT 0,
+    unlocked_at TEXT
+);
+CREATE TABLE IF NOT EXISTS notebook (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    created   TEXT NOT NULL,
+    type      TEXT NOT NULL DEFAULT 'note',
+    content   TEXT NOT NULL DEFAULT '',
+    tags      TEXT NOT NULL DEFAULT '[]'
+);
 """
 
 
 def _db_path() -> str:
-    return str(kws_paths.user_data_dir() / "kws.sqlite3")
+    return str(kws_paths.db_path())
 
 
 def _now() -> str:

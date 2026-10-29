@@ -31,6 +31,17 @@
       <li data-view="audit-panel">Audit log</li>
       <li data-view="chat-panel">AI chat</li>
       <li data-view="settings-panel">Settings</li>
+      <li data-view="containers-panel">Containers</li>
+      <li data-view="ai-chat-panel">AI CyberSecurity</li>
+      <li data-view="settings-ai-panel">AI Settings</li>
+      <li data-view="history-panel">History</li>
+      <li data-view="playground-panel">Playground</li>
+      <li data-view="cheat-sheets-panel">Cheat Sheets</li>
+      <li data-view="achievements-panel">Achievements</li>
+      <li data-view="notebook-panel">Notebook</li>
+      <li data-view="recordings-panel">Recordings</li>
+      <li data-view="portable-panel">Portable</li>
+      <li data-view="onboarding-panel">Onboarding</li>
     </ul>
     <hr>
     <p class="muted note">
@@ -41,7 +52,6 @@
 
   <main>
     <div id="view-home">
-
       <div id="setup-banner" class="banner">
         <span class="grow" id="setup-message">checking runtime…</span>
         <button class="primary" id="setup-ensure">Set up runtime</button>
@@ -108,8 +118,7 @@
           <div id="tool-ai-out" class="ai-out"></div>
         </div>
       </div>
-
-    </div><!-- /#view-home -->
+    </div>
 
     <div id="manager-panel" class="panel hidden">
       <div class="panel-head">
@@ -206,10 +215,339 @@
       <p class="muted" id="ai-status"></p>
     </div>
 
+    <div id="settings-ai-panel" class="panel hidden">
+      <div class="panel-head">
+        <h2>AI Settings</h2>
+        <button class="x" data-close="settings-ai-panel">&times;</button>
+      </div>
+
+      <p class="muted">Configure AI providers for chat and tool explanations. API keys are stored securely with Windows DPAPI.</p>
+
+      <div class="toolbar">
+        <select id="ai-provider-select" class="grow" placeholder="Select provider">
+          <option value=""> — Add provider — </option>
+          <option value="none"> — None (tools work without AI) — </option>
+          <option value="openai">OpenAI</option>
+          <option value="anthropic">Anthropic</option>
+          <option value="gemini">Gemini</option>
+          <option value="ollama">Ollama</option>
+          <option value="local">Local AI (GGUF)</option>
+          <option value="opencode">OpenCode</option>
+          <option value="deepseek">DeepSeek Harness</option>
+        </select>
+        <button class="primary" id="ai-provider-save">Save</button>
+        <button class="ghost" id="ai-provider-test">Test</button>
+        <button class="ghost" id="ai-provider-delete">Delete</button>
+      </div>
+
+      <div class="ai-provider-form" id="ai-provider-form">
+        <h3 id="ai-provider-form-title">Provider Settings</h3>
+
+        <!-- Provider forms will be dynamically inserted here -->
+        <div id="ai-provider-form-content"></div>
+
+        <div class="actions">
+          <button class="primary" id="ai-provider-submit">Save</button>
+          <button class="ghost" id="ai-provider-cancel">Cancel</button>
+        </div>
+      </div>
+
+      <div class="ai-providers-list" id="ai-providers-list">
+        <h3>Configured Providers</h3>
+        <div id="ai-providers-container" class="manager"></div>
+      </div>
+    </div>
+
   </main>
 </div>
 
-<div id="toast" class="toast hidden"></div>
+    <div id="containers-panel" class="panel hidden">
+      <div class="panel-head">
+        <h2>Containers (Advanced)</h2>
+        <button class="x" data-close="containers-panel">&times;</button>
+      </div>
+
+      <p class="muted warning">
+        Containers run in WSL2. Do not run privileged containers. Rootless Podman ensures isolation.
+      </p>
+
+      <div class="toolbar">
+        <button class="primary" id="containers-refresh">Refresh</button>
+        <button class="primary" id="containers-install-podman">Install Podman</button>
+        <span class="grow"></span>
+        <span id="containers-status" class="muted"></span>
+      </div>
+
+      <div class="tabs">
+        <button class="tabs button active" data-tab="images">Images</button>
+        <button class="tabs button" data-tab="containers">Containers</button>
+        <button class="tabs button" data-tab="run">Run New</button>
+      </div>
+
+      <div id="containers-images" class="tab-content">
+        <h3>Container Images</h3>
+        <div class="toolbar">
+          <input id="containers-image-search" class="grow" placeholder="Search images...">
+          <button class="ghost" id="containers-pull-custom">Pull Custom</button>
+        </div>
+        <div id="containers-images-list" class="grid"></div>
+        <div class="muted" id="containers-images-empty">No images found. Pull pre-built images or custom images.</div>
+      </div>
+
+      <div id="containers-containers" class="tab-content hidden">
+        <h3>Running Containers</h3>
+        <div class="toolbar">
+          <input id="containers-container-search" class="grow" placeholder="Search containers...">
+          <button class="ghost" id="containers-refresh-containers">Refresh</button>
+        </div>
+        <div id="containers-containers-list" class="manager"></div>
+        <div class="muted" id="containers-containers-empty">No containers found. Run a container to get started.</div>
+      </div>
+
+      <div id="containers-run" class="tab-content hidden">
+        <h3>Run New Container</h3>
+        <form id="containers-run-form">
+          <div class="field">
+            <label for="containers-run-image">Image</label>
+            <select id="containers-run-image" class="grow">
+              <option value="ghcr.io/juice-shop/juice-shop:latest">OWASP Juice Shop</option>
+              <option value="vulnerables/web-dvwa">DVWA</option>
+              <option value="alpine:latest">Alpine (base)</option>
+              <option value="custom">Custom...</option>
+            </select>
+          </div>
+          <div class="field" id="containers-run-custom-image" style="display: none;">
+            <label for="containers-run-custom-image-input">Custom Image</label>
+            <input id="containers-run-custom-image-input" type="text" placeholder="nginx:latest">
+          </div>
+          <div class="field">
+            <label for="containers-run-name">Container Name</label>
+            <input id="containers-run-name" type="text" placeholder="juice-shop">
+          </div>
+          <div class="field">
+            <label for="containers-run-ports">Port Mapping (host:container)</label>
+            <input id="containers-run-ports" type="text" placeholder="3000:3000, 8080:80">
+            <p class="muted">Example: 3000:3000, 8080:80</p>
+          </div>
+          <div class="field">
+            <label for="containers-run-volumes">Volume Mapping (host:container)</label>
+            <input id="containers-run-volumes" type="text" placeholder="C:/temp:/data">
+            <p class="muted">Example: C:/temp:/data</p>
+          </div>
+          <div class="actions">
+            <button class="primary" id="containers-run-submit">Run Container</button>
+            <button class="ghost" id="containers-run-cancel">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
+    <div id="history-panel" class="panel hidden">
+      <div class="panel-head">
+        <h2>Run History</h2>
+        <button class="x" data-close="history-panel">&times;</button>
+      </div>
+      <div class="toolbar">
+        <input id="history-filter-tool" class="grow" placeholder="Filter by tool...">
+        <select id="history-filter-success">
+          <option value="">All</option>
+          <option value="true">Successful</option>
+          <option value="false">Failed</option>
+        </select>
+        <button class="ghost" id="history-clear">Clear History</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Target</th>
+            <th>RC</th>
+            <th>Duration</th>
+            <th>Success</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="history-table-body"></tbody>
+      </table>
+      <div class="toolbar" style="margin-top: 1rem; justify-content: flex-end;">
+        <button class="ghost" id="history-export">Export CSV</button>
+      </div>
+    </div>
+
+    <div id="playground-panel" class="panel hidden">
+      <div class="panel-head">
+        <h2>Playground</h2>
+        <button class="x" data-close="playground-panel">&times;</button>
+      </div>
+      <p class="muted warning">A vulnerable http.server app runs on 127.0.0.1:3000 inside WSL2.</p>
+      <div class="toolbar">
+        <span id="playground-status" class="muted">Not running</span>
+        <div class="grow"></div>
+        <button class="primary" id="playground-start">Start</button>
+        <button class="ghost" id="playground-stop">Stop</button>
+      </div>
+      <div class="toolbar" style="margin-top: 1rem;">
+        <button class="primary" id="playground-open">Open in Browser</button>
+      </div>
+      <p class="muted" id="playground-text">Start the playground to test security tools.</p>
+    </div>
+
+    <div id="cheat-sheets-panel" class="panel hidden">
+      <div class="panel-head">
+        <h2>Cheat Sheets</h2>
+        <button class="x" data-close="cheat-sheets-panel">&times;</button>
+      </div>
+      <div class="toolbar">
+        <select id="cheat-sheets-tool-select" class="grow">
+          <option value="">— Select a tool —</option>
+        </select>
+      </div>
+      <div id="cheat-sheets-content" class="muted">— Select a tool from the dropdown to view its cheat sheet —</div>
+    </div>
+
+    <div id="achievements-panel" class="panel hidden">
+      <div class="panel-head">
+        <h2>Achievements</h2>
+        <button class="x" data-close="achievements-panel">&times;</button>
+      </div>
+      <div class="toolbar">
+        <button class="ghost" id="achievements-reload">Reload</button>
+      </div>
+      <div id="achievements-grid" class="grid">— Loading achievements —</div>
+    </div>
+
+    <div id="notebook-panel" class="panel hidden">
+      <div class="panel-head">
+        <h2>OSINT Notebook</h2>
+        <button class="x" data-close="notebook-panel">&times;</button>
+      </div>
+      <div class="toolbar">
+        <input id="notebook-search" class="grow" placeholder="Search entries...">
+        <button class="ghost" id="notebook-export">Export Markdown</button>
+      </div>
+      <div class="toolbar" style="margin-top: 0.5rem;">
+        <button class="primary" id="notebook-add">Add Entry</button>
+      </div>
+      <div class="entry-form" id="entry-form" style="display: none;">
+        <div class="field">
+          <label for="notebook-type">Type</label>
+          <select id="notebook-type">
+            <option value="url">URL</option>
+            <option value="ip">IP Address</option>
+            <option value="finding">Finding</option>
+            <option value="note">Note</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="notebook-content">Content</label>
+          <textarea id="notebook-content" placeholder="Enter URL, IP, finding, or note..."></textarea>
+        </div>
+        <div class="field">
+          <label for="notebook-tags">Tags (comma-separated)</label>
+          <input id="notebook-tags" type="text" placeholder="e.g., phishing, malware">
+        </div>
+      </div>
+      <div id="entries-list"></div>
+    </div>
+
+    <div id="recordings-panel" class="panel hidden">
+      <div class="panel-head">
+        <h2>Terminal Recordings</h2>
+        <button class="x" data-close="recordings-panel">&times;</button>
+      </div>
+      <div class="toolbar">
+        <button class="primary" id="recordings-start">Start Recording</button>
+        <button class="ghost" id="recordings-stop">Stop</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Duration</th>
+            <th>Size</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="recordings-table-body"></tbody>
+      </table>
+    </div>
+
+    <div id="portable-panel" class="panel hidden">
+      <div class="panel-head">
+        <h2>Portable Mode</h2>
+        <button class="x" data-close="portable-panel">&times;</button>
+      </div>
+      <p class="muted warning">Switch to USB drive mode. This will move your data to a removable drive.</p>
+      <div class="toolbar">
+        <select id="portable-drive-select" class="grow">
+          <option value="">— Select USB drive —</option>
+        </select>
+        <button class="primary" id="portable-switch">Switch to USB</button>
+      </div>
+    </div>
+
+    <div id="onboarding-panel" class="panel hidden">
+      <div class="panel-head">
+        <h2>Onboarding</h2>
+        <button class="x" data-close="onboarding-panel">&times;</button>
+      </div>
+      <div id="onboarding-content">
+        — Loading onboarding steps —
+      </div>
+      <div class="actions" style="margin-top: 1rem;">
+        <button class="ghost" id="onboarding-prev">Previous</button>
+        <button class="primary" id="onboarding-next">Next</button>
+        <button class="ghost" id="onboarding-finish">Finish</button>
+      </div>
+    </div>
+
+    <div id="ai-chat-panel" class="panel hidden">
+      <div class="panel-head">
+        <h2>AI CyberSecurity Chat</h2>
+        <button class="x" data-close="ai-chat-panel">&times;</button>
+      </div>
+
+      <div class="toolbar">
+        <select id="ai-chat-conversation" class="grow" placeholder="Select conversation...">
+          <option value="new">New conversation</option>
+        </select>
+        <button class="primary" id="ai-chat-new">New chat</button>
+        <button class="ghost" id="ai-chat-delete">Delete</button>
+        <button class="ghost" id="ai-chat-export">Export</button>
+      </div>
+
+      <div id="ai-chat-log" class="chat"></div>
+
+      <div class="chat-input">
+        <textarea id="ai-chat-input" placeholder="Ask about security tools, techniques, or investigations..."></textarea>
+        <div class="ai-row">
+          <button class="primary" id="ai-chat-send">Send</button>
+          <label class="muted">
+            <input type="checkbox" id="ai-chat-beginner"> Explain Like I'm Learning
+          </label>
+        </div>
+      </div>
+
+      <div class="tools-strip" id="ai-chat-tools-strip">
+        <!-- Tools chips will be inserted here -->
+      </div>
+    </div>
+
+<div id="toast" class="toast hidden" aria-live="polite"></div>
 <script src="/static/app.js"></script>
+    <script src="/static/strix.js"></script>
+
+  <script src="/static/history.js"></script>
+  <script src="/static/playground.js"></script>
+  <script src="/static/cheat_sheets.js"></script>
+  <script src="/static/achievements.js"></script>
+  <script src="/static/notebook.js"></script>
+  <script src="/static/recordings.js"></script>
+  <script src="/static/portable.js"></script>
+  <script src="/static/onboarding.js"></script>
+  <script src="/static/containers.js"></script>
+  <script src="/static/ai-chat.js"></script>
+
 </body>
-</html>

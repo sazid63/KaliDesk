@@ -37,7 +37,7 @@ BASELINE_PACKAGES=(
   sqlmap gobuster ffuf wordlists dirb
   hydra john hashcat
   tcpdump tshark
-  netcat-traditional socat
+  netcat-openbsd socat
   foremost binwalk testdisk libimage-exiftool-perl sleuthkit
 )
 

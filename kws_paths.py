@@ -53,7 +53,7 @@ def secrets_dir() -> Path:
 
 
 def db_path() -> Path:
-    return user_data_dir() / "toolkit.sqlite3"
+    return user_data_dir() / "kws.sqlite3"
 
 
 def to_wsl_path(path: str | Path) -> str:
