@@ -8,7 +8,7 @@ import sqlite3
 from datetime import datetime, timezone
 from typing import Any
 
-import kws_paths
+import kws.paths as kws_paths
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS findings (

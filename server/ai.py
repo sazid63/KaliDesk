@@ -17,7 +17,7 @@ import urllib.error
 import urllib.request
 from typing import Any
 
-import kws_secrets
+import kws.secrets as kws_secrets
 import server.db as db
 
 OLLAMA_DEFAULT = "http://127.0.0.1:11434"

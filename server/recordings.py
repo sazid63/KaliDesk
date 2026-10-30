@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import kws_paths
+import kws.paths as kws_paths
 
 _RECORDINGS_DIR = kws_paths.user_data_dir() / "recordings"
 

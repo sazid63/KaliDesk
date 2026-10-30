@@ -12,8 +12,8 @@ import urllib.error
 import urllib.request
 from typing import Any
 
-import kws_paths
-import kws_secrets
+import kws.paths as kws_paths
+import kws.secrets as kws_secrets
 import server.catalog as catalog
 import server.commands as commands
 import server.security as security

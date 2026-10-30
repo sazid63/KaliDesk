@@ -15,7 +15,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-import kws_secrets
+import kws.secrets as kws_secrets
 import server.config as config
 
 STRIX_VENV = Path("/opt/strix/venv")

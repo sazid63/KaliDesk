@@ -11,7 +11,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-import kws_paths
+import kws.paths as kws_paths
 
 MODELS_DIR = kws_paths.user_data_dir() / "models"
 GGUF_MAGIC = b"GGUF"

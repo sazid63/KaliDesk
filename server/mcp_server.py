@@ -21,7 +21,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import kws_paths
+import kws.paths as kws_paths
 import server.config as config
 import server.db as db
 import server.tools as tools_api

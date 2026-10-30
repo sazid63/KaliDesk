@@ -30,8 +30,8 @@ The distribution is called `KaliSubstitute` and is the app's own. Hard rules:
  │ server/db.py         sqlite: findings, audit, settings       │
  │ server/report.py     escaped HTML / JSON / CSV reports       │
  │ server/ai.py         optional Ollama / OpenAI-compatible     │
- │ kws_paths.py         resource + user-data paths              │
- │ kws_secrets.py       DPAPI-protected secrets                 │
+ │ kws/paths.py         resource + user-data paths              │
+ │ kws/secrets.py       DPAPI-protected secrets                 │
  └────────────────────────────────────────────────────────────┘
                        │ loopback HTTP + bearer token
                        ▼
@@ -109,3 +109,4 @@ wsl/            the imported distribution's virtual disk
 
 This directory is not the repository, and the repository ignores anything that
 looks like it (see `.gitignore`).
+

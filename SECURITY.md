@@ -37,7 +37,7 @@ If you are looking for problems, these are the deliberate choices worth testing:
 | Scope | `classify_target`, `scope_allows` | public targets refused without explicit confirmation |
 | Execution | `runtime/agent/agent.py` | `argv[0]` must match the declared binary; `shell=False`; timeout; output cap |
 | Install | agent `/tools/install` | package names validated against a strict pattern before `apt-get` |
-| Secrets | `kws_secrets.py` | Windows DPAPI; no plaintext on disk; never in the repo |
+| Secrets | `kws/secrets.py` | Windows DPAPI; no plaintext on disk; never in the repo |
 | Reports | `server/report.py` | HTML-escaped; served as attachments, not inline |
 
 A useful starting point is the test suite in `tests/`, which asserts the auth,

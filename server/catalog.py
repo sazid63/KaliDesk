@@ -12,7 +12,7 @@ from typing import Any
 
 import yaml
 
-import kws_paths
+import kws.paths as kws_paths
 
 CATALOG_PATH = Path(kws_paths.resource("catalog", "tools.yaml"))
 

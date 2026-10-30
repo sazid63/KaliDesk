@@ -17,7 +17,8 @@ def resource_root() -> Path:
     meipass = getattr(sys, "_MEIPASS", None)
     if meipass:
         return Path(meipass)
-    return Path(__file__).resolve().parent
+    # From kws/paths.py -> go up to repo root
+    return Path(__file__).resolve().parent.parent
 
 
 def resource(*parts: str) -> str:

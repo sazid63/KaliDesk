@@ -52,7 +52,8 @@ if (-not $SkipPyInstaller) {
             "ui$sep=ui",
             "catalog$sep=catalog",
             "server$sep=server",
-            "runtime$sep=runtime"
+            "runtime$sep=runtime",
+            "kws$sep=kws"
         )
         $pyArgs = @(
             '-m', 'PyInstaller', '--noconfirm', '--clean',

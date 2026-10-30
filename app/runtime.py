@@ -23,8 +23,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-import kws_paths
-import kws_secrets
+import kws.paths as kws_paths
+import kws.secrets as kws_secrets
 
 AGENT_TOKEN_SECRET = "agent_token"
 CREATE_NO_WINDOW = 0x08000000

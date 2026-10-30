@@ -15,7 +15,7 @@ import urllib.request
 from abc import ABC, abstractmethod
 from typing import Any
 
-import kws_secrets
+import kws.secrets as kws_secrets
 import server.db as db
 
 # Secret name prefixes for each provider

@@ -11,7 +11,7 @@ from pathlib import Path
 
 from flask import Flask, jsonify, make_response, request, send_from_directory
 
-import kws_paths
+import kws.paths as kws_paths
 import server.achievements as achievements
 import server.ai as ai
 import server.ai_chat as ai_chat
@@ -223,7 +223,7 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @security.require_auth
     @security.require_csrf
     def api_ai_key():
-        import kws_secrets
+        import kws.secrets as kws_secrets
 
         data = request.get_json(silent=True) or {}
         key = str(data.get("api_key", "")).strip()

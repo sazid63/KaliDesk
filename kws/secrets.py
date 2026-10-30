@@ -15,7 +15,7 @@ import os
 from ctypes import wintypes
 from pathlib import Path
 
-import kws_paths
+import kws.paths as kws_paths
 
 _IS_WINDOWS = os.name == "nt"
 _MEMORY: dict[str, str] = {}
