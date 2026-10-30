@@ -109,8 +109,8 @@ disturb it: it never shares a distribution with anything else and never runs
 ### Run from source (recommended while the project is young)
 
 ```powershell
-git clone <your-fork-url> Kali-Windows-Substitute
-cd Kali-Windows-Substitute
+git clone https://github.com/sazid63/KaliDesk.git
+cd KaliDesk
 python -m pip install -r requirements.txt
 python app/main.py
 ```
@@ -227,7 +227,7 @@ Report a problem privately: see [SECURITY.md](SECURITY.md).
 ```
 app/            launcher (main.py) and WSL2 runtime lifecycle (runtime.py)
 server/         Flask backend: routes, catalog, commands, security, DB, reports, AI
-ui/             the window: index.html, app.js, styles.css (terminal-green theme)
+ui/             the window: index.html, app.js, styles.css (soft bright theme)
 catalog/        tools.yaml - the single source of truth for every tool
 runtime/        the private WSL2 image: agent, build script, overlay
 installer/      PowerShell build + install/uninstall scripts
@@ -235,6 +235,49 @@ tools/          gen_docs.py and other maintenance scripts
 docs/           prerequisites, architecture, per-tool docs, limitations
 tests/          pytest suite (auth, CSRF, scope guard, commands, reports)
 ```
+
+---
+
+## Version history
+
+### v1.1.0 (2026-10-31) — UI overhaul, accessibility, agent stability, bug fixes
+
+**UI Overhaul:**
+- Soft bright pastel gradient theme (eye-soothing colors)
+- 8 colorful button variants with gradients + colored shadows
+- Glassmorphic topbar, animated tiles with gradient borders
+- Full responsive design (760px breakpoint)
+
+**Accessibility (ARIA, WCAG 2.1 AA):**
+- Semantic landmarks: `role=banner`, `main`, `navigation`
+- Skip link, `focus-visible` outlines, `prefers-reduced-motion` support
+- ARIA roles on panels, dialogs, listboxes, options
+- Live region for runtime status, `aria-label` on all controls
+
+**Agent Runtime Stability:**
+- Fixed `kalisub-agent-start` PID file race condition
+- Port-based detection with `ss`/`netstat` fallback
+- No more duplicate agent spawns / "Address already in use"
+
+**Bug Fixes (20 issues from ui-tester):**
+- HIGH: History/Achievements API response shape
+- MEDIUM: Settings AI form, Notebook/Recordings/Portable wiring, Onboarding IDs
+- LOW: Dark mode toggle, mobile sidebar, shortcut conflicts
+
+**Code Quality:**
+- Deduplicated `$`, `$$`, `esc`, `toast`, `api`, `csrf` across 9 modules
+- Merged duplicate `wire()` functions
+- Fixed toast memory leak (module variable vs function property)
+- API timeout with `AbortController` + caller signal support
+- Fixed multi-line string syntax errors in 3 files
+
+**Infrastructure:**
+- Podman installed in WSL2 distro (Containers panel functional)
+- `.hidden` CSS class restored (`display: none !important`)
+- `.main-content overflow: auto` (scrolling restored)
+- CSP updated for Font Awesome CDN
+
+### v1.0.0-pre (tag) — Pre-overhaul baseline
 
 ---
 
