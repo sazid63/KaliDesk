@@ -7,55 +7,56 @@
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
 
-<header class="topbar">
+<header class="topbar" role="banner">
   <div class="brand">
-    <span class="brand-logo"><i class="fa-solid fa-shield-halved"></i></span>
+    <span class="brand-logo"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span>
     <span class="prompt">kali@windows</span><span class="colon">:</span><span class="pwd">~</span>$ ./workbench
   </div>
   <div class="topbar-right">
-    <button class="palette-btn ghost" id="cmd-palette-btn" title="Command palette (Ctrl+K)">
-      <i class="fa-solid fa-terminal"></i>
+    <button class="palette-btn ghost" id="cmd-palette-btn" title="Command palette (Ctrl+K)" aria-label="Open command palette (Ctrl+K)">
+      <i class="fa-solid fa-terminal" aria-hidden="true"></i>
       <span class="kbd-hint">Ctrl K</span>
     </button>
-    <button class="palette-btn ghost" id="help-btn" title="Keyboard shortcuts (F1)">
-      <i class="fa-solid fa-keyboard"></i>
+    <button class="palette-btn ghost" id="help-btn" title="Keyboard shortcuts (F1)" aria-label="Show keyboard shortcuts (F1)">
+      <i class="fa-solid fa-keyboard" aria-hidden="true"></i>
     </button>
-    <div class="status">
-      <span id="runtime-dot" class="dot"></span>
+    <div class="status" role="status" aria-live="polite">
+      <span id="runtime-dot" class="dot" aria-hidden="true"></span>
       <span id="runtime-text">checking runtime…</span>
     </div>
   </div>
 </header>
 
 <div class="layout">
-  <aside class="sidebar" id="app-sidebar">
+  <aside class="sidebar" id="app-sidebar" role="navigation" aria-label="Main navigation">
     <h2>Categories</h2>
-    <ul id="cat-list"></ul>
+    <ul id="cat-list" role="list"></ul>
     <hr>
     <h2>Views</h2>
-    <ul id="view-list">
-      <li data-view="home" class="active"><i class="fa-solid fa-toolbox nav-icon"></i> All tools</li>
-      <li data-view="manager-panel"><i class="fa-solid fa-download nav-icon"></i> Tool manager</li>
-      <li data-view="findings-panel"><i class="fa-solid fa-bug nav-icon"></i> Findings</li>
-      <li data-view="audit-panel"><i class="fa-solid fa-list-check nav-icon"></i> Audit log</li>
-      <li data-view="chat-panel"><i class="fa-solid fa-comment nav-icon"></i> AI chat</li>
-      <li data-view="ai-chat-panel"><i class="fa-solid fa-robot nav-icon"></i> AI CyberSecurity</li>
-      <li data-view="settings-ai-panel"><i class="fa-solid fa-brain nav-icon"></i> AI Settings</li>
-      <li data-view="containers-panel"><i class="fa-solid fa-box nav-icon"></i> Containers</li>
-      <li data-view="history-panel"><i class="fa-solid fa-clock-rotate-left nav-icon"></i> History</li>
-      <li data-view="playground-panel"><i class="fa-solid fa-flask nav-icon"></i> Playground</li>
-      <li data-view="cheat-sheets-panel"><i class="fa-solid fa-book-open nav-icon"></i> Cheat Sheets</li>
-      <li data-view="notebook-panel"><i class="fa-solid fa-book nav-icon"></i> Notebook</li>
-      <li data-view="recordings-panel"><i class="fa-solid fa-circle-play nav-icon"></i> Recordings</li>
-      <li data-view="achievements-panel"><i class="fa-solid fa-trophy nav-icon"></i> Achievements</li>
-      <li data-view="portable-panel"><i class="fa-solid fa-plug nav-icon"></i> Portable</li>
-      <li data-view="settings-panel"><i class="fa-solid fa-gear nav-icon"></i> Settings</li>
-      <li data-view="onboarding-panel"><i class="fa-solid fa-wand-magic-sparkles nav-icon"></i> Onboarding</li>
+    <ul id="view-list" role="listbox" aria-label="Panel views">
+      <li data-view="home" class="active" role="option" aria-selected="true" tabindex="0"><i class="fa-solid fa-toolbox nav-icon" aria-hidden="true"></i> All tools</li>
+      <li data-view="manager-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-download nav-icon" aria-hidden="true"></i> Tool manager</li>
+      <li data-view="findings-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-bug nav-icon" aria-hidden="true"></i> Findings</li>
+      <li data-view="audit-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-list-check nav-icon" aria-hidden="true"></i> Audit log</li>
+      <li data-view="chat-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-comment nav-icon" aria-hidden="true"></i> AI chat</li>
+      <li data-view="ai-chat-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-robot nav-icon" aria-hidden="true"></i> AI CyberSecurity</li>
+      <li data-view="settings-ai-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-brain nav-icon" aria-hidden="true"></i> AI Settings</li>
+      <li data-view="containers-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-box nav-icon" aria-hidden="true"></i> Containers</li>
+      <li data-view="history-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-clock-rotate-left nav-icon" aria-hidden="true"></i> History</li>
+      <li data-view="playground-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-flask nav-icon" aria-hidden="true"></i> Playground</li>
+      <li data-view="cheat-sheets-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-book-open nav-icon" aria-hidden="true"></i> Cheat Sheets</li>
+      <li data-view="notebook-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-book nav-icon" aria-hidden="true"></i> Notebook</li>
+      <li data-view="recordings-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-circle-play nav-icon" aria-hidden="true"></i> Recordings</li>
+      <li data-view="achievements-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-trophy nav-icon" aria-hidden="true"></i> Achievements</li>
+      <li data-view="portable-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-plug nav-icon" aria-hidden="true"></i> Portable</li>
+      <li data-view="settings-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-gear nav-icon" aria-hidden="true"></i> Settings</li>
+      <li data-view="onboarding-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-wand-magic-sparkles nav-icon" aria-hidden="true"></i> Onboarding</li>
     </ul>
     <hr>
-    <button class="palette-btn ghost sidebar-palette" id="cmd-palette-sidebar">
-      <i class="fa-solid fa-magnifying-glass nav-icon"></i> Search / command…
+    <button class="palette-btn ghost sidebar-palette" id="cmd-palette-sidebar" aria-label="Open command palette (Ctrl+K)">
+      <i class="fa-solid fa-magnifying-glass nav-icon" aria-hidden="true"></i> Search / command…
       <span class="kbd-hint">Ctrl K</span>
     </button>
     <p class="muted note">
@@ -64,11 +65,11 @@
     </p>
   </aside>
 
-  <main>
+  <main id="main-content" role="main">
     <div id="view-home">
       <div id="setup-banner" class="banner">
         <span class="grow" id="setup-message">checking runtime…</span>
-        <button class="primary" id="setup-ensure">Set up runtime</button>
+        <button class="teal" id="setup-ensure">Set up runtime</button>
       </div>
 
       <div id="intro" class="card">
@@ -87,7 +88,7 @@
       </div>
 
       <div class="toolbar">
-        <input id="search" class="grow" placeholder="Search tools…">
+        <input id="search" class="grow" placeholder="Search tools…" aria-label="Search tools">
         <select id="cat-filter">
           <option value="">All categories</option>
         </select>
@@ -97,7 +98,7 @@
       <div id="tool-panel" class="panel hidden">
         <div class="panel-head">
           <h2 id="tool-title">Tool</h2>
-          <button class="x" id="tool-close" title="Close">&times;</button>
+          <button class="x" id="tool-close" aria-label="Close tool panel">&times;</button>
         </div>
         <p id="tool-summary" class="summary muted"></p>
 
@@ -137,7 +138,7 @@
     <div id="manager-panel" class="panel hidden">
       <div class="panel-head">
         <h2>Tool manager</h2>
-        <button class="x" data-close="manager-panel">&times;</button>
+        <button class="x" data-close="manager-panel" aria-label="Close tool manager">&times;</button>
       </div>
       <p class="muted">Install or uninstall any tool inside the app's private runtime.</p>
       <div class="toolbar">
@@ -150,7 +151,7 @@
     <div id="findings-panel" class="panel hidden">
       <div class="panel-head">
         <h2>Findings</h2>
-        <button class="x" data-close="findings-panel">&times;</button>
+        <button class="x" data-close="findings-panel" aria-label="Close findings panel">&times;</button>
       </div>
       <div class="toolbar">
         <button class="ghost" id="finding-new">Add finding</button>
@@ -168,7 +169,7 @@
     <div id="audit-panel" class="panel hidden">
       <div class="panel-head">
         <h2>Audit log</h2>
-        <button class="x" data-close="audit-panel">&times;</button>
+        <button class="x" data-close="audit-panel" aria-label="Close audit log panel">&times;</button>
       </div>
       <p class="muted">Every tool run, install and removal is recorded locally.</p>
       <table>
@@ -180,20 +181,20 @@
     <div id="chat-panel" class="panel hidden">
       <div class="panel-head">
         <h2>AI chat (optional)</h2>
-        <button class="x" data-close="chat-panel">&times;</button>
+        <button class="x" data-close="chat-panel" aria-label="Close AI chat panel">&times;</button>
       </div>
       <p class="muted">The AI can suggest commands and propose a tool run. It never runs anything without your confirmation.</p>
       <div id="chat-log" class="chat"></div>
       <div class="chat-input">
         <input id="chat-input" placeholder="Ask about a tool or a command…">
-        <button class="primary" id="chat-send">Send</button>
+        <button class="info" id="chat-send">Send</button>
       </div>
     </div>
 
     <div id="settings-panel" class="panel hidden">
       <div class="panel-head">
         <h2>Settings</h2>
-        <button class="x" data-close="settings-panel">&times;</button>
+        <button class="x" data-close="settings-panel" aria-label="Close settings panel">&times;</button>
       </div>
 
       <h3>Runtime</h3>
@@ -232,7 +233,7 @@
     <div id="settings-ai-panel" class="panel hidden">
       <div class="panel-head">
         <h2>AI Settings</h2>
-        <button class="x" data-close="settings-ai-panel">&times;</button>
+        <button class="x" data-close="settings-ai-panel" aria-label="Close AI settings panel">&times;</button>
       </div>
 
       <p class="muted">Configure AI providers for chat and tool explanations. API keys are stored securely with Windows DPAPI.</p>
@@ -278,7 +279,7 @@
     <div id="containers-panel" class="panel hidden">
       <div class="panel-head">
         <h2>Containers (Advanced)</h2>
-        <button class="x" data-close="containers-panel">&times;</button>
+        <button class="x" data-close="containers-panel" aria-label="Close containers panel">&times;</button>
       </div>
 
       <p class="muted warning">
@@ -349,7 +350,7 @@
             <p class="muted">Example: C:/temp:/data</p>
           </div>
           <div class="actions">
-            <button class="primary" id="containers-run-submit">Run Container</button>
+            <button class="success" id="containers-run-submit">Run Container</button>
             <button class="ghost" id="containers-run-cancel">Cancel</button>
           </div>
         </form>
@@ -360,7 +361,7 @@
     <div id="history-panel" class="panel hidden">
       <div class="panel-head">
         <h2>Run History</h2>
-        <button class="x" data-close="history-panel">&times;</button>
+        <button class="x" data-close="history-panel" aria-label="Close history panel">&times;</button>
       </div>
       <div class="toolbar">
         <input id="history-filter-tool" class="grow" placeholder="Filter by tool...">
@@ -392,17 +393,17 @@
     <div id="playground-panel" class="panel hidden">
       <div class="panel-head">
         <h2>Playground</h2>
-        <button class="x" data-close="playground-panel">&times;</button>
+        <button class="x" data-close="playground-panel" aria-label="Close playground panel">&times;</button>
       </div>
       <p class="muted warning">A vulnerable http.server app runs on 127.0.0.1:3000 inside WSL2.</p>
       <div class="toolbar">
         <span id="playground-status" class="muted">Not running</span>
         <div class="grow"></div>
-        <button class="primary" id="playground-start">Start</button>
-        <button class="ghost" id="playground-stop">Stop</button>
+        <button class="success" id="playground-start">Start</button>
+        <button class="error" id="playground-stop">Stop</button>
       </div>
       <div class="toolbar" style="margin-top: 1rem;">
-        <button class="primary" id="playground-open">Open in Browser</button>
+        <button class="info" id="playground-open">Open in Browser</button>
       </div>
       <p class="muted" id="playground-text">Start the playground to test security tools.</p>
     </div>
@@ -410,7 +411,7 @@
     <div id="cheat-sheets-panel" class="panel hidden">
       <div class="panel-head">
         <h2>Cheat Sheets</h2>
-        <button class="x" data-close="cheat-sheets-panel">&times;</button>
+        <button class="x" data-close="cheat-sheets-panel" aria-label="Close cheat sheets panel">&times;</button>
       </div>
       <div class="toolbar">
         <select id="cheat-sheets-tool-select" class="grow">
@@ -423,7 +424,7 @@
     <div id="achievements-panel" class="panel hidden">
       <div class="panel-head">
         <h2>Achievements</h2>
-        <button class="x" data-close="achievements-panel">&times;</button>
+        <button class="x" data-close="achievements-panel" aria-label="Close achievements panel">&times;</button>
       </div>
       <div class="toolbar">
         <button class="ghost" id="achievements-reload">Reload</button>
@@ -434,14 +435,14 @@
     <div id="notebook-panel" class="panel hidden">
       <div class="panel-head">
         <h2>OSINT Notebook</h2>
-        <button class="x" data-close="notebook-panel">&times;</button>
+        <button class="x" data-close="notebook-panel" aria-label="Close notebook panel">&times;</button>
       </div>
       <div class="toolbar">
         <input id="notebook-search" class="grow" placeholder="Search entries...">
         <button class="ghost" id="notebook-export">Export Markdown</button>
       </div>
       <div class="toolbar" style="margin-top: 0.5rem;">
-        <button class="primary" id="notebook-add">Add Entry</button>
+        <button class="purple" id="notebook-add">Add Entry</button>
       </div>
       <div class="entry-form" id="entry-form" style="display: none;">
         <div class="field">
@@ -468,11 +469,11 @@
     <div id="recordings-panel" class="panel hidden">
       <div class="panel-head">
         <h2>Terminal Recordings</h2>
-        <button class="x" data-close="recordings-panel">&times;</button>
+        <button class="x" data-close="recordings-panel" aria-label="Close recordings panel">&times;</button>
       </div>
       <div class="toolbar">
-        <button class="primary" id="recordings-start">Start Recording</button>
-        <button class="ghost" id="recordings-stop">Stop</button>
+        <button class="purple" id="recordings-start">Start Recording</button>
+        <button class="error" id="recordings-stop">Stop</button>
       </div>
       <table>
         <thead>
@@ -491,28 +492,33 @@
     <div id="portable-panel" class="panel hidden">
       <div class="panel-head">
         <h2>Portable Mode</h2>
-        <button class="x" data-close="portable-panel">&times;</button>
+        <button class="x" data-close="portable-panel" aria-label="Close portable panel">&times;</button>
       </div>
       <p class="muted warning">Switch to USB drive mode. This will move your data to a removable drive.</p>
+      <div id="portable-status" class="muted"></div>
       <div class="toolbar">
         <select id="portable-drive-select" class="grow">
           <option value="">— Select USB drive —</option>
         </select>
-        <button class="primary" id="portable-switch">Switch to USB</button>
+        <button class="ghost" id="portable-refresh-drives">Refresh</button>
+        <button class="warning" id="portable-switch">Switch to USB</button>
       </div>
     </div>
 
     <div id="onboarding-panel" class="panel hidden">
       <div class="panel-head">
         <h2>Onboarding</h2>
-        <button class="x" data-close="onboarding-panel">&times;</button>
+        <button class="x" data-close="onboarding-panel" aria-label="Close onboarding panel">&times;</button>
+      </div>
+      <div class="onboarding-progress">
+        <div class="progress-bar" id="onboarding-progress-bar"></div>
       </div>
       <div id="onboarding-content">
         — Loading onboarding steps —
       </div>
       <div class="actions" style="margin-top: 1rem;">
         <button class="ghost" id="onboarding-prev">Previous</button>
-        <button class="primary" id="onboarding-next">Next</button>
+        <button class="success" id="onboarding-next">Next</button>
         <button class="ghost" id="onboarding-finish">Finish</button>
       </div>
     </div>
@@ -520,7 +526,7 @@
     <div id="ai-chat-panel" class="panel hidden">
       <div class="panel-head">
         <h2>AI CyberSecurity Chat</h2>
-        <button class="x" data-close="ai-chat-panel">&times;</button>
+        <button class="x" data-close="ai-chat-panel" aria-label="Close AI chat panel">&times;</button>
       </div>
 
       <div class="toolbar">
@@ -537,7 +543,7 @@
       <div class="chat-input">
         <textarea id="ai-chat-input" placeholder="Ask about security tools, techniques, or investigations..."></textarea>
         <div class="ai-row">
-          <button class="primary" id="ai-chat-send">Send</button>
+          <button class="info" id="ai-chat-send">Send</button>
           <label class="muted">
             <input type="checkbox" id="ai-chat-beginner"> Explain Like I'm Learning
           </label>
@@ -550,18 +556,19 @@
     </div>
 
 <div id="toast" class="toast hidden" aria-live="polite"></div>
+<script src="/static/utils.js"></script>
 <script src="/static/app.js"></script>
-    <script src="/static/strix.js"></script>
+<script src="/static/strix.js"></script>
 
-  <script src="/static/history.js"></script>
-  <script src="/static/playground.js"></script>
-  <script src="/static/cheat_sheets.js"></script>
-  <script src="/static/achievements.js"></script>
-  <script src="/static/notebook.js"></script>
-  <script src="/static/recordings.js"></script>
-  <script src="/static/portable.js"></script>
-  <script src="/static/onboarding.js"></script>
-  <script src="/static/containers.js"></script>
-  <script src="/static/ai-chat.js"></script>
+<script src="/static/history.js"></script>
+<script src="/static/playground.js"></script>
+<script src="/static/cheat_sheets.js"></script>
+<script src="/static/achievements.js"></script>
+<script src="/static/notebook.js"></script>
+<script src="/static/recordings.js"></script>
+<script src="/static/portable.js"></script>
+<script src="/static/onboarding.js"></script>
+<script src="/static/containers.js"></script>
+<script src="/static/ai-chat.js"></script>
 
 </body>

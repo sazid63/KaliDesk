@@ -159,7 +159,7 @@ function showProviderForm(type, config = {}) {
       break;
 
     default:
-      content.innerHTML = "<p class="muted">Select a provider to configure.</p>";
+      content.innerHTML = "<p class='muted'>Select a provider to configure.</p>";
       return;
   }
 
@@ -262,8 +262,8 @@ async function autoDetectOpenCode() {
         if (data && data.app && data.app.name.includes("OpenCode")) {
           found.push(port);
         }
-      } catch (_) {}
-    }
+      }
+    } catch (_) {}
   }
   if (found.length) {
     $("#ai-host-port").value = "127.0.0.1:" + found[0];

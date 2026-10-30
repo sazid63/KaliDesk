@@ -59,9 +59,13 @@ async function switchToUsb() {
   }
 }
 
+/* $, $$, esc, toast, api provided globally by utils.js */
+
 function wirePortable() {
   const refreshBtn = $("#portable-refresh-drives");
   const switchBtn = $("#portable-switch");
   if (refreshBtn) refreshBtn.addEventListener("click", detectDrives);
   if (switchBtn) switchBtn.addEventListener("click", switchToUsb);
 }
+
+wirePortable();

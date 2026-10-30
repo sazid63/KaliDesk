@@ -14,6 +14,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Reflection;
 using System.Windows.Forms;
+using static System.IO.Compression.ZipFile;
 
 internal static class SetupStub
 {
@@ -47,7 +48,10 @@ internal static class SetupStub
             }
 
             string extractDir = Path.Combine(staging, "files");
-            ZipFile.ExtractToDirectory(zipPath, extractDir);
+            using (ZipArchive archive = ZipFile.OpenRead(zipPath))
+            {
+                archive.ExtractToDirectory(extractDir);
+            }
 
             string appSource = Path.Combine(extractDir, "app");
             string wizard = Path.Combine(extractDir, "setup", "Wizard.ps1");

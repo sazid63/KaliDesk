@@ -15,30 +15,61 @@ function esc(value) {
     .replace(/"/g, "&quot;");
 }
 
+let toastTimer = null;
 function toast(message, isError) {
   const el = $("#toast");
   if (!el) return;
   el.textContent = message;
   el.classList.toggle("error", !!isError);
   el.classList.remove("hidden");
-  clearTimeout(toast._t);
-  toast._t = setTimeout(() => el.classList.add("hidden"), 4500);
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    el.classList.add("hidden");
+    toastTimer = null;
+  }, 4500);
 }
 
 /* --- API Helper --------------------------------------------------------- */
-async function api(method, path, body) {
-  const opts = { method, headers: {} };
+async function api(method, path, body, options = {}) {
+  // 10-second timeout to prevent indefinite hangs.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+  // If the caller also supplies a signal (e.g. a Stop button), abort on either.
+  const callerSignal = options.signal;
+  if (callerSignal) {
+    if (callerSignal.aborted) controller.abort(callerSignal.reason);
+    else callerSignal.addEventListener("abort", () => controller.abort(callerSignal.reason), { once: true });
+  }
+
+  const opts = {
+    method,
+    credentials: 'include',
+    headers: {},
+    signal: controller.signal
+  };
   if (body !== undefined) {
     opts.headers["Content-Type"] = "application/json";
     opts.body = JSON.stringify(body);
   }
   if (method !== "GET") opts.headers["X-KWS-CSRF"] = csrf();
-  const resp = await fetch(path, opts);
-  const text = await resp.text();
-  let data;
-  try { data = text ? JSON.parse(text) : {}; } catch (_) { data = { raw: text }; }
-  if (!resp.ok && !data.error) data.error = "request failed (" + resp.status + ")";
-  return { ok: resp.ok, status: resp.status, data };
+  try {
+    const resp = await fetch(path, opts);
+    clearTimeout(timeoutId);
+    const text = await resp.text();
+    let data;
+    try { data = text ? JSON.parse(text) : {}; } catch (_) { data = { raw: text }; }
+    if (!resp.ok && !data.error) data.error = "request failed (" + resp.status + ")";
+    return { ok: resp.ok, status: resp.status, data };
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === "AbortError") {
+      // Distinguish our timeout from a caller-initiated cancellation.
+      if (callerSignal && callerSignal.aborted) throw err;
+      return { ok: false, status: 408, data: { error: "Request timeout (10s)" } };
+    }
+    throw err;
+  }
 }
 
 function csrf() {
@@ -75,6 +106,7 @@ function initKeyboardShortcuts(handlers) {
 
 /* --- Command Palette ---------------------------------------------------- */
 let commandPalette = null;
+let previousActiveElement = null;
 
 function showCommandPalette(commands) {
   if (commandPalette) {
@@ -83,8 +115,14 @@ function showCommandPalette(commands) {
     return;
   }
 
+  // Save previously focused element to return focus later
+  previousActiveElement = document.activeElement;
+
   const overlay = document.createElement("div");
   overlay.id = "command-palette-overlay";
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.setAttribute("aria-label", "Command palette");
   overlay.style.cssText = `
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -110,6 +148,7 @@ function showCommandPalette(commands) {
 
   const input = document.createElement("input");
   input.placeholder = "Type a command...";
+  input.setAttribute("aria-label", "Command search");
   input.style.cssText = `
     width: 100%;
     padding: 1rem 1.25rem;
@@ -122,6 +161,7 @@ function showCommandPalette(commands) {
   `;
 
   const list = document.createElement("ul");
+  list.setAttribute("role", "listbox");
   list.style.cssText = `
     list-style: none;
     margin: 0;
@@ -142,8 +182,14 @@ function showCommandPalette(commands) {
       return;
     }
 
+    let selectedIndex = 0;
+    const items = [];
+
     filtered.forEach((cmd, index) => {
       const li = document.createElement("li");
+      li.setAttribute("role", "option");
+      li.setAttribute("aria-selected", "false");
+      li.setAttribute("tabindex", "-1");
       li.style.cssText = `
         padding: 0.75rem 1.25rem;
         cursor: pointer;
@@ -152,33 +198,81 @@ function showCommandPalette(commands) {
         align-items: center;
         border-bottom: 1px solid var(--line, #e9ecef);
       `;
-      if (index === 0) li.style.background = "var(--accent-light, #e0e7ff)";
-      
+      if (index === 0) {
+        li.style.background = "var(--accent-light, #e0e7ff)";
+        li.setAttribute("aria-selected", "true");
+        selectedIndex = 0;
+      }
+
       li.innerHTML = `
         <span>${esc(cmd.label)}</span>
         ${cmd.shortcut ? `<span style="font-size: 0.75rem; color: var(--muted, #6c757d); background: var(--panel-hover, #f3f4f6); padding: 0.25rem 0.5rem; border-radius: 4px;">${esc(cmd.shortcut)}</span>` : ""}
       `;
-      
+
       li.addEventListener("click", () => {
         cmd.action();
         closePalette();
       });
-      
+
+      li.addEventListener("mouseenter", () => {
+        if (selectedIndex !== index) {
+          items[selectedIndex].style.background = "";
+          items[selectedIndex].setAttribute("aria-selected", "false");
+          li.style.background = "var(--accent-light, #e0e7ff)";
+          li.setAttribute("aria-selected", "true");
+          selectedIndex = index;
+        }
+      });
+
       list.appendChild(li);
+      items.push(li);
     });
+
+    return { items, selectedIndex };
   }
 
   function closePalette() {
     overlay.remove();
     commandPalette = null;
+    // Return focus to previous element
+    if (previousActiveElement && previousActiveElement.focus) {
+      previousActiveElement.focus();
+    }
   }
 
-  input.addEventListener("input", (e) => renderCommands(e.target.value));
+  window.closeCommandPalette = closePalette;
+
+  input.addEventListener("input", (e) => {
+    const { items, selectedIndex } = renderCommands(e.target.value);
+    if (items.length > 0) {
+      items[selectedIndex].style.background = "var(--accent-light, #e0e7ff)";
+      items[selectedIndex].setAttribute("aria-selected", "true");
+    }
+  });
+
   input.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closePalette();
-    if (e.key === "Enter") {
-      const first = list.querySelector("li");
-      if (first) first.click();
+    const { items, selectedIndex } = renderCommands(input.value);
+    
+    if (e.key === "Escape") {
+      closePalette();
+    } else if (e.key === "Enter" && items.length > 0) {
+      items[selectedIndex].click();
+    } else if (e.key === "ArrowDown" && items.length > 0) {
+      e.preventDefault();
+      const newIndex = Math.min(selectedIndex + 1, items.length - 1);
+      items[selectedIndex].style.background = "";
+      items[selectedIndex].setAttribute("aria-selected", "false");
+      items[newIndex].style.background = "var(--accent-light, #e0e7ff)";
+      items[newIndex].setAttribute("aria-selected", "true");
+      items[newIndex].scrollIntoView({ block: "nearest" });
+    } else if (e.key === "ArrowUp" && items.length > 0) {
+      e.preventDefault();
+      const newIndex = Math.max(selectedIndex - 1, 0);
+      items[selectedIndex].style.background = "";
+      items[selectedIndex].setAttribute("aria-selected", "false");
+      items[newIndex].style.background = "var(--accent-light, #e0e7ff)";
+      items[newIndex].setAttribute("aria-selected", "true");
+      items[newIndex].scrollIntoView({ block: "nearest" });
     }
   });
 

@@ -1,0 +1,59 @@
+#!/bin/sh
+# Start the in-runtime tool agent if it is not already running.
+# Called by the Windows side as:  wsl -d KaliSubstitute -u root -- kalisub-agent-start
+set -eu
+
+ENV_FILE=/etc/kalisub/agent.env
+if [ -f "$ENV_FILE" ]; then
+  # shellcheck disable=SC1090
+  . "$ENV_FILE"
+fi
+
+PORT="${KALISUB_PORT:-5055}"
+PIDFILE=/run/kalisub-agent.pid
+
+# Check if agent is already running on the port
+if command -v ss >/dev/null 2>&1; then
+    if ss -ltn "sport = :$PORT" | grep -q ":$PORT "; then
+        # Port is in use, try to find and validate the PID
+        if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+            exit 0
+        fi
+        # Port in use but PID file missing/stale - find the actual PID
+        PID=$(ss -ltnp "sport = :$PORT" 2>/dev/null | grep -o 'pid=[0-9]*' | cut -d= -f2 | head -1)
+        if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
+            echo "$PID" > "$PIDFILE"
+            exit 0
+        fi
+    fi
+elif command -v netstat >/dev/null 2>&1; then
+    if netstat -tln 2>/dev/null | grep -q ":$PORT "; then
+        if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+            exit 0
+        fi
+        PID=$(netstat -tlnp 2>/dev/null | grep ":$PORT " | grep -o '[0-9]*/python' | cut -d/ -f1 | head -1)
+        if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
+            echo "$PID" > "$PIDFILE"
+            exit 0
+        fi
+    fi
+fi
+
+# Check PID file as fallback
+if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+    exit 0
+fi
+
+# Start the agent
+mkdir -p /run /var/log
+nohup python3 /usr/local/lib/kalisub/agent.py >>/var/log/kalisub-agent.log 2>&1 &
+AGENT_PID=$!
+echo "$AGENT_PID" > "$PIDFILE"
+# Wait for agent to actually bind to port
+for i in 1 2 3 4 5; do
+    sleep 1
+    if ss -ltn "sport = :$PORT" 2>/dev/null | grep -q ":$PORT " || netstat -tln 2>/dev/null | grep -q ":$PORT "; then
+        exit 0
+    fi
+done
+exit 0

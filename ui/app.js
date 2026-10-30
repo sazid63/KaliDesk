@@ -18,45 +18,7 @@ const state = {
 };
 
 /* --- helpers ------------------------------------------------------------- */
-const $ = (sel, root = document) => root.querySelector(sel);
-const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
-
-function csrf() {
-  const m = document.cookie.match(/(?:^|;\s*)kws_csrf=([^;]+)/);
-  return m ? decodeURIComponent(m[1]) : "";
-}
-
-function esc(value) {
-  return String(value == null ? "" : value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function toast(message, isError) {
-  const el = $("#toast");
-  el.textContent = message;
-  el.classList.toggle("error", !!isError);
-  el.classList.remove("hidden");
-  clearTimeout(toast._t);
-  toast._t = setTimeout(() => el.classList.add("hidden"), 4500);
-}
-
-async function api(method, path, body) {
-  const opts = { method, headers: {} };
-  if (body !== undefined) {
-    opts.headers["Content-Type"] = "application/json";
-    opts.body = JSON.stringify(body);
-  }
-  if (method !== "GET") opts.headers["X-KWS-CSRF"] = csrf();
-  const resp = await fetch(path, opts);
-  const text = await resp.text();
-  let data;
-  try { data = text ? JSON.parse(text) : {}; } catch (_) { data = { raw: text }; }
-  if (!resp.ok && !data.error) data.error = "request failed (" + resp.status + ")";
-  return { ok: resp.ok, status: resp.status, data };
-}
+/* $, $$, esc, toast, csrf, api are provided globally by utils.js (loaded first). */
 
 /* --- form specifications -------------------------------------------------
  * Only the tools the backend can build a safe argv for appear here. Any other
@@ -908,7 +870,7 @@ function showProviderForm(type, config = {}) {
       break;
 
     default:
-      content.innerHTML = "<p class="muted">Select a provider to configure.</p>";
+      content.innerHTML = "<p class='muted'>Select a provider to configure.</p>";
       return;
   }
 
@@ -1011,8 +973,8 @@ async function autoDetectOpenCode() {
         if (data && data.app && data.app.name.includes("OpenCode")) {
           found.push(port);
         }
-      } catch (_) {}
-    }
+      }
+    } catch (_) {}
   }
   if (found.length) {
     $("#ai-host-port").value = "127.0.0.1:" + found[0];
@@ -1034,8 +996,8 @@ async function autoDetectDeepSeek() {
         if (data && data.app && data.app.name.includes("DeepSeek")) {
           found.push(port);
         }
-      } catch (_) {}
-    }
+      }
+    } catch (_) {}
   }
   if (found.length) {
     $("#ai-host-port").value = "127.0.0.1:" + found[0];
@@ -1362,10 +1324,14 @@ function toggleCommandPalette() {
     return;
   }
   
+  const previousActiveElement = document.activeElement;
   const commands = buildCommandPaletteCommands();
   
   const overlay = document.createElement("div");
   overlay.id = "command-palette-overlay";
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.setAttribute("aria-label", "Command Palette");
   overlay.style.cssText = `
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
@@ -1383,6 +1349,7 @@ function toggleCommandPalette() {
   
   const input = document.createElement("input");
   input.placeholder = "Search commands or tools...";
+  input.setAttribute("aria-label", "Filter commands");
   input.style.cssText = `
     width: 100%; padding: 1rem 1.25rem; border: none;
     border-bottom: 1px solid var(--line, #e9ecef);
@@ -1394,6 +1361,7 @@ function toggleCommandPalette() {
   listContainer.style.cssText = "max-height: 500px; overflow-y: auto;";
   
   const list = document.createElement("ul");
+  list.setAttribute("role", "listbox");
   list.style.cssText = "list-style: none; margin: 0; padding: 0.5rem;";
   
   let selectedIndex = -1;
@@ -1416,6 +1384,9 @@ function toggleCommandPalette() {
     selectedIndex = 0;
     filtered.forEach((cmd, index) => {
       const li = document.createElement("li");
+      li.setAttribute("role", "option");
+      li.setAttribute("aria-selected", index === 0 ? "true" : "false");
+      li.tabIndex = -1;
       li.style.cssText = `
         padding: 0.6rem 1rem; cursor: pointer; display: flex;
         justify-content: space-between; align-items: center;
@@ -1426,10 +1397,24 @@ function toggleCommandPalette() {
         <span>${esc(cmd.label)}</span>
         ${cmd.shortcut ? `<span style="font-size:0.7rem;color:var(--muted, #6c757d);background:var(--panel-hover,#f3f4f6);padding:0.2rem 0.5rem;border-radius:4px;">${esc(cmd.shortcut)}</span>` : ""}
       `;
-      li.addEventListener("click", () => { cmd.action(); closeCommandPalette(); });
+      li.addEventListener("click", () => { 
+        // Defer action to allow UI update/close first if needed
+        setTimeout(() => {
+            cmd.action(); 
+            closeCommandPalette();
+        }, 0);
+      });
       li.addEventListener("mouseenter", () => {
-        selectedIndex = index;
-        render(filter);
+        if (selectedIndex !== index) {
+          const prevLi = list.children[selectedIndex];
+          if(prevLi) {
+             prevLi.style.background = "";
+             prevLi.setAttribute("aria-selected", "false");
+          }
+          selectedIndex = index;
+          li.style.background = "var(--accent-light, #e0e7ff)";
+          li.setAttribute("aria-selected", "true");
+        }
       });
       list.appendChild(li);
     });
@@ -1438,30 +1423,59 @@ function toggleCommandPalette() {
   function closePalette() {
     overlay.remove();
     commandPaletteOpen = false;
+    if (previousActiveElement && previousActiveElement.focus) {
+      previousActiveElement.focus();
+    }
   }
   
   window.closeCommandPalette = closePalette;
   
   input.addEventListener("input", (e) => render(e.target.value));
+  
+  // Focus Trap Logic
   input.addEventListener("keydown", (e) => {
-    const items = list.querySelectorAll("li");
-    if (e.key === "Escape") closePalette();
+    const items = Array.from(list.querySelectorAll("li"));
+    if (items.length === 0) return;
+
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closePalette();
+      return;
+    }
+    
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
-      render(input.value);
-      items[selectedIndex]?.scrollIntoView({ block: "nearest" });
-    }
-    if (e.key === "ArrowUp") {
+      const nextIndex = Math.min(selectedIndex + 1, items.length - 1);
+      updateSelection(nextIndex, items);
+    } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      selectedIndex = Math.max(selectedIndex - 1, 0);
-      render(input.value);
-      items[selectedIndex]?.scrollIntoView({ block: "nearest" });
-    }
-    if (e.key === "Enter" && items[selectedIndex]) {
-      items[selectedIndex].click();
+      const prevIndex = Math.max(selectedIndex - 1, 0);
+      updateSelection(prevIndex, items);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (selectedIndex >= 0 && items[selectedIndex]) {
+        items[selectedIndex].click();
+      }
+    } else if (e.key === "Tab") {
+      // Prevent tabbing out of the modal
+      e.preventDefault();
+      // Optional: Cycle focus within modal if there were other inputs, 
+      // but here we only have one input, so we just keep it focused.
     }
   });
+
+  function updateSelection(newIndex, items) {
+    if (selectedIndex >= 0 && items[selectedIndex]) {
+      items[selectedIndex].style.background = "";
+      items[selectedIndex].setAttribute("aria-selected", "false");
+    }
+    selectedIndex = newIndex;
+    if (items[selectedIndex]) {
+      items[selectedIndex].style.background = "var(--accent-light, #e0e7ff)";
+      items[selectedIndex].setAttribute("aria-selected", "true");
+      items[selectedIndex].scrollIntoView({ block: "nearest" });
+    }
+  }
   
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) closePalette();
@@ -1502,6 +1516,9 @@ function showKeyboardHelp() {
   
   const overlay = document.createElement("div");
   overlay.id = "keyboard-help-overlay";
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.setAttribute("aria-label", "Keyboard shortcuts help");
   overlay.style.cssText = `
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
@@ -1518,7 +1535,9 @@ function showKeyboardHelp() {
   let html = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
       <h2 style="margin:0;font-size:1.1rem;">Keyboard Shortcuts</h2>
-      <button onclick="this.closest('#keyboard-help-overlay').remove()" style="width:32px;height:32px;border-radius:50%;background:transparent;border:none;font-size:1.2rem;cursor:pointer;">&times;</button>
+      <button onclick="this.closest('#keyboard-help-overlay').remove()" 
+              aria-label="Close keyboard shortcuts help"
+              style="width:32px;height:32px;border-radius:50%;background:transparent;border:none;font-size:1.2rem;cursor:pointer;">&times;</button>
     </div>
     <div style="display:grid;gap:0.5rem;">
   `;

@@ -16,8 +16,8 @@ async function initHistory() {
 
 async function loadHistory() {
   const { data } = await api("GET", "/api/history");
-  if (!data) return;
-  history = data;
+  if (!data || !data.history) return;
+  history = data.history;
   renderHistory();
 }
 
@@ -56,13 +56,7 @@ function formatDuration(ms) {
   return s + "s";
 }
 
-function esc(value) {
-  return String(value == null ? "" : value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+/* esc, toast, api provided globally by utils.js */
 
 function deleteHistory(id) {
   if (!confirm("Delete this run record?")) return;
@@ -84,25 +78,7 @@ async function wireHistory() {
   });
 }
 
-async function api(method, path, body, options = {}) {
-  const opts = { method, headers: {} };
-  if (body !== undefined) {
-    opts.headers["Content-Type"] = "application/json";
-    opts.body = JSON.stringify(body);
-  }
-  if (method !== "GET") {
-    const m = document.cookie.match(/(?:^|;\s*)kws_csrf=([^;]+)/);
-    if (m) opts.headers["X-KWS-CSRF"] = decodeURIComponent(m[1]);
-  }
-  if (options.signal) opts.signal = options.signal;
-  
-  const resp = await fetch(path, opts);
-  const text = await resp.text();
-  let data;
-  try { data = text ? JSON.parse(text) : {}; } catch (_) { data = { raw: text }; }
-  if (!resp.ok && !data.error) data.error = "request failed (" + resp.status + ")";
-  return { ok: resp.ok, status: resp.status, data };
-}
+/* $, $$, esc, toast, api provided globally by utils.js */
 
 function wire() {
 }

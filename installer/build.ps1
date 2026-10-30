@@ -96,7 +96,7 @@ if (-not (Test-Path $csc)) {
 }
 $setup = Join-Path $Dist 'KaliWindowsSubstitute-Setup.exe'
 & $csc /nologo /target:winexe /out:$setup `
-    /resource:$payload,$AppName.payload `
+    /resource:$payload,"$AppName.payload" `
     (Join-Path $Here 'SetupStub.cs')
 if ($LASTEXITCODE -ne 0) { throw "csc failed with code $LASTEXITCODE" }
 Remove-Item $payload -Force
