@@ -19,9 +19,25 @@ function strixRefresh() {
         const iframe = document.getElementById("strix-iframe");
         const log = document.getElementById("strix-log");
         if (running && url) {
-            iframe.src = url;
-            iframe.classList.remove("hidden");
-            log.classList.add("hidden");
+            // Validate URL is local/loopback before loading in iframe
+            try {
+                const parsedUrl = new URL(url);
+                const allowedHosts = ['127.0.0.1', 'localhost', '[::1]'];
+                if (allowedHosts.includes(parsedUrl.hostname)) {
+                    iframe.src = url;
+                    iframe.sandbox.add("allow-scripts", "allow-same-origin", "allow-forms");
+                    iframe.classList.remove("hidden");
+                    log.classList.add("hidden");
+                } else {
+                    log.textContent = "Strix URL not allowed (external host blocked by policy).";
+                    log.classList.remove("hidden");
+                    iframe.classList.add("hidden");
+                }
+            } catch (e) {
+                log.textContent = "Invalid Strix URL.";
+                log.classList.remove("hidden");
+                iframe.classList.add("hidden");
+            }
         } else {
             iframe.classList.add("hidden");
             log.classList.remove("hidden");

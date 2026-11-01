@@ -325,21 +325,30 @@ async function exportChat() {
 }
 
 function renderMarkdown(text) {
+  // First escape ALL HTML to prevent XSS
   let html = escapeHtml(text);
   
+  // Code blocks - preserve formatting
   html = html.replace(/```(\w*)\n([\s\S]*?)\n```/g, (_, lang, code) => {
-    return "<pre class=\"code-block\"><code class=\"" + lang + "\">" + escapeHtml(code) + "</code></pre>";
+    return "<pre class=\"code-block\"><code class=\"" + escapeHtml(lang) + "\">" + code + "</code></pre>";
   });
   
+  // Inline code
   html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+  
+  // Bold
   html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   
+  // Lists - wrap consecutive <li> in <ul>
   html = html.replace(/^\s*[-*]\s+(.+)$/gm, "<li>$1</li>");
-  // Wrap runs of consecutive <li> elements in a single <ul> (the previous
-  // per-element replacement produced broken nested <ul><li>...</ul></li>).
   html = html.replace(/(?:<li>[\s\S]*?<\/li>\s*)+/g, "<ul>$&</ul>");
   
-  html = html.replace(/https?:\/\/[^\s]+/g, "<a href='$&' target='_blank' rel='noopener'>$&</a>");
+  // Links - only allow http/https and sanitize href
+  html = html.replace(/https?:\/\/[^\s]+/g, (match) => {
+    // Double-check it's a valid URL and add rel attributes
+    const url = match.replace(/"/g, '&quot;');
+    return "<a href='" + url + "' target='_blank' rel='noopener noreferrer'>" + url + "</a>";
+  });
   
   return html;
 }
