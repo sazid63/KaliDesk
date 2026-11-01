@@ -1108,7 +1108,9 @@ function wireSettingsAI() {
 
   $("#ai-provider-cancel").addEventListener("click", clearForm);
   $("#ai-provider-submit").addEventListener("click", saveProvider);
-}async function saveAiConfig(event) {
+}
+
+async function saveAiConfig(event) {
   event.preventDefault();
   const provider = $("#ai-provider").value;
   const base = $("#ai-base").value.trim();
@@ -1149,6 +1151,7 @@ function showPanel(view) {
     if (view === "recordings-panel") { initRecordings(); }
     if (view === "portable-panel") { initPortable(); }
     if (view === "onboarding-panel") { initOnboarding(); }
+    if (view === "strix-panel") { initStrix(); }
   }
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -1567,6 +1570,10 @@ function showKeyboardHelp() {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") overlay.remove();
   }, { once: true });
+}
+
+async function initStrix() {
+  if (typeof strixRefresh === "function") strixRefresh();
 }
 
 async function init() {
