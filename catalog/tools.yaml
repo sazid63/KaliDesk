@@ -27,6 +27,7 @@ version: 1
 
 app:
   name: "Kali Linux Windows Substitute"
+  version: "1.1.0"
   runtime_distro: "KaliSubstitute"
   agent_port: 5055
 

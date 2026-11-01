@@ -1,6 +1,6 @@
 [project]
 name = "kali-windows-substitute"
-version = "0.1.0"
+version = "1.1.0"
 description = "A Kali-style security workbench for Windows that runs the real Linux tools in the app's own private WSL2 runtime."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -9,8 +9,12 @@ authors = [{ name = "Kali Linux Windows Substitute contributors" }]
 keywords = ["security", "windows", "wsl2", "pentest", "learning"]
 dependencies = [
   "flask>=3.0,<4",
+  "Werkzeug>=3.0,<4",
   "PyYAML>=6.0,<7",
   "pywebview>=5.0,<6",
+  # Used by the Portable panel (drive listing) and the local model downloader.
+  "psutil>=5.9,<6",
+  "huggingface_hub>=0.20,<1",
 ]
 
 [project.optional-dependencies]
