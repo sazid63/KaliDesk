@@ -48,14 +48,12 @@ def _bad_volume_reason(host: str) -> str:
     # Windows UNC / drive letters never make sense as WSL host paths.
     if re.fullmatch(r"[A-Za-z]:", host[:3]) or host.startswith("\\\\"):
         return "Windows drive/UNC path is not a WSL host path"
-    allowed = ("/tmp/",)
-    # The app's user data directory inside the WSL distro (same root the app
-    # uses for evidence/notes) is the other permitted mount root.
-    data_dir = _cfg.load().data_dir  # type: ignore[attr-defined]
-    if data_dir:
-        allowed = allowed + (str(pathlib.PurePosixPath(data_dir).as_posix()) + "/",)
-    if not any(norm == a.rstrip("/") or norm.startswith(a) for a in allowed):
-        return f"host path must be under /tmp or the app data dir, got {norm!r}"
+    # Only allow paths under /tmp or the app's WSL-accessible data directory.
+    # The data directory in WSL is typically under /mnt/c/Users/.../KaliWindowsSubstitute
+    # or a user-specified path. We use a safe default of /tmp only.
+    allowed_prefixes = ("/tmp/",)
+    if not any(norm == prefix.rstrip("/") or norm.startswith(prefix) for prefix in allowed_prefixes):
+        return f"host path must be under /tmp, got {norm!r}"
     return ""
 
 
@@ -296,6 +294,9 @@ def list_images() -> list[dict[str, Any]]:
 
 def pull_image(name: str) -> dict[str, Any]:
     """Pull a container image."""
+    valid, reason = validate_image_name(name)
+    if not valid:
+        return {"ok": False, "error": f"Invalid image name: {reason}"}
     result = _run_podman(["pull", name], timeout=900)
     if result["ok"]:
         return {"ok": True, "message": f"Image {name} pulled successfully"}
@@ -367,7 +368,28 @@ def get_container_logs(container_id: str, tail: int = 100) -> dict[str, Any]:
 
 
 def exec_in_container(container_id: str, cmd: list[str]) -> dict[str, Any]:
-    """Execute a command in a running container (argv list, no shell)."""
+    """Execute a command in a running container (argv list, no shell).
+    
+    Only whitelisted commands with validated arguments are allowed.
+    """
+    valid, reason = validate_exec_command(cmd)
+    if not valid:
+        return {
+            "ok": False,
+            "stdout": "",
+            "stderr": f"Command rejected: {reason}",
+            "rc": -1,
+        }
+    
+    # Validate container_id format (hex string)
+    if not re.fullmatch(r"[a-fA-F0-9]+", container_id):
+        return {
+            "ok": False,
+            "stdout": "",
+            "stderr": "Invalid container ID format",
+            "rc": -1,
+        }
+    
     result = _run_podman(["exec", container_id] + cmd, timeout=120)
     return {
         "ok": result["ok"],
@@ -386,12 +408,38 @@ def run_container(
     """Run a new detached container.
 
     Never adds --privileged; the UI only exposes ports and volumes.
+    Validates all inputs before passing to podman.
     """
+    # Validate image name
+    valid, reason = validate_image_name(image)
+    if not valid:
+        return {"ok": False, "error": f"Invalid image name: {reason}"}
+    
+    # Validate container name (alphanumeric, dashes, underscores)
+    if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]*", name):
+        return {"ok": False, "error": "Container name must be alphanumeric with dashes/underscores"}
+    
+    # Validate and build port bindings
+    validated_ports: list[str] = []
+    for port_spec in ports or []:
+        valid, reason = validate_port_binding(str(port_spec))
+        if not valid:
+            return {"ok": False, "error": f"Invalid port binding {port_spec!r}: {reason}"}
+        validated_ports.append(str(port_spec))
+    
+    # Validate and build volume bindings
+    validated_volumes: list[str] = []
+    for vol_spec in volumes or []:
+        valid, reason = validate_volume_spec(str(vol_spec))
+        if not valid:
+            return {"ok": False, "error": f"Invalid volume binding {vol_spec!r}: {reason}"}
+        validated_volumes.append(str(vol_spec))
+    
     cmd = ["run", "-d", "--name", name]
-    for port in ports or []:
-        cmd.extend(["-p", str(port)])
-    for vol in volumes or []:
-        cmd.extend(["-v", str(vol)])
+    for port in validated_ports:
+        cmd.extend(["-p", port])
+    for vol in validated_volumes:
+        cmd.extend(["-v", vol])
     cmd.append(image)
 
     result = _run_podman(cmd, timeout=120)
