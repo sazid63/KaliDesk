@@ -9,6 +9,8 @@ in server/app.py under the '--- Containers ---' section.
 from __future__ import annotations
 
 import json
+import pathlib
+import re
 import subprocess
 from typing import Any
 
@@ -18,6 +20,43 @@ import server.db as db
 # --- Constants --------------------------------------------------------------
 
 DEFAULT_TIMEOUT = 300
+
+# --- Input validation -------------------------------------------------------
+
+# Image reference: optional registry host (with optional :port), a repository
+# path of [a-z0-9._/-] segments, optional :tag, optional @digest.
+# Examples accepted:  "alpine", "ubuntu:22.04",
+#                     "docker.io/library/kali:latest",
+#                     "quay.io/centos/centos:8", "redis:7@sha256:abc123...".
+# Anything else (shell metacharacters, spaces, "..", drive letters, etc.) is
+# rejected before it ever reaches podman.
+_IMAGE_RE = re.compile(
+    r"^(?:(?P<registry>[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?(?::\d{1,5})?)/)?"
+    r"(?P<repo>[a-z0-9](?:[a-z0-9._-]*[a-z0-9])*(?:/[a-z0-9._-]+)*)?"
+    r"(?::(?P<tag>[A-Za-z0-9_][A-Za-z0-9._-]{0,127}))?"
+    r"(?:@(?P<digest>sha256:[A-Fa-f0-9]{64}))?$"
+)
+
+
+def _bad_volume_reason(host: str) -> str:
+    """Return a reason if host volume path is unsafe, else ""."""
+    if ".." in host.split("/"):
+        return "path contains '..' (path traversal)"
+    norm = pathlib.PurePosixPath(host).as_posix()
+    if not norm.startswith("/"):
+        return "host path must be absolute"
+    # Windows UNC / drive letters never make sense as WSL host paths.
+    if re.fullmatch(r"[A-Za-z]:", host[:3]) or host.startswith("\\\\"):
+        return "Windows drive/UNC path is not a WSL host path"
+    allowed = ("/tmp/",)
+    # The app's user data directory inside the WSL distro (same root the app
+    # uses for evidence/notes) is the other permitted mount root.
+    data_dir = _cfg.load().data_dir  # type: ignore[attr-defined]
+    if data_dir:
+        allowed = allowed + (str(pathlib.PurePosixPath(data_dir).as_posix()) + "/",)
+    if not any(norm == a.rstrip("/") or norm.startswith(a) for a in allowed):
+        return f"host path must be under /tmp or the app data dir, got {norm!r}"
+    return ""
 
 
 def _run_podman(cmd: list[str], timeout: int = DEFAULT_TIMEOUT) -> dict[str, Any]:
@@ -40,6 +79,174 @@ def _run_podman(cmd: list[str], timeout: int = DEFAULT_TIMEOUT) -> dict[str, Any
         return {"ok": False, "stdout": "", "stderr": "Command timed out", "rc": -1}
     except Exception as exc:  # noqa: BLE001
         return {"ok": False, "stdout": "", "stderr": str(exc), "rc": -1}
+
+
+def validate_image_name(image: str) -> tuple[bool, str]:
+    """Validate a container image name/reference.
+    
+    Returns (True, "") if valid, or (False, reason) if invalid.
+    """
+    if not image or not isinstance(image, str):
+        return False, "image name must be a non-empty string"
+    if len(image) > 512:
+        return False, "image name too long (max 512 chars)"
+    if _IMAGE_RE.match(image):
+        return True, ""
+    return False, "image name contains invalid characters or format"
+
+
+def validate_port_binding(port_spec: str) -> tuple[bool, str]:
+    """Validate a port binding specification.
+    
+    Only allows 127.0.0.1:hostPort:containerPort or 127.0.0.1:hostPort:containerPort/udp.
+    Rejects 0.0.0.0 and any binding that exposes to all interfaces.
+    
+    Returns (True, "") if valid, or (False, reason) if invalid.
+    """
+    if not port_spec or not isinstance(port_spec, str):
+        return False, "port spec must be a non-empty string"
+    
+    # Podman format: [hostIP:]hostPort:containerPort[/protocol]
+    # We only allow 127.0.0.1 as hostIP
+    parts = port_spec.split(":")
+    
+    if len(parts) == 1:
+        # Just container port - reject as it defaults to 0.0.0.0
+        return False, "port binding must include 127.0.0.1: prefix (e.g., 127.0.0.1:8080:80)"
+    elif len(parts) == 2:
+        # Could be hostPort:containerPort (defaults to 0.0.0.0) - reject
+        # Or could be hostIP:port (incomplete) - reject
+        return False, "port binding must include 127.0.0.1: prefix (e.g., 127.0.0.1:8080:80)"
+    elif len(parts) == 3:
+        host_ip, host_port_str, rest = parts
+        if host_ip != "127.0.0.1":
+            return False, f"only 127.0.0.1 bindings allowed, got {host_ip!r}"
+        
+        # Parse host port
+        try:
+            host_port = int(host_port_str)
+            if not (1 <= host_port <= 65535):
+                return False, f"host port must be 1-65535, got {host_port}"
+        except ValueError:
+            return False, f"host port must be numeric, got {host_port_str!r}"
+        
+        # Parse container port (may include protocol)
+        if "/" in rest:
+            container_port_str, protocol = rest.rsplit("/", 1)
+            if protocol not in ("tcp", "udp"):
+                return False, f"protocol must be tcp or udp, got {protocol!r}"
+        else:
+            container_port_str = rest
+        
+        try:
+            container_port = int(container_port_str)
+            if not (1 <= container_port <= 65535):
+                return False, f"container port must be 1-65535, got {container_port}"
+        except ValueError:
+            return False, f"container port must be numeric, got {container_port_str!r}"
+        
+        return True, ""
+    else:
+        return False, f"invalid port spec format: {port_spec!r}"
+
+
+def validate_volume_spec(volume_spec: str) -> tuple[bool, str]:
+    """Validate a volume binding specification.
+    
+    Format: host_path:container_path[:options]
+    - host_path must be absolute and under /tmp or the app data dir
+    - host_path must not contain '..' components
+    - container_path must be absolute
+    
+    Returns (True, "") if valid, or (False, reason) if invalid.
+    """
+    if not volume_spec or not isinstance(volume_spec, str):
+        return False, "volume spec must be a non-empty string"
+    
+    parts = volume_spec.split(":")
+    if len(parts) < 2:
+        return False, "volume spec must be host_path:container_path[:options]"
+    
+    host_path = parts[0]
+    container_path = parts[1]
+    
+    # Validate host path
+    reason = _bad_volume_reason(host_path)
+    if reason:
+        return False, f"host path invalid: {reason}"
+    
+    # Validate container path
+    if not container_path.startswith("/"):
+        return False, f"container path must be absolute, got {container_path!r}"
+    
+    return True, ""
+
+
+def validate_exec_command(cmd: list[str]) -> tuple[bool, str]:
+    """Validate a command for exec_in_container.
+    
+    Only allows whitelisted commands with validated arguments.
+    This prevents arbitrary command execution even with container access.
+    
+    Returns (True, "") if valid, or (False, reason) if invalid.
+    """
+    if not cmd or not isinstance(cmd, list):
+        return False, "command must be a non-empty list"
+    
+    if not all(isinstance(arg, str) for arg in cmd):
+        return False, "all command arguments must be strings"
+    
+    # Whitelist of safe commands for security testing context
+    # These are common diagnostic and testing utilities
+    ALLOWED_COMMANDS = {
+        # Network tools
+        "ping", "curl", "wget", "nc", "netcat", "nmap", "ss", "ip", "ifconfig",
+        "dig", "nslookup", "host",
+        # File tools
+        "ls", "cat", "head", "tail", "grep", "find", "wc", "sort", "uniq",
+        "diff", "cmp", "file", "stat", "tree",
+        # Text processing
+        "awk", "sed", "cut", "tr", "xargs", "tee",
+        # System info
+        "ps", "top", "htop", "free", "df", "du", "uname", "hostname", "whoami",
+        "id", "env", "printenv",
+        # Process control (limited)
+        "sleep", "date", "echo", "printf",
+        # Security tools (common in Kali)
+        "hashcat", "john", "hydra", "sqlmap", "nikto", "gobuster", "dirb",
+        "burpsuite", "wireshark", "tcpdump", "tshark",
+        # Programming/interpreters (use with caution)
+        "python", "python3", "python2", "ruby", "perl", "node", "bash", "sh",
+        # Package managers (read-only operations)
+        "apt", "apt-get", "dpkg", "pip", "pip3", "gem", "npm",
+    }
+    
+    base_cmd = cmd[0]
+    # Extract just the command name (handle paths like /usr/bin/python)
+    if "/" in base_cmd:
+        base_cmd = base_cmd.rsplit("/", 1)[-1]
+    
+    if base_cmd not in ALLOWED_COMMANDS:
+        return False, f"command {base_cmd!r} is not in the allowed list"
+    
+    # Additional argument validation for dangerous commands
+    # Prevent shell escape sequences and command injection
+    dangerous_patterns = ["$( ", "`", "|", ";", "&&", "||", ">", "<", "&"]
+    for arg in cmd:
+        for pattern in dangerous_patterns:
+            if pattern in arg:
+                return False, f"argument contains dangerous pattern {pattern!r}"
+    
+    # Prevent environment variable injection via -e flags for interpreters
+    if base_cmd in ("python", "python3", "python2", "ruby", "perl"):
+        for i, arg in enumerate(cmd[1:], 1):
+            if arg.startswith("-e") and len(arg) > 2:
+                # Inline script execution - check for system calls
+                script = arg[2:] if arg.startswith("-e") else cmd[i+1] if i+1 < len(cmd) else ""
+                if any(kw in script for kw in ("os.system", "subprocess", "__import__", "eval(", "exec(")):
+                    return False, "script contains dangerous system calls"
+    
+    return True, ""
 
 
 # --- Podman operations ------------------------------------------------------

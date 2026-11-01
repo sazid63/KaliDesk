@@ -9,6 +9,18 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+# SINGLE SOURCE OF TRUTH for private network ranges
+# Includes IPv4 RFC 1918, loopback, link-local, and IPv6 equivalents
+PRIVATE_RANGES: tuple[str, ...] = (
+    "127.0.0.0/8",      # IPv4 loopback
+    "10.0.0.0/8",       # RFC 1918 private
+    "172.16.0.0/12",    # RFC 1918 private
+    "192.168.0.0/16",   # RFC 1918 private
+    "169.254.0.0/16",   # IPv4 link-local (APIPA)
+    "::1/128",          # IPv6 loopback
+    "fc00::/7",         # IPv6 unique local (ULA)
+    "fe80::/10",        # IPv6 link-local
+)
 
 @dataclass(frozen=True)
 class Config:
@@ -18,15 +30,7 @@ class Config:
     runtime_distro: str = "KaliSubstitute"
     rootfs_url: str = ""
     rootfs_sha256: str = ""
-    # Ranges that are treated as "authorised by default". Everything else
-    # requires an explicit, logged confirmation from the user.
-    private_ranges: tuple[str, ...] = (
-        "127.0.0.0/8",
-        "10.0.0.0/8",
-        "172.16.0.0/12",
-        "192.168.0.0/16",
-        "169.254.0.0/16",
-    )
+    private_ranges: tuple[str, ...] = PRIVATE_RANGES
 
 
 def load() -> Config:

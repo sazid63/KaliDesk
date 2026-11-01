@@ -51,6 +51,8 @@ class MCPClient:
 
     def _send(self, request: dict[str, Any]) -> dict[str, Any] | None:
         """Send a JSON-RPC request via stdio and read the response."""
+        import select
+
         if self._process is None or self._process.stdin is None:
             return None
         with self._lock:
@@ -58,9 +60,17 @@ class MCPClient:
                 self._process.stdin.write(json.dumps(request) + "\n")
                 self._process.stdin.flush()
                 if self._process.stdout:
+                    # Timeout on readline: 30s
+                    rlist, _, _ = select.select([self._process.stdout], [], [], 30)
+                    if not rlist:
+                        return None
                     line = self._process.stdout.readline()
-                    if line:
-                        return json.loads(line.strip())
+                    if not line:
+                        return None
+                    # Enforce max response size (1 MB)
+                    if len(line) > 1 * 1024 * 1024:
+                        return None
+                    return json.loads(line.strip())
             except (OSError, json.JSONDecodeError):
                 return None
         return None

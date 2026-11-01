@@ -1,11 +1,38 @@
 # Kali Linux Windows Substitute
 
-A Kali-style security workbench for Windows. The tools it runs are the **real
-Linux tools** — nmap, sqlmap, hashcat, tshark and the rest — running inside a
-private WSL2 distribution that the app creates and owns. They are not
-recompiled for Windows.
+**A Kali-style security workbench for Windows that runs the real Linux tools**
+in the app's own private WSL2 distribution — not recompiled for Windows.
 
-It gives you three things a bare Kali VM does not:
+**Three things a bare Kali VM does not:**
+- A friendly GUI with a tool catalog, per-tool form, prerequisites and output
+- Install on demand — you decide which tools live on your machine; add or uninstall from inside the app
+- An optional AI assistant (local or cloud) that explains output and can propose a command (you still confirm)
+
+The workbench itself stays on your machine: the backend listens on loopback only,
+and the app sends no telemetry anywhere. Downloading the runtime image, installing
+on-demand tools, and some tools (plus the optional cloud AI) still need an internet
+connection — see [docs/LIMITATIONS.md](docs/LIMITATIONS.md#network-access).
+
+> **Not affiliated with OffSec.** "Kali Linux" and the Kali logo are trademarks
+> of OffSec Services Limited. This project is an independent, unofficial
+> workbench that runs Debian/Kali packages. It is not endorsed by or connected
+> to OffSec or the Kali Linux project.
+
+> **Authorised testing only.** Use it on systems you own or have explicit
+> written permission to test. See [docs/ACCEPTABLE_USE.md](docs/ACCEPTABLE_USE.md).
+
+---
+
+## Quick Overview
+
+Run real Linux security tools (nmap, sqlmap, hashcat, tshark, etc.) natively on
+Windows via a private WSL2 runtime. The Flask backend + pywebview UI gives you
+a graphical tool catalog, form-driven tool execution, and audit capabilities — all
+with defense-in-depth: bearer token + CSRF on writes, argv-only execution with
+`shell=False`, an in-runtime allowlist, scope guard, timeouts, output caps, and a
+local audit log.
+
+Report a problem privately: see [SECURITY.md](SECURITY.md).
 
 - a **friendly GUI** with a tool catalog, per-tool form, prerequisites and output;
 - **install on demand** — you decide which tools live on your machine, and you

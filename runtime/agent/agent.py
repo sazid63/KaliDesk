@@ -42,10 +42,15 @@ MAX_OUTPUT = 512 * 1024
 DEFAULT_TIMEOUT = 180
 MAX_TIMEOUT = 900
 
-PRIVATE_RANGES = (
-    "127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12",
-    "192.168.0.0/16", "169.254.0.0/16", "::1/128", "fc00::/7", "fe80::/10",
-)
+# Import canonical private ranges from shared config
+# Fallback to hardcoded values if server is not reachable
+try:
+    from server.config import PRIVATE_RANGES
+except ImportError:
+    PRIVATE_RANGES = (
+        "127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12",
+        "192.168.0.0/16", "169.254.0.0/16", "::1/128", "fc00::/7", "fe80::/10",
+    )
 
 _LOG_LOCK = threading.Lock()
 SAFE_ARG = re.compile(r"^[^\x00\r\n]*$")
@@ -106,26 +111,22 @@ def host_of(target: str) -> str:
 
 
 def in_scope(target: str, confirmed: bool) -> tuple[bool, str]:
-    host = host_of(target)
-    if not host:
+    """Check if target is in scope using unified logic from server.security."""
+    # Delegate to same classification logic as server for consistency
+    from server.security import classify_target, scope_allows
+    
+    kind = classify_target(target)
+    if kind == "empty":
         return True, "no target"
-    if host.lower() in {"localhost", "localhost.localdomain"}:
-        return True, "loopback"
-    try:
-        ip = ipaddress.ip_address(host)
-    except ValueError:
-        return (True, "hostname confirmed") if confirmed else (
-            False, "hostname target needs explicit confirmation")
-    if ip.is_loopback or ip.is_link_local:
-        return True, "loopback"
-    for cidr in PRIVATE_RANGES:
-        try:
-            if ip in ipaddress.ip_network(cidr, strict=False):
-                return True, "private range"
-        except ValueError:
-            continue
-    return (True, "external confirmed") if confirmed else (
-        False, "external target needs explicit confirmation")
+    if kind == "private":
+        return True, "target is on a private or loopback address"
+    # For hostnames and external IPs, use the same confirmation logic
+    if confirmed:
+        return True, "external target explicitly confirmed by the user"
+    return False, (
+        "target is outside the private ranges. Tick the confirmation box and "
+        "make sure you have written authorisation to test it."
+    )
 
 
 def binary_present(binary: str) -> bool:

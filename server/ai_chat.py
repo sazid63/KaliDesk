@@ -58,6 +58,8 @@ def complete_with_context(
     provider_config: dict[str, Any] | None = None,
     mcp_client: MCPClient | None = None,
     conversation_id: int | None = None,
+    require_tool_confirmation: bool = True,
+    confirm_callback=None,
 ) -> dict[str, Any]:
     """Complete a chat with tool context and optional tool call execution.
 
@@ -108,6 +110,30 @@ def complete_with_context(
         if action["action"] == "mcp_call" and mcp_client:
             tool_name = str(action.get("tool", ""))
             arguments = action.get("arguments", {})
+            # Optional user confirmation before executing any MCP tool
+            if require_tool_confirmation and confirm_callback is not None:
+                try:
+                    confirmed = confirm_callback(tool_name, arguments)
+                    if not confirmed:
+                        # Abort execution; return the assistant text without running the tool
+                        if conversation_id:
+                            save_message("assistant", text, conversation_id=conversation_id)
+                        return {
+                            "type": "message",
+                            "text": text,
+                            "_tool_aborted": True,
+                            "tool": tool_name,
+                            "payload": arguments,
+                        }
+                except Exception:
+                    # If the confirmation callback fails, abort for safety
+                    return {
+                        "type": "message",
+                        "text": text,
+                        "_tool_aborted": True,
+                        "tool": tool_name,
+                        "payload": arguments,
+                    }
             result = mcp_client.call_tool(tool_name, arguments)
             if conversation_id:
                 save_message("assistant", text, tool_id=tool_name, conversation_id=conversation_id)

@@ -16,6 +16,8 @@ from functools import wraps
 
 from flask import Response, jsonify, request
 
+import server.config as config
+
 AUTH_COOKIE = "kws_auth"
 CSRF_COOKIE = "kws_csrf"
 CSRF_HEADER = "X-KWS-CSRF"
@@ -91,7 +93,7 @@ def _host_of(target: str) -> str:
     return host.strip()
 
 
-def classify_target(target: str, private_ranges: tuple[str, ...]) -> str:
+def classify_target(target: str, private_ranges: tuple[str, ...] = config.PRIVATE_RANGES) -> str:
     """Return 'empty', 'private' or 'public' for a target string."""
     host = _host_of(target)
     if not host:
@@ -116,7 +118,7 @@ def classify_target(target: str, private_ranges: tuple[str, ...]) -> str:
 
 
 def scope_allows(
-    target: str, confirmed_external: bool, private_ranges: tuple[str, ...]
+    target: str, confirmed_external: bool, private_ranges: tuple[str, ...] = config.PRIVATE_RANGES
 ) -> tuple[bool, str]:
     kind = classify_target(target, private_ranges)
     if kind == "empty":

@@ -223,14 +223,32 @@ class MCPServer:
         self._initialized = False
 
     def _handle_request(self, request_id: Any, method: str, params: Any) -> dict[str, Any]:
-        if not self._initialized and method != "initialize":
+        # Enforce init handshake: reject everything until initialized
+        if not self._initialized:
+            if method == "initialize":
+                # Validate params contain protocolVersion
+                if isinstance(params, dict) and params.get("protocolVersion"):
+                    self._initialized = True
+                    return {
+                        "id": request_id,
+                        "result": {
+                            "protocolVersion": "2024-11-05",
+                            "capabilities": {"tools": {}, "resources": {}},
+                            "serverInfo": {"name": "kali-desktop-mcp", "version": "1.0.0"},
+                        },
+                    }
+                # Invalid initialize
+                return {
+                    "error": {"code": -32602, "message": "Missing protocolVersion"},
+                    "id": request_id,
+                }
             return {
                 "error": {"code": -32600, "message": "Server not initialized"},
                 "id": request_id,
             }
 
         if method == "initialize":
-            self._initialized = True
+            # Already initialized; optionally return existing state
             return {
                 "id": request_id,
                 "result": {
@@ -270,11 +288,38 @@ class MCPServer:
 
     def run_stdio(self) -> None:
         """Run the MCP server over stdio, processing one request per line."""
-        self._initialized = True  # Allow requests immediately for simplicity
-        for line in sys.stdin:
+        import select
+
+        MAX_REQUEST_SIZE = 1 * 1024 * 1024  # 1 MB max per message
+        READLINE_TIMEOUT = 30  # seconds of idle before shutting down
+
+        while True:
+            # Timeout on readline: bail out if no data arrives
+            try:
+                rlist, _, _ = select.select([sys.stdin], [], [], READLINE_TIMEOUT)
+            except (OSError, ValueError):
+                break
+            if not rlist:
+                break  # idle timeout
+
+            line = sys.stdin.readline()
+            if not line:
+                break  # EOF
+
             line = line.strip()
             if not line:
                 continue
+
+            # Enforce request size limit
+            if len(line) > MAX_REQUEST_SIZE:
+                resp = {
+                    "jsonrpc": "2.0",
+                    "id": None,
+                    "error": {"code": -32000, "message": "Request too large"},
+                }
+                print(json.dumps(resp), flush=True)
+                continue
+
             try:
                 req = json.loads(line)
             except json.JSONDecodeError:
