@@ -74,17 +74,25 @@ def agent_online(cfg) -> bool:
 # --- helpers --------------------------------------------------------------
 
 def _target_of(payload: dict[str, Any]) -> str:
-    # Only genuine network targets count for the scope guard. Provider names
-    # (e.g. searchsploit's query) and evidence file names are local and must
-    # not be mistaken for hosts.
-    for key in ("target", "url", "name"):
+    # Only genuine network targets count for the scope guard. The "name" field
+    # is overloaded - it is a search query for searchsploit and an evidence
+    # filename for the file-based tools - so it is deliberately excluded: it is
+    # never a host the user is scanning. DNS/WHOIS style lookups are passive
+    # and are not gated here either.
+    for key in ("target", "url"):
         if payload.get(key):
             return str(payload[key])
     return ""
 
 
 def _ctx(payload: dict[str, Any], tool_id: str) -> dict[str, Any]:
-    work = kws_paths.work_dir()
+    # Every run gets its own subdirectory under the shared work dir. Several
+    # tools (foremost, hcxtools, cewl) write output next to their input and
+    # refuse to overwrite an existing directory, so a stable path breaks the
+    # second run of the same tool.
+    import secrets as _secrets
+    work = kws_paths.work_dir() / _secrets.token_hex(8)
+    work.mkdir(parents=True, exist_ok=True)
     file_paths: dict[str, str] = {}
     for name, content in commands.files_for(tool_id, payload).items():
         path = work / name

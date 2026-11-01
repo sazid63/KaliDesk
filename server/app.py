@@ -32,6 +32,7 @@ import server.recordings as recordings
 import server.report as report
 import server.security as security
 import server.skills as skills
+import server.strix as strix
 import server.tools as tools
 
 UI_DIR = Path(kws_paths.resource("ui"))
@@ -786,6 +787,37 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     def api_recordings_delete(rid: str):
         ok = recordings.delete_recording(rid)
         return jsonify({"ok": ok})
+
+    # --- Strix AI Pentest Agent ---
+    @app.get("/api/strix/status")
+    @security.require_auth
+    def api_strix_status():
+        return jsonify(strix.status())
+
+    @app.post("/api/strix/install")
+    @security.require_auth
+    @security.require_csrf
+    def api_strix_install():
+        ok, msg = strix.install_strix()
+        db.audit("user", "strix:install", "", "ok" if ok else "failed")
+        return jsonify({"ok": ok, "message": msg}), 200 if ok else 500
+
+    @app.post("/api/strix/start")
+    @security.require_auth
+    @security.require_csrf
+    def api_strix_start():
+        ok, pid = strix.start_strix()
+        db.audit("user", "strix:start", str(pid), "ok" if ok else "failed")
+        return jsonify({"ok": ok, "pid": pid}), 200 if ok else 500
+
+    @app.post("/api/strix/stop")
+    @security.require_auth
+    @security.require_csrf
+    def api_strix_stop():
+        s = strix.status()
+        ok, msg = strix.stop_strix(s.get("pid") or 0)
+        db.audit("user", "strix:stop", "", "ok" if ok else "failed")
+        return jsonify({"ok": ok, "message": msg}), 200 if ok else 500
 
     # --- Onboarding ---
     @app.get("/api/onboarding/status")

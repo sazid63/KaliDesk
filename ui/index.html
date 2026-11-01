@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kali Linux Windows Substitute</title>
   <link rel="stylesheet" href="/static/styles.css">
+<link rel="stylesheet" href="/static/strix.css">
 </head>
 <body>
   <a href="#main-content" class="skip-link">Skip to main content</a>
@@ -12,7 +13,7 @@
 <header class="topbar" role="banner">
   <div class="brand">
     <span class="brand-logo"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span>
-    <span class="prompt">kali@windows</span><span class="colon">:</span><span class="pwd">~</span>$ ./workbench
+    <span class="prompt">kalidesk</span><span class="colon">:</span><span class="pwd">~</span>$ kali-windows-substitute
   </div>
   <div class="topbar-right">
     <button class="palette-btn ghost" id="cmd-palette-btn" title="Command palette (Ctrl+K)" aria-label="Open command palette (Ctrl+K)">
@@ -42,6 +43,7 @@
       <li data-view="audit-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-list-check nav-icon" aria-hidden="true"></i> Audit log</li>
       <li data-view="chat-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-comment nav-icon" aria-hidden="true"></i> AI chat</li>
       <li data-view="ai-chat-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-robot nav-icon" aria-hidden="true"></i> AI CyberSecurity</li>
+<li data-view="strix-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-skull nav-icon" aria-hidden="true"></i> Strix Pentest</li>
       <li data-view="settings-ai-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-brain nav-icon" aria-hidden="true"></i> AI Settings</li>
       <li data-view="containers-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-box nav-icon" aria-hidden="true"></i> Containers</li>
       <li data-view="history-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-clock-rotate-left nav-icon" aria-hidden="true"></i> History</li>
@@ -554,6 +556,41 @@
         <!-- Tools chips will be inserted here -->
       </div>
     </div>
+
+<div id="strix-panel" class="panel hidden">
+  <div class="panel-head">
+    <h2>Strix AI Pentest</h2>
+    <button class="x" data-close="strix-panel" aria-label="Close Strix panel">&times;</button>
+  </div>
+
+  <div class="strix-header">
+    <div class="strix-status">
+      <span class="dot" id="strix-dot"></span>
+      <span id="strix-text">Checking status...</span>
+    </div>
+    <div class="strix-actions">
+      <button class="primary" id="strix-install" disabled>Install</button>
+      <button class="primary" id="strix-start" disabled>Start</button>
+      <button class="ghost" id="strix-stop" disabled>Stop</button>
+      <button class="ghost" id="strix-refresh">Refresh</button>
+    </div>
+    <button class="ghost" id="strix-info" title="What is Strix?">ⓘ</button>
+  </div>
+
+  <div class="strix-tooltip hidden" id="strix-tooltip">
+    Strix is an AI-powered autonomous pentesting agent that runs inside the WSL2 runtime.
+    It can scan, exploit, and report on targets with minimal human intervention.
+    <br><br>
+    <a href="https://github.com/strix-ai/strix" target="_blank">docs</a> |
+    <a href="https://github.com/strix-ai/strix/releases" target="_blank">releases</a>
+  </div>
+
+  <div class="strix-content">
+    <iframe id="strix-iframe" class="strix-iframe hidden" src="about:blank"
+            frameborder="0" allowfullscreen></iframe>
+    <div class="strix-log" id="strix-log"></div>
+  </div>
+</div>
 
 <div id="toast" class="toast hidden" aria-live="polite"></div>
 <script src="/static/utils.js"></script>

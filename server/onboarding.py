@@ -8,14 +8,6 @@ from typing import Any
 
 import server.db as db
 
-_ONBOARDING_SCHEMA = """
-CREATE TABLE IF NOT EXISTS settings (
-    key   TEXT PRIMARY KEY,
-    value TEXT NOT NULL
-);
-"""
-
-
 #: Onboarding step definitions
 ONBOARDING_STEPS = [
     {
@@ -48,9 +40,9 @@ ONBOARDING_STEPS = [
 ]
 
 
-def _init_settings_table() -> None:
-    with db.connect() as conn:
-        conn.executescript(_ONBOARDING_SCHEMA)
+def _ensure_settings_table() -> None:
+    """Ensure the settings table exists (created by db.init_db())."""
+    db.init_db()
 
 
 def finish_onboarding() -> bool:
@@ -59,7 +51,7 @@ def finish_onboarding() -> bool:
     Returns:
         True if successfully marked complete.
     """
-    _init_settings_table()
+    _ensure_settings_table()
     with db.connect() as conn:
         conn.execute(
             "INSERT INTO settings (key, value) VALUES ('onboarding_complete', '1') "
@@ -74,7 +66,7 @@ def is_onboarding_needed() -> bool:
     Returns:
         True if onboarding should be shown.
     """
-    _init_settings_table()
+    _ensure_settings_table()
     with db.connect() as conn:
         row = conn.execute(
             "SELECT value FROM settings WHERE key = 'onboarding_complete'"

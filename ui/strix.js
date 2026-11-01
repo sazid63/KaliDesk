@@ -8,7 +8,7 @@ function strixRefresh() {
         const url = r.data.url;
         
         document.getElementById("strix-dot").className = "dot " +
-            (running ? "green" : installed ? "yellow" : "red");
+            (running ? "ok" : installed ? "info" : "bad");
         document.getElementById("strix-text").textContent = 
             running ? "Running" : installed ? "Installed" : "Not installed";
         
@@ -51,12 +51,12 @@ function strixInstall() {
                 });
             }, 2000);
         } else {
-            showToast("Install failed: " + r.data.message);
+            toast("Install failed: " + r.data.message, true);
             document.getElementById("strix-install").disabled = false;
             strixRefresh();
         }
     }).catch(e => {
-        showToast("Install failed: " + e);
+        toast("Install failed: " + e, true);
         document.getElementById("strix-install").disabled = false;
         strixRefresh();
     });
@@ -77,12 +77,12 @@ function strixStart() {
                 });
             }, 2000);
         } else {
-            showToast("Start failed: " + r.data.message);
+            toast("Start failed: " + r.data.message, true);
             document.getElementById("strix-start").disabled = false;
             strixRefresh();
         }
     }).catch(e => {
-        showToast("Start failed: " + e);
+        toast("Start failed: " + e, true);
         document.getElementById("strix-start").disabled = false;
         strixRefresh();
     });
@@ -95,12 +95,12 @@ function strixStop() {
         if (r.data.ok) {
             strixRefresh();
         } else {
-            showToast("Stop failed: " + r.data.message);
+            toast("Stop failed: " + r.data.message, true);
             document.getElementById("strix-stop").disabled = false;
             strixRefresh();
         }
     }).catch(e => {
-        showToast("Stop failed: " + e);
+        toast("Stop failed: " + e, true);
         document.getElementById("strix-stop").disabled = false;
         strixRefresh();
     });

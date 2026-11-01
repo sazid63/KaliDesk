@@ -56,3 +56,9 @@ desktop.ini
 *.swp
 .idea/
 .vscode/
+
+# --- Local toolchain / build scratch --------------------------------------
+# Local Python installs, scratch dirs and editor/harness scratch files that
+# live inside the checkout but are not part of the project.
+~/
+echo

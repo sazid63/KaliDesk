@@ -113,7 +113,7 @@ _46 tools in 11 categories._
 | ExifTool | forensics | yes | libimage-exiftool-perl | low |
 | Steghide | forensics | no | steghide | low |
 | Volatility 3 | forensics | no | volatility3 | low |
-| The Sleuth Kit | forensics | no | sleuthkit | low |
+| The Sleuth Kit | forensics | yes | sleuthkit | low |
 | Radare2 | reverse-engineering | no | radare2 | low |
 | GDB | reverse-engineering | no | gdb | low |
 | strace | reverse-engineering | no | strace | low |

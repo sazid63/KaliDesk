@@ -967,7 +967,7 @@ async function autoDetectOpenCode() {
   const found = [];
   for (const port of ports) {
     try {
-      const res = await fetch("http://127.0.0.1:" + port + "/health", { timeout: 500 });
+      const res = await fetch("http://127.0.0.1:" + port + "/health", { signal: AbortSignal.timeout(500) });
       if (res.ok) {
         const data = await res.json();
         if (data && data.app && data.app.name.includes("OpenCode")) {
@@ -990,7 +990,7 @@ async function autoDetectDeepSeek() {
   const found = [];
   for (const port of ports) {
     try {
-      const res = await fetch("http://127.0.0.1:" + port + "/health", { timeout: 500 });
+      const res = await fetch("http://127.0.0.1:" + port + "/health", { signal: AbortSignal.timeout(500) });
       if (res.ok) {
         const data = await res.json();
         if (data && data.app && data.app.name.includes("DeepSeek")) {
@@ -1125,7 +1125,7 @@ function wireSettingsAI() {
 
 /* --- navigation ---------------------------------------------------------- */
 function showPanel(view) {
-  const panels = ["manager-panel", "findings-panel", "audit-panel", "chat-panel", "settings-panel", "settings-ai-panel", "containers-panel", "ai-chat-panel", "history-panel", "playground-panel", "cheat-sheets-panel", "achievements-panel", "notebook-panel", "recordings-panel", "portable-panel", "onboarding-panel"];
+  const panels = ["manager-panel", "findings-panel", "audit-panel", "chat-panel", "settings-panel", "settings-ai-panel", "containers-panel", "ai-chat-panel", "history-panel", "playground-panel", "cheat-sheets-panel", "achievements-panel", "notebook-panel", "recordings-panel", "portable-panel", "onboarding-panel", "strix-panel"];
   $$("#view-list li").forEach((li) => li.classList.toggle("active", li.dataset.view === view));
   if (view === "home") {
     $("#view-home").classList.remove("hidden");
@@ -1286,6 +1286,7 @@ function buildCommandPaletteCommands() {
     { label: "Go to AI chat", action: () => showPanel("chat-panel") },
     { label: "Go to AI CyberSecurity", action: () => showPanel("ai-chat-panel") },
     { label: "Go to AI Settings", action: () => showPanel("settings-ai-panel") },
+    { label: "Go to Strix Pentest", action: () => showPanel("strix-panel") },
     { label: "Go to Containers", action: () => showPanel("containers-panel") },
     { label: "Go to History", action: () => showPanel("history-panel") },
     { label: "Go to Playground", action: () => showPanel("playground-panel") },
@@ -1535,7 +1536,7 @@ function showKeyboardHelp() {
   let html = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
       <h2 style="margin:0;font-size:1.1rem;">Keyboard Shortcuts</h2>
-      <button onclick="this.closest('#keyboard-help-overlay').remove()" 
+      <button id="keyboard-help-close"
               aria-label="Close keyboard shortcuts help"
               style="width:32px;height:32px;border-radius:50%;background:transparent;border:none;font-size:1.2rem;cursor:pointer;">&times;</button>
     </div>
@@ -1555,7 +1556,10 @@ function showKeyboardHelp() {
   modal.innerHTML = html;
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
-  
+
+  const closeBtn = overlay.querySelector("#keyboard-help-close");
+  if (closeBtn) closeBtn.addEventListener("click", () => overlay.remove());
+
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) overlay.remove();
   });

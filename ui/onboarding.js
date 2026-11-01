@@ -45,7 +45,9 @@ async function initOnboarding() {
 
 async function loadStatus() {
   const { data } = await api("GET", "/api/onboarding/status");
-  if (data && data.completed) {
+  if (data && data.needed) {
+    currentStep = 0;
+  } else {
     currentStep = STEPS.length - 1;
   }
 }

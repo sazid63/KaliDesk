@@ -29,6 +29,6 @@ $ fls -r -p image.raw
 
 - Category: `forensics`
 - Install with: `apt install sleuthkit`
-- Baseline: no
+- Baseline: yes
 - Licence: CPL / IBM Public License
 - Upstream: <https://www.sleuthkit.org/sleuthkit/>

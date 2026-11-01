@@ -13,6 +13,7 @@ import subprocess
 from typing import Any
 
 import server.db as db
+import server.config as _cfg
 
 # --- Constants --------------------------------------------------------------
 
@@ -23,7 +24,7 @@ def _run_podman(cmd: list[str], timeout: int = DEFAULT_TIMEOUT) -> dict[str, Any
     """Run a podman command in the private WSL2 distribution."""
     try:
         result = subprocess.run(
-            ["wsl", "-d", "KaliSubstitute", "podman"] + cmd,
+            ["wsl", "-d", _cfg.load().runtime_distro, "podman"] + cmd,
             capture_output=True,
             text=True,
             timeout=timeout,

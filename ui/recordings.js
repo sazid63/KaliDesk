@@ -31,7 +31,7 @@ function renderRecordings() {
     tr.innerHTML =
       '<td>' + esc(rec.tool) + '</td>' +
       '<td>' + esc(formatDuration(rec.duration_ms)) + '</td>' +
-      '<td>' + esc(rec.size_kb + "KB") + '</td>' +
+      '<td>' + esc((rec.size_bytes / 1024).toFixed(1) + " KB") + '</td>' +
       '<td>' + esc(rec.created) + '</td>' +
       '<td>' +
       '<button class="ghost tiny" data-id="' + rec.id + '" data-act="load">Load</button>' +

@@ -20,6 +20,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+import server.config as _cfg
+
 #: The vulnerable app source as a string constant.
 _VULNERABLE_APP_SOURCE = '''
 import http.server
@@ -136,16 +138,20 @@ def start_playground() -> tuple[bool, str]:
     if is_running():
         return True, f"Playground already running on http://127.0.0.1:{_PLAYGROUND_PORT}"
 
-    # Start the process inside WSL2 using nohup
+    # Start the process inside WSL2. Use a proper argv list (no shell) and
+    # redirect via subprocess instead of embedding shell tokens in argv.
     try:
+        log_path = Path("/tmp/kalisub-playground.log")
+        log_file = open(log_path, "w", encoding="utf-8")  # noqa: SIM115
         cmd = [
-            "wsl", "-d", "KaliSubstitute",
-            "nohup", sys.executable, "/opt/kalisub-playground/vulnerable_app.py",
-            ">", "/tmp/kalisub-playground.log", "2>&1", "&"
+            "wsl", "-d", _cfg.load().runtime_distro,
+            "nohup", "python3", "/opt/kalisub-playground/vulnerable_app.py",
         ]
-        proc = subprocess.Popen(cmd, capture_output=True, text=True)  # noqa: S603
-        proc.wait(timeout=5)
+        proc = subprocess.Popen(cmd, stdout=log_file, stderr=subprocess.STDOUT,  # noqa: S603
+                                text=True)
+        # Detach: don't wait for the background process to exit.
         time.sleep(2)
+        log_file.close()
 
         # Verify it started
         if is_running():
@@ -153,7 +159,6 @@ def start_playground() -> tuple[bool, str]:
         else:
             # Read log for error
             try:
-                log_path = Path("/tmp/kalisub-playground.log")
                 if log_path.exists():
                     log = log_path.read_text()[:400]
                     return False, f"Process start failed: {log}"
@@ -170,7 +175,7 @@ def stop_playground() -> tuple[bool, str]:
     try:
         # Kill any python process running the playground
         subprocess.run(
-            ["wsl", "-d", "KaliSubstitute", "pkill", "-f", "vulnerable_app.py"],
+            ["wsl", "-d", _cfg.load().runtime_distro, "pkill", "-f", "vulnerable_app.py"],
             capture_output=True, timeout=5
         )
         _PLAYGROUND_PID = None

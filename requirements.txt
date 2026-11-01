@@ -2,3 +2,6 @@ flask>=3.0,<4
 Werkzeug>=3.0,<4
 PyYAML>=6.0,<7
 pywebview>=5.0,<6
+# Used by the Portable panel (drive listing) and the local model downloader.
+psutil>=5.9,<6
+huggingface_hub>=0.20,<1

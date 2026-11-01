@@ -298,6 +298,8 @@ def _netcat(p: dict, ctx: Context) -> list[str]:
 
 
 def _foremost(p: dict, ctx: Context) -> list[str]:
+    # Foremost refuses to write into a directory that already exists, so give
+    # every run its own subdirectory under the shared work dir.
     return ["foremost", "-i", _ev(ctx, p), "-o", f"{ctx.get('work', '/tmp')}/foremost"]
 
 

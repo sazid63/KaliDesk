@@ -19,7 +19,7 @@ async function initAiChat() {
 async function checkEmbeddedApps() {
   const opencodeMode = document.querySelector('#ai-chat-mode option[value="opencode"]')
   try {
-    const res = await fetch("http://127.0.0.1:4096/health", { timeout: 2000 })
+    const res = await fetch("http://127.0.0.1:4096/health", { signal: AbortSignal.timeout(2000) })
     if (!res.ok && opencodeMode) {
       opencodeMode.disabled = true
       opencodeMode.textContent = "OpenCode (not running)"
@@ -32,7 +32,7 @@ async function checkEmbeddedApps() {
   }
   const dshMode = document.querySelector('#ai-chat-mode option[value="dsh"]')
   try {
-    const res = await fetch("http://127.0.0.1:55551/", { timeout: 2000 })
+    const res = await fetch("http://127.0.0.1:55551/", { signal: AbortSignal.timeout(2000) })
     if (res.status === 401) {
       if (dshMode) { dshMode.disabled = false; dshMode.textContent = "DeepSeek Harness" }
     } else if (!res.ok && dshMode) {
@@ -335,7 +335,9 @@ function renderMarkdown(text) {
   html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   
   html = html.replace(/^\s*[-*]\s+(.+)$/gm, "<li>$1</li>");
-  html = html.replace(/<li>(.*?)<\/li>/g, "<ul><li>$1</li></ul>");
+  // Wrap runs of consecutive <li> elements in a single <ul> (the previous
+  // per-element replacement produced broken nested <ul><li>...</ul></li>).
+  html = html.replace(/(?:<li>[\s\S]*?<\/li>\s*)+/g, "<ul>$&</ul>");
   
   html = html.replace(/https?:\/\/[^\s]+/g, "<a href='$&' target='_blank' rel='noopener'>$&</a>");
   
