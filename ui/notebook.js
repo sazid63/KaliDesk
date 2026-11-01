@@ -35,7 +35,7 @@ function renderEntries() {
       '<button class="ghost tiny" data-id="' + entry.id + '" data-act="delete">Delete</button>' +
       '</div>' +
       '<div class="entry-content">' + esc(entry.content) + '</div>' +
-      (entry.tags ? '<div class="entry-tags">' + entry.tags.split(",").map(t => '<span class="chip">' + esc(t.trim()) + "</span>").join("") + "</div>" : "");
+      (entry.tags ? '<div class="entry-tags">' + (Array.isArray(entry.tags) ? entry.tags : entry.tags.split(",")).map(t => '<span class="chip">' + esc(String(t).trim()) + "</span>").join("") + "</div>" : "");
     list.appendChild(div);
   });
   
@@ -47,13 +47,14 @@ function renderEntries() {
 async function addEntry() {
   const type = $("#notebook-type").value;
   const content = $("#notebook-content").value.trim();
-  const tags = $("#notebook-tags").value.trim();
+  const tagsRaw = $("#notebook-tags").value.trim();
   
   if (!content) {
     toast("Content is required", true);
     return;
   }
   
+  const tags = tagsRaw ? tagsRaw.split(",").map(t => t.trim()).filter(Boolean) : [];
   const { data } = await api("POST", "/api/notebook/entries", { type, content, tags });
   toast(data.message || "Entry added");
   $("#entry-form").style.display = "none";
@@ -88,6 +89,20 @@ async function exportNotebook() {
 
 /* $, $$, esc, toast, api provided globally by utils.js */
 
+let searchDebounce = null;
+
+async function searchEntries(query) {
+  if (!query.trim()) {
+    await loadEntries();
+    return;
+  }
+  const { data } = await api("GET", "/api/notebook/search?q=" + encodeURIComponent(query));
+  if (data && data.entries) {
+    notebookEntries = data.entries;
+    renderEntries();
+  }
+}
+
 function wire() {
   const addBtn = $("#notebook-add");
   const form = $("#entry-form");
@@ -96,8 +111,20 @@ function wire() {
   });
   const saveBtn = $("#notebook-save");
   if (saveBtn) saveBtn.addEventListener("click", addEntry);
+  const cancelBtn = $("#notebook-cancel");
+  if (cancelBtn) cancelBtn.addEventListener("click", () => {
+    if (form) form.style.display = "none";
+  });
   const exportBtn = $("#notebook-export");
   if (exportBtn) exportBtn.addEventListener("click", exportNotebook);
+
+  const searchInput = $("#notebook-search");
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(() => searchEntries(e.target.value), 300);
+    });
+  }
 }
 
 wire();
