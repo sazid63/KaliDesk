@@ -805,7 +805,8 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @app.get("/api/recordings")
     @security.require_auth
     def api_recordings_list():
-        return jsonify({"recordings": recordings.list_recordings()})
+        limit = min(int(request.args.get("limit", "100")), 1000)
+        return jsonify({"recordings": recordings.list_recordings(limit=limit)})
 
     @app.post("/api/recordings/start")
     @security.require_auth

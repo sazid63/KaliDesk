@@ -118,8 +118,11 @@ def stop_recording(recording_id: str) -> bool:
         return False
 
 
-def list_recordings() -> list[dict[str, Any]]:
+def list_recordings(limit: int = 100) -> list[dict[str, Any]]:
     """List all recordings with metadata.
+
+    Args:
+        limit: Maximum number of recordings to return (default 100).
 
     Returns:
         List of recording metadata dicts.
@@ -136,7 +139,7 @@ def list_recordings() -> list[dict[str, Any]]:
 
     # Sort by started desc
     recordings.sort(key=lambda x: x.get("started", ""), reverse=True)
-    return recordings
+    return recordings[:limit]
 
 
 def load_recording(id: str) -> list[str]:
