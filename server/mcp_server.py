@@ -18,6 +18,7 @@ Built-in resources:
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -117,10 +118,12 @@ def _sandbox_path(relative: str) -> Path | None:
         resolved = (base / relative).resolve()
     except (OSError, ValueError):
         return None
-    # Ensure resolved is within base
+    # Ensure resolved is within base using commonpath to prevent symlink escapes
     try:
-        resolved.relative_to(base)
-    except ValueError:
+        common = os.path.commonpath([str(base), str(resolved)])
+        if common != str(base):
+            return None
+    except (OSError, ValueError):
         return None
     return resolved
 

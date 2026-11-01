@@ -22,6 +22,7 @@ beyond Python itself is installed.
 """
 from __future__ import annotations
 
+import hmac
 import ipaddress
 import json
 import os
@@ -180,7 +181,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def _authorised(self) -> bool:
         header = self.headers.get("Authorization", "")
-        return bool(self.token) and header == f"Bearer {self.token}"
+        expected = f"Bearer {self.token}"
+        return bool(self.token) and hmac.compare_digest(header, expected)
 
     def _read_body(self) -> dict:
         length = int(self.headers.get("Content-Length") or 0)

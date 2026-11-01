@@ -122,7 +122,15 @@ def connect() -> sqlite3.Connection:
 
 
 def init_db(db_path: str | None = None) -> None:
-    with sqlite3.connect(db_path or _db_path()) as conn:
+    # Use the same DB path as connect() (default path)
+    with connect() as conn:
+        # Enable WAL journaling for better concurrency
+        conn.execute("PRAGMA journal_mode=WAL")
+        # Set synchronous mode for durability
+        conn.execute("PRAGMA synchronous=NORMAL")
+        # Configure threading mode for thread safety
+        conn.execute("PRAGMA threading_mode=EXCLUSIVE")
+        # Apply the schema
         conn.executescript(_SCHEMA)
 
 

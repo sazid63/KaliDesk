@@ -86,12 +86,34 @@ def check_achievements(tool: str, target: str, rc: int, duration_ms: float) -> l
         List of achievement keys that were triggered.
     """
     triggered = []
+    # Helper to check if an achievement is already unlocked
+    def is_unlocked(key: str) -> bool:
+        with db.connect() as conn:
+            row = conn.execute("SELECT unlocked FROM achievements WHERE key = ?", (key,)).fetchone()
+            return bool(row and row["unlocked"])
+
+    # first_run: trigger once when the achievement is not already unlocked
+    if not is_unlocked("first_run"):
+        triggered.append("first_run")
+        unlock_achievement("first_run")
+
+    # persistent: trigger when at least 10 distinct tools have been run
+    if not is_unlocked("persistent"):
+        with db.connect() as conn:
+            cnt = conn.execute("SELECT COUNT(DISTINCT tool) FROM run_history").fetchone()[0]
+            if cnt >= 10:
+                triggered.append("persistent")
+                unlock_achievement("persistent")
+
+    # other achievements
     for key, ach in ACHIEVEMENTS.items():
-        if key == "first_run" or key == "persistent":
+        if key in ("first_run", "persistent"):
             continue
         try:
             if ach["condition_fn"](tool, target, rc, duration_ms):
-                triggered.append(key)
+                if not is_unlocked(key):
+                    triggered.append(key)
+                    unlock_achievement(key)
         except Exception:
             pass
     return triggered

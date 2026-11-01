@@ -35,12 +35,14 @@ def record_run(
         )
         run_id = int(cur.lastrowid or 0)
 
-    # Trim to last 500 rows
+    # Trim to last 500 rows (simple O(1) approach)
     with db.connect() as conn:
-        conn.execute(
-            "DELETE FROM run_history WHERE id "
-            "NOT IN (SELECT id FROM run_history ORDER BY id DESC LIMIT 500)"
-        )
+        # Find the ID threshold for the 501st oldest row
+        cur = conn.execute("SELECT id FROM run_history ORDER BY id ASC LIMIT 1 OFFSET 500")
+        row = cur.fetchone()
+        if row:
+            threshold_id = row["id"]
+            conn.execute("DELETE FROM run_history WHERE id <= ?", (threshold_id,))
 
     return run_id
 
