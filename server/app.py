@@ -4,6 +4,7 @@ Loopback only. Every ``/api/`` route requires the bearer cookie; every
 state-changing route also requires the CSRF header. The browser UI is a static
 single page served from ``ui/``.
 """
+
 from __future__ import annotations
 
 import hmac
@@ -52,10 +53,10 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
         resp = make_response(send_from_directory(UI_DIR, "index.html"))
         token = request.args.get("token", "")
         if token and hmac.compare_digest(token, auth_token):
-            resp.set_cookie(security.AUTH_COOKIE, token, httponly=True,
-                            samesite="Strict", path="/")
-            resp.set_cookie(security.CSRF_COOKIE, csrf_token, httponly=False,
-                            samesite="Strict", path="/")
+            resp.set_cookie(security.AUTH_COOKIE, token, httponly=True, samesite="Strict", path="/")
+            resp.set_cookie(
+                security.CSRF_COOKIE, csrf_token, httponly=False, samesite="Strict", path="/"
+            )
         return resp
 
     @app.get("/static/<path:filename>")
@@ -66,21 +67,27 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @app.get("/api/healthz")
     @security.require_auth
     def healthz():
-        return jsonify({"ok": True, "app": catalog.app_meta().get("name", ""),
-                        "runtime": tools.technology_status(cfg)})
+        return jsonify(
+            {
+                "ok": True,
+                "app": catalog.app_meta().get("name", ""),
+                "runtime": tools.technology_status(cfg),
+            }
+        )
 
     # --- catalog ----------------------------------------------------------
     @app.get("/api/catalog")
     @security.require_auth
     def api_catalog():
-        return jsonify({
-            "app": catalog.app_meta(),
-            "categories": catalog.categories(),
-            "tools": catalog.tools(),
-            "automated": commands.automated_ids(),
-            "required": {tid: commands.required_for(tid)
-                         for tid in commands.automated_ids()},
-        })
+        return jsonify(
+            {
+                "app": catalog.app_meta(),
+                "categories": catalog.categories(),
+                "tools": catalog.tools(),
+                "automated": commands.automated_ids(),
+                "required": {tid: commands.required_for(tid) for tid in commands.automated_ids()},
+            }
+        )
 
     # --- run a tool -------------------------------------------------------
     @app.post("/api/tool/<tool_id>")
@@ -88,6 +95,7 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @security.require_csrf
     def api_tool_run(tool_id: str):
         import time as _time
+
         payload = request.get_json(silent=True) or {}
         target = tools_target(payload)
         start = _time.time()
@@ -97,10 +105,8 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
         output_preview = ""
         if isinstance(result, dict):
             output_preview = str(result.get("output", result.get("detail", "")))[:500]
-        history.record_run(tool_id, target, payload, rc, duration_ms,
-                           output_preview, status == 200)
-        db.audit("user", f"tool:{tool_id}", target,
-                 "ok" if status == 200 else f"status {status}")
+        history.record_run(tool_id, target, payload, rc, duration_ms, output_preview, status == 200)
+        db.audit("user", f"tool:{tool_id}", target, "ok" if status == 200 else f"status {status}")
         return jsonify(result), status
 
     # --- tool management --------------------------------------------------
@@ -122,8 +128,7 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @security.require_csrf
     def api_tools_install(tool_id: str):
         result, status = tools.install(cfg, tool_id)
-        db.audit("user", "tools:install", tool_id,
-                 "ok" if status == 200 else f"status {status}")
+        db.audit("user", "tools:install", tool_id, "ok" if status == 200 else f"status {status}")
         return jsonify(result), status
 
     @app.post("/api/tools/<tool_id>/remove")
@@ -131,8 +136,7 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @security.require_csrf
     def api_tools_remove(tool_id: str):
         result, status = tools.remove(cfg, tool_id)
-        db.audit("user", "tools:remove", tool_id,
-                 "ok" if status == 200 else f"status {status}")
+        db.audit("user", "tools:remove", tool_id, "ok" if status == 200 else f"status {status}")
         return jsonify(result), status
 
     # --- runtime ----------------------------------------------------------
@@ -161,8 +165,7 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @app.get("/api/evidence")
     @security.require_auth
     def api_evidence():
-        return jsonify({"path": str(kws_paths.evidence_dir()),
-                        "files": tools.evidence_files()})
+        return jsonify({"path": str(kws_paths.evidence_dir()), "files": tools.evidence_files()})
 
     # --- findings / audit / report ---------------------------------------
     @app.get("/api/findings")
@@ -176,8 +179,10 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     def api_add_finding():
         data = request.get_json(silent=True) or {}
         fid = db.add_finding(
-            str(data.get("tool", "")), str(data.get("target", "")),
-            str(data.get("severity", "info")), str(data.get("title", "")),
+            str(data.get("tool", "")),
+            str(data.get("target", "")),
+            str(data.get("severity", "info")),
+            str(data.get("title", "")),
             str(data.get("detail", "")),
         )
         db.audit("user", "finding:add", str(data.get("target", "")), f"id {fid}")
@@ -216,8 +221,11 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @security.require_csrf
     def api_ai_config_set():
         data = request.get_json(silent=True) or {}
-        ai.set_config(str(data.get("provider", "none")),
-                      str(data.get("base_url", "")), str(data.get("model", "")))
+        ai.set_config(
+            str(data.get("provider", "none")),
+            str(data.get("base_url", "")),
+            str(data.get("model", "")),
+        )
         return jsonify(ai.get_config())
 
     @app.post("/api/ai/key")
@@ -240,8 +248,7 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @security.require_csrf
     def api_ai_explain():
         data = request.get_json(silent=True) or {}
-        return jsonify(ai.explain(str(data.get("tool", "a tool")),
-                                  str(data.get("output", ""))))
+        return jsonify(ai.explain(str(data.get("tool", "a tool")), str(data.get("output", ""))))
 
     # --- AI Providers -------------------------------------------------------
     @app.get("/api/ai/providers")
@@ -291,8 +298,11 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     def api_ai_chat():
         data = request.get_json(silent=True) or {}
         messages = data.get("messages") or []
-        clean = [{"role": str(m.get("role", "user")), "content": str(m.get("content", ""))}
-                 for m in messages if isinstance(m, dict)]
+        clean = [
+            {"role": str(m.get("role", "user")), "content": str(m.get("content", ""))}
+            for m in messages
+            if isinstance(m, dict)
+        ]
         provider_type = str(data.get("provider", "ollama"))
         provider_config = data.get("provider_config", {})
         tools_context = data.get("tools_context", [])
@@ -300,11 +310,23 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
 
         # Save user message
         if conversation_id:
-            ai_chat.save_message("user", clean[-1].get("content", "") if clean else "",
-                                 conversation_id=conversation_id)
+            ai_chat.save_message(
+                "user",
+                clean[-1].get("content", "") if clean else "",
+                conversation_id=conversation_id,
+            )
 
         # Validate provider type
-        valid_providers = {"openai", "anthropic", "gemini", "ollama", "localai", "deepseek", "opencode", "dsh"}
+        valid_providers = {
+            "openai",
+            "anthropic",
+            "gemini",
+            "ollama",
+            "localai",
+            "deepseek",
+            "opencode",
+            "dsh",
+        }
         if provider_type not in valid_providers:
             return jsonify({"error": f"Unknown provider: {provider_type}"}), 400
 
@@ -312,7 +334,8 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
         mcp = mcp_client.MCPClient.auto_discover() if data.get("use_mcp") else None
         try:
             result = ai_chat.complete_with_context(
-                clean, tools_context, provider_type, provider_config, mcp, conversation_id)
+                clean, tools_context, provider_type, provider_config, mcp, conversation_id
+            )
         except Exception as exc:
             return jsonify({"error": f"AI completion failed: {exc}"}), 503
         finally:
@@ -380,6 +403,7 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @security.require_auth
     def api_mcp_servers_list():
         import json as _json
+
         servers = []
         for key in ["mcp_servers"]:
             val = db.get_setting(key, "")
@@ -395,6 +419,7 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @security.require_csrf
     def api_mcp_servers_create():
         import json as _json
+
         data = request.get_json(silent=True) or {}
         name = str(data.get("name", ""))
         stype = str(data.get("type", "stdio"))
@@ -418,6 +443,7 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @security.require_csrf
     def api_mcp_servers_delete(name: str):
         import json as _json
+
         existing = []
         current = db.get_setting("mcp_servers", "")
         if current:
@@ -434,6 +460,7 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @security.require_csrf
     def api_mcp_servers_connect(name: str):
         import json as _json
+
         current = db.get_setting("mcp_servers", "")
         servers = []
         if current:
@@ -503,8 +530,7 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
         if not isinstance(params, dict):
             return jsonify({"error": "params must be an object"}), 400
         result, status = skills.execute_skill(name, params)
-        db.audit("user", f"skill:{name}", "",
-                 "ok" if status == 200 else f"status {status}")
+        db.audit("user", f"skill:{name}", "", "ok" if status == 200 else f"status {status}")
         return jsonify(result), status
 
     @app.get("/api/ai/skills/suggest")
@@ -523,25 +549,30 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
             return jsonify({"suggestion": all_skills[0].to_dict()})
         return jsonify({"suggestion": None})
 
-
-
     # --- Containers ----------------------------------------------------------
 
     @app.get("/api/containers/status")
     @security.require_auth
     def api_containers_status():
-        return jsonify({
-            "podman_installed": container_runtime.is_podman_installed(),
-            "images": container_runtime.list_images(),
-            "containers": container_runtime.list_containers(all=True)
-        })
+        return jsonify(
+            {
+                "podman_installed": container_runtime.is_podman_installed(),
+                "images": container_runtime.list_images(),
+                "containers": container_runtime.list_containers(all=True),
+            }
+        )
 
     @app.post("/api/containers/podman/install")
     @security.require_auth
     @security.require_csrf
     def api_install_podman():
         result = container_runtime.install_podman()
-        db.audit("user", "container:install", result.get("message", ""), "ok" if result["ok"] else "failed")
+        db.audit(
+            "user",
+            "container:install",
+            result.get("message", ""),
+            "ok" if result["ok"] else "failed",
+        )
         return jsonify(result), 200 if result["ok"] else 500
 
     @app.get("/api/containers/images")
@@ -559,7 +590,12 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
         if not name:
             return jsonify({"error": "Image name required"}), 400
         result = container_runtime.pull_image(name)
-        db.audit("user", "container:pull", name, "ok" if result["ok"] else f"status {result.get('rc', '')}")
+        db.audit(
+            "user",
+            "container:pull",
+            name,
+            "ok" if result["ok"] else f"status {result.get('rc', '')}",
+        )
         return jsonify(result), 200 if result["ok"] else 500
 
     @app.get("/api/containers")
@@ -577,10 +613,10 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
         name = data.get("name")
         ports = data.get("ports", [])
         volumes = data.get("volumes", [])
-        
+
         if not image or not name:
             return jsonify({"error": "Image and name required"}), 400
-        
+
         result = container_runtime.run_container(image, name, ports, volumes)
         if result["ok"]:
             db.audit("user", "container:run", result.get("container_id", ""), f"image={image}")
@@ -591,7 +627,12 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @security.require_csrf
     def api_start_container(container_id):
         result = container_runtime.start_container(container_id)
-        db.audit("user", "container:start", container_id, "ok" if result["ok"] else result.get("message", ""))
+        db.audit(
+            "user",
+            "container:start",
+            container_id,
+            "ok" if result["ok"] else result.get("message", ""),
+        )
         return jsonify(result), 200 if result["ok"] else 500
 
     @app.post("/api/containers/<container_id>/stop")
@@ -599,7 +640,12 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @security.require_csrf
     def api_stop_container(container_id):
         result = container_runtime.stop_container(container_id)
-        db.audit("user", "container:stop", container_id, "ok" if result["ok"] else result.get("message", ""))
+        db.audit(
+            "user",
+            "container:stop",
+            container_id,
+            "ok" if result["ok"] else result.get("message", ""),
+        )
         return jsonify(result), 200 if result["ok"] else 500
 
     @app.delete("/api/containers/<container_id>")
@@ -607,7 +653,12 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @security.require_csrf
     def api_remove_container(container_id):
         result = container_runtime.remove_container(container_id)
-        db.audit("user", "container:remove", container_id, "ok" if result["ok"] else result.get("message", ""))
+        db.audit(
+            "user",
+            "container:remove",
+            container_id,
+            "ok" if result["ok"] else result.get("message", ""),
+        )
         return jsonify(result), 200 if result["ok"] else 500
 
     @app.get("/api/containers/<container_id>/logs")
@@ -628,6 +679,7 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
         result = container_runtime.exec_in_container(container_id, cmd)
         db.audit("user", "container:exec", container_id, " ".join(cmd))
         return jsonify(result), 200 if result["ok"] else 500
+
     # --- History ---
     @app.get("/api/history")
     @security.require_auth
@@ -692,6 +744,7 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
         return jsonify(sheet)
 
         # --- Achievements ---
+
     @app.get("/api/achievements")
     @security.require_auth
     def api_achievements_list():
@@ -823,10 +876,12 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @app.get("/api/onboarding/status")
     @security.require_auth
     def api_onboarding_status():
-        return jsonify({
-            "needed": onboarding.is_onboarding_needed(),
-            "steps": onboarding.onboarding_steps(),
-        })
+        return jsonify(
+            {
+                "needed": onboarding.is_onboarding_needed(),
+                "steps": onboarding.onboarding_steps(),
+            }
+        )
 
     @app.post("/api/onboarding/finish")
     @security.require_auth
@@ -839,6 +894,7 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     app.register_blueprint(portable.portable_bp, url_prefix="/api/portable")
 
     return app
+
 
 def tools_target(payload: dict) -> str:
     for key in ("target", "url", "name"):

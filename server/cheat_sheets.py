@@ -3,6 +3,7 @@
 Each cheat sheet is a dict with title and sections (heading + markdown content).
 All content is static Python data — no network calls.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -15,31 +16,19 @@ CHEAT_SHEETS: dict[str, dict[str, Any]] = {
         "sections": [
             {
                 "heading": "Basic Scan",
-                "content_md": (
-                    "nmap -sV -sC <target>\n"
-                    "# Version detection + default scripts"
-                ),
+                "content_md": ("nmap -sV -sC <target>\n# Version detection + default scripts"),
             },
             {
                 "heading": "Stealth Scan",
-                "content_md": (
-                    "nmap -sS -T4 <target>\n"
-                    "# SYN scan, faster timing"
-                ),
+                "content_md": ("nmap -sS -T4 <target>\n# SYN scan, faster timing"),
             },
             {
                 "heading": "All Ports",
-                "content_md": (
-                    "nmap -p- <target>\n"
-                    "# Scan all 65535 ports"
-                ),
+                "content_md": ("nmap -p- <target>\n# Scan all 65535 ports"),
             },
             {
                 "heading": "UDP Scan",
-                "content_md": (
-                    "nmap -sU --top-ports 100 <target>\n"
-                    "# Top 100 UDP ports"
-                ),
+                "content_md": ("nmap -sU --top-ports 100 <target>\n# Top 100 UDP ports"),
             },
         ],
     },
@@ -49,30 +38,20 @@ CHEAT_SHEETS: dict[str, dict[str, Any]] = {
             {
                 "heading": "Basic Injection Test",
                 "content_md": (
-                    "sqlmap -u \"http://target/page?id=1\" --batch\n"
-                    "# Auto-detect injection point"
+                    'sqlmap -u "http://target/page?id=1" --batch\n# Auto-detect injection point'
                 ),
             },
             {
                 "heading": "Dump Database",
-                "content_md": (
-                    "sqlmap -u \"URL\" -D dbname --dump --batch\n"
-                    "# Dump entire database"
-                ),
+                "content_md": ('sqlmap -u "URL" -D dbname --dump --batch\n# Dump entire database'),
             },
             {
                 "heading": "OS Shell",
-                "content_md": (
-                    "sqlmap -u \"URL\" --os-shell\n"
-                    "# Requires write access + UNION"
-                ),
+                "content_md": ('sqlmap -u "URL" --os-shell\n# Requires write access + UNION'),
             },
             {
                 "heading": "Tamper Scripts",
-                "content_md": (
-                    "sqlmap -u \"URL\" --tamper=space2comment,between\n"
-                    "# Bypass WAFs"
-                ),
+                "content_md": ('sqlmap -u "URL" --tamper=space2comment,between\n# Bypass WAFs'),
             },
         ],
     },
@@ -197,7 +176,7 @@ CHEAT_SHEETS: dict[str, dict[str, Any]] = {
                 "heading": "HTTP Form",
                 "content_md": (
                     "hydra -L users.txt -P wordlist.txt target "
-                    "http-post-form \"/login:user=^USER^&pass=^PASS^:F=incorrect\""
+                    'http-post-form "/login:user=^USER^&pass=^PASS^:F=incorrect"'
                 ),
             },
         ],
@@ -239,8 +218,7 @@ CHEAT_SHEETS: dict[str, dict[str, Any]] = {
             {
                 "heading": "Dir Mode",
                 "content_md": (
-                    "gobuster dir -u http://target -w "
-                    "/usr/share/wordlists/dirb/common.txt"
+                    "gobuster dir -u http://target -w /usr/share/wordlists/dirb/common.txt"
                 ),
             },
             {"heading": "DNS Mode", "content_md": "gobuster dns -d example.com -w subdomains.txt"},
@@ -255,7 +233,7 @@ CHEAT_SHEETS: dict[str, dict[str, Any]] = {
             },
             {
                 "heading": "Vhost Fuzz",
-                "content_md": "ffuf -w vhosts.txt -u http://target -H \"Host: FUZZ.target\"",
+                "content_md": 'ffuf -w vhosts.txt -u http://target -H "Host: FUZZ.target"',
             },
         ],
     },
@@ -383,7 +361,7 @@ CHEAT_SHEETS: dict[str, dict[str, Any]] = {
         "title": "TShark — Wireshark CLI",
         "sections": [
             {"heading": "Basic Capture", "content_md": "tshark -i eth0 -w capture.pcap"},
-            {"heading": "Read PCAP", "content_md": "tshark -r capture.pcap -Y \"http\""},
+            {"heading": "Read PCAP", "content_md": 'tshark -r capture.pcap -Y "http"'},
             {"heading": "Statistics", "content_md": "tshark -r capture.pcap -q -z io,stat,1"},
         ],
     },
@@ -426,7 +404,7 @@ CHEAT_SHEETS: dict[str, dict[str, Any]] = {
 
 def get_cheatsheet(tool_id: str) -> dict[str, Any] | None:
     """Get a cheat sheet by tool_id.
-    
+
     Returns:
         dict with title and sections, or None if not found.
     """
@@ -435,11 +413,8 @@ def get_cheatsheet(tool_id: str) -> dict[str, Any] | None:
 
 def list_cheatsheets() -> list[dict[str, Any]]:
     """List all available cheat sheets (metadata only).
-    
+
     Returns:
         List of {tool_id, title} dicts.
     """
-    return [
-        {"tool_id": tool_id, "title": data["title"]}
-        for tool_id, data in CHEAT_SHEETS.items()
-    ]
+    return [{"tool_id": tool_id, "title": data["title"]} for tool_id, data in CHEAT_SHEETS.items()]

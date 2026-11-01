@@ -7,6 +7,7 @@ in plain text, and nothing is ever committed to the repository.
 On non-Windows platforms (which we do not ship) this falls back to an
 in-process store so tests can still run. Nothing is persisted there.
 """
+
 from __future__ import annotations
 
 import base64

@@ -4,6 +4,7 @@ Starts the loopback backend, then shows the UI in a native window (pywebview).
 Falls back to the default browser if pywebview is unavailable, and supports a
 headless self-check so a build can be verified without a display.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -68,12 +69,11 @@ def run_check() -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="kali-windows-substitute")
-    parser.add_argument("--no-gui", action="store_true",
-                        help="serve the backend and print the URL without a window")
-    parser.add_argument("--check", action="store_true",
-                        help="run a headless self-check and exit")
-    parser.add_argument("--port", type=int, default=None,
-                        help="override the backend port")
+    parser.add_argument(
+        "--no-gui", action="store_true", help="serve the backend and print the URL without a window"
+    )
+    parser.add_argument("--check", action="store_true", help="run a headless self-check and exit")
+    parser.add_argument("--port", type=int, default=None, help="override the backend port")
     args = parser.parse_args(argv)
 
     cfg = config.load()

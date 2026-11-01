@@ -2,6 +2,7 @@
 
 Provides achievement definitions, checking conditions, and unlocking tracking.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -34,26 +35,30 @@ ACHIEVEMENTS: dict[str, dict[str, Any]] = {
     "vuln_hunter": {
         "name": "Vulnerability Hunter",
         "description": "Run sqlmap or nuclei with critical/high findings",
-        "condition_fn": lambda tool, target, rc, duration_ms: tool in ("sqlmap", "nuclei")
-            and rc == 0,
+        "condition_fn": lambda tool, target, rc, duration_ms: (
+            tool in ("sqlmap", "nuclei") and rc == 0
+        ),
     },
     "forensics_expert": {
         "name": "Forensics Expert",
         "description": "Run volatility, sleuthkit, or foremost",
-        "condition_fn": lambda tool, target, rc, duration_ms: tool in (
-            "volatility", "sleuthkit", "foremost"),
+        "condition_fn": lambda tool, target, rc, duration_ms: (
+            tool in ("volatility", "sleuthkit", "foremost")
+        ),
     },
     "wireless_warrior": {
         "name": "Wireless Warrior",
         "description": "Run aircrack-ng, reaver, or wifite",
-        "condition_fn": lambda tool, target, rc, duration_ms: tool in (
-            "aircrack-ng", "reaver", "wifite"),
+        "condition_fn": lambda tool, target, rc, duration_ms: (
+            tool in ("aircrack-ng", "reaver", "wifite")
+        ),
     },
     "osint_master": {
         "name": "OSINT Master",
         "description": "Run theharvester, amass, or dnsrecon 3 times",
-        "condition_fn": lambda tool, target, rc, duration_ms: tool in (
-            "theharvester", "amass", "dnsrecon"),
+        "condition_fn": lambda tool, target, rc, duration_ms: (
+            tool in ("theharvester", "amass", "dnsrecon")
+        ),
     },
     "speed_demon": {
         "name": "Speed Demon",
@@ -105,9 +110,7 @@ def unlock_achievement(key: str) -> bool:
         return False
 
     with db.connect() as conn:
-        row = conn.execute(
-            "SELECT unlocked FROM achievements WHERE key = ?", (key,)
-        ).fetchone()
+        row = conn.execute("SELECT unlocked FROM achievements WHERE key = ?", (key,)).fetchone()
         if row and row["unlocked"]:
             return False
 
@@ -135,23 +138,27 @@ def list_achievements() -> list[dict[str, Any]]:
     for row in rows:
         key = row["key"]
         ach = ACHIEVEMENTS.get(key, {})
-        result.append({
-            "key": key,
-            "name": row["name"] or ach.get("name", key),
-            "description": row["description"] or ach.get("description", ""),
-            "unlocked": bool(row["unlocked"]),
-            "unlocked_at": row["unlocked_at"],
-        })
+        result.append(
+            {
+                "key": key,
+                "name": row["name"] or ach.get("name", key),
+                "description": row["description"] or ach.get("description", ""),
+                "unlocked": bool(row["unlocked"]),
+                "unlocked_at": row["unlocked_at"],
+            }
+        )
 
     db_keys = {r["key"] for r in result}
     for key, ach in ACHIEVEMENTS.items():
         if key not in db_keys:
-            result.append({
-                "key": key,
-                "name": ach["name"],
-                "description": ach["description"],
-                "unlocked": False,
-                "unlocked_at": None,
-            })
+            result.append(
+                {
+                    "key": key,
+                    "name": ach["name"],
+                    "description": ach["description"],
+                    "unlocked": False,
+                    "unlocked_at": None,
+                }
+            )
 
     return result

@@ -3,10 +3,10 @@
 Handles local GGUF model storage, scanning, validation, and llama.cpp integration.
 Models are stored in user_data_dir() / "models".
 """
+
 from __future__ import annotations
 
 import hashlib
-import subprocess
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -32,13 +32,15 @@ def scan_models() -> list[dict[str, Any]]:
             size_mb = path.stat().st_size / (1024 * 1024)
             quantization = _detect_quantization(path.name)
             capabilities = _infer_capabilities(quantization)
-            models.append({
-                "name": path.name,
-                "path": str(path),
-                "size_mb": round(size_mb, 2),
-                "quantization": quantization,
-                "capabilities": capabilities,
-            })
+            models.append(
+                {
+                    "name": path.name,
+                    "path": str(path),
+                    "size_mb": round(size_mb, 2),
+                    "quantization": quantization,
+                    "capabilities": capabilities,
+                }
+            )
         except OSError:
             continue
     return models
@@ -105,6 +107,7 @@ def download_model(hf_repo: str, filename: str, quantization: str = "Q4_K_M") ->
     # Try huggingface_hub if available
     try:
         from huggingface_hub import hf_hub_download
+
         downloaded = hf_hub_download(repo_id=hf_repo, filename=filename, local_dir=str(MODELS_DIR))
         path = Path(downloaded)
         return {
@@ -124,6 +127,7 @@ def download_model(hf_repo: str, filename: str, quantization: str = "Q4_K_M") ->
     # Fallback to manual download
     # Validate hf_repo and filename to prevent SSRF and path traversal
     import re
+
     # Hugging Face repo format: username/model-name or organization/model-name
     if not re.match(r"^[\w\-.]+/[\w\-.]+$", hf_repo):
         return {"success": False, "error": "Invalid repository format"}
@@ -133,7 +137,7 @@ def download_model(hf_repo: str, filename: str, quantization: str = "Q4_K_M") ->
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "KaliDesk/1.0"})
         with urllib.request.urlopen(req, timeout=300) as resp:
-            total = int(resp.headers.get("Content-Length", 0))
+            int(resp.headers.get("Content-Length", 0))  # content-length, for progress tracking
             downloaded = 0
             with dest.open("wb") as f:
                 while True:

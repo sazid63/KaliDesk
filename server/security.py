@@ -5,6 +5,7 @@ HttpOnly cookie after the launcher opens the UI) and a CSRF token on every
 state-changing request. The scope guard is the last line of defence against a
 tool being pointed at a third party by accident.
 """
+
 from __future__ import annotations
 
 import hmac
@@ -114,8 +115,9 @@ def classify_target(target: str, private_ranges: tuple[str, ...]) -> str:
     return "public"
 
 
-def scope_allows(target: str, confirmed_external: bool,
-                 private_ranges: tuple[str, ...]) -> tuple[bool, str]:
+def scope_allows(
+    target: str, confirmed_external: bool, private_ranges: tuple[str, ...]
+) -> tuple[bool, str]:
     kind = classify_target(target, private_ranges)
     if kind == "empty":
         return True, "no target supplied"

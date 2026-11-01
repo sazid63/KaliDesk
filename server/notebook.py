@@ -2,6 +2,7 @@
 
 Stores and manages OSINT entries (URLs, IPs, findings, notes) with tags and search.
 """
+
 from __future__ import annotations
 
 import json
@@ -77,8 +78,8 @@ def list_entries(
             tag_conditions = " OR ".join(["tags LIKE ?"] * len(tags))
             params = [type] + [f"%{t}%" for t in tags] + [limit]
             query = (
-            "SELECT * FROM notebook WHERE type = ? AND ("
-            f"{tag_conditions}) ORDER BY created DESC LIMIT ?"
+                "SELECT * FROM notebook WHERE type = ? AND ("
+                f"{tag_conditions}) ORDER BY created DESC LIMIT ?"
             )
             rows = conn.execute(query, params).fetchall()
         elif type is not None:

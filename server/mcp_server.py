@@ -14,6 +14,7 @@ Built-in resources:
   - findings://: all findings from the DB
   - audit://: all audit entries from the DB
 """
+
 from __future__ import annotations
 
 import json
@@ -27,6 +28,7 @@ import server.db as db
 import server.tools as tools_api
 
 # --- Built-in tool definitions ------------------------------------------------
+
 
 def _list_builtin_tools() -> list[dict[str, Any]]:
     return [
@@ -71,9 +73,11 @@ def _list_builtin_tools() -> list[dict[str, Any]]:
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "directory": {"type": "string",
-                                   "enum": ["evidence", "work"],
-                                   "description": "Which directory to list"},
+                    "directory": {
+                        "type": "string",
+                        "enum": ["evidence", "work"],
+                        "description": "Which directory to list",
+                    },
                 },
                 "required": ["directory"],
             },
@@ -127,25 +131,24 @@ def _call_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         tool_id = str(arguments.get("tool_id", ""))
         payload = arguments.get("payload", {})
         if not isinstance(payload, dict):
-            return {"content": [{"type": "text", "text": "payload must be an object"}],
-                    "isError": True}
+            return {
+                "content": [{"type": "text", "text": "payload must be an object"}],
+                "isError": True,
+            }
         cfg = config.load()
         result, status = tools_api.run(cfg, tool_id, payload)
-        return {"content": [{"type": "text", "text": json.dumps(result)}],
-                "isError": status != 200}
+        return {"content": [{"type": "text", "text": json.dumps(result)}], "isError": status != 200}
 
     if name == "kali_desktop_read_file":
         path = str(arguments.get("path", ""))
         resolved = _sandbox_path(path)
         if resolved is None or not resolved.exists():
-            return {"content": [{"type": "text", "text": f"Cannot read: {path}"}],
-                    "isError": True}
+            return {"content": [{"type": "text", "text": f"Cannot read: {path}"}], "isError": True}
         try:
             text = resolved.read_text(encoding="utf-8", errors="replace")
             return {"content": [{"type": "text", "text": text}]}
         except OSError as exc:
-            return {"content": [{"type": "text", "text": str(exc)}],
-                    "isError": True}
+            return {"content": [{"type": "text", "text": str(exc)}], "isError": True}
 
     if name == "kali_desktop_write_file":
         path = str(arguments.get("path", ""))
@@ -156,15 +159,13 @@ def _call_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
             resolved = (work_dir / path).resolve()
             resolved.relative_to(work_dir)
         except (OSError, ValueError):
-            return {"content": [{"type": "text", "text": f"Cannot write: {path}"}],
-                    "isError": True}
+            return {"content": [{"type": "text", "text": f"Cannot write: {path}"}], "isError": True}
         try:
             resolved.write_text(content, encoding="utf-8")
             msg = f"Written {len(content)} bytes to {path}"
             return {"content": [{"type": "text", "text": msg}]}
         except OSError as exc:
-            return {"content": [{"type": "text", "text": str(exc)}],
-                    "isError": True}
+            return {"content": [{"type": "text", "text": str(exc)}], "isError": True}
 
     if name == "kali_desktop_list_files":
         directory = str(arguments.get("directory", ""))
@@ -173,18 +174,19 @@ def _call_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         elif directory == "work":
             target_dir = kws_paths.work_dir()
         else:
-            return {"content": [{"type": "text", "text": f"Unknown directory: {directory}"}],
-                    "isError": True}
+            return {
+                "content": [{"type": "text", "text": f"Unknown directory: {directory}"}],
+                "isError": True,
+            }
         try:
-            files = sorted(p.name for p in target_dir.iterdir() if p.is_file()
-                           if not p.is_symlink())
+            files = sorted(
+                p.name for p in target_dir.iterdir() if p.is_file() if not p.is_symlink()
+            )
             return {"content": [{"type": "text", "text": json.dumps(files)}]}
         except OSError as exc:
-            return {"content": [{"type": "text", "text": str(exc)}],
-                    "isError": True}
+            return {"content": [{"type": "text", "text": str(exc)}], "isError": True}
 
-    return {"content": [{"type": "text", "text": f"Unknown tool: {name}"}],
-            "isError": True}
+    return {"content": [{"type": "text", "text": f"Unknown tool: {name}"}], "isError": True}
 
 
 def _read_resource(uri: str) -> dict[str, Any]:
@@ -198,7 +200,7 @@ def _read_resource(uri: str) -> dict[str, Any]:
         return {"contents": [{"uri": uri, "text": json.dumps(rows, default=str)}]}
 
     if uri.startswith("file://"):
-        rel = uri[len("file://"):]
+        rel = uri[len("file://") :]
         resolved = _sandbox_path(rel)
         if resolved is None or not resolved.exists():
             return {"contents": [{"uri": uri, "text": ""}]}
@@ -219,16 +221,21 @@ class MCPServer:
 
     def _handle_request(self, request_id: Any, method: str, params: Any) -> dict[str, Any]:
         if not self._initialized and method != "initialize":
-            return {"error": {"code": -32600, "message": "Server not initialized"},
-                    "id": request_id}
+            return {
+                "error": {"code": -32600, "message": "Server not initialized"},
+                "id": request_id,
+            }
 
         if method == "initialize":
             self._initialized = True
-            return {"id": request_id, "result": {
-                "protocolVersion": "2024-11-05",
-                "capabilities": {"tools": {}, "resources": {}},
-                "serverInfo": {"name": "kali-desktop-mcp", "version": "1.0.0"},
-            }}
+            return {
+                "id": request_id,
+                "result": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {"tools": {}, "resources": {}},
+                    "serverInfo": {"name": "kali-desktop-mcp", "version": "1.0.0"},
+                },
+            }
 
         if method == "initialized":
             return {"id": request_id, "result": None}
@@ -254,8 +261,9 @@ class MCPServer:
             result = _read_resource(uri)
             return {"id": request_id, "result": result}
 
-        return {"error": {"code": -32601, "message": f"Method not found: {method}",
-                           "id": request_id}}
+        return {
+            "error": {"code": -32601, "message": f"Method not found: {method}", "id": request_id}
+        }
 
     def run_stdio(self) -> None:
         """Run the MCP server over stdio, processing one request per line."""
@@ -267,8 +275,11 @@ class MCPServer:
             try:
                 req = json.loads(line)
             except json.JSONDecodeError:
-                resp = {"jsonrpc": "2.0", "id": None,
-                        "error": {"code": -32700, "message": "Parse error"}}
+                resp = {
+                    "jsonrpc": "2.0",
+                    "id": None,
+                    "error": {"code": -32700, "message": "Parse error"},
+                }
                 print(json.dumps(resp), flush=True)
                 continue
 

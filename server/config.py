@@ -3,6 +3,7 @@
 The app needs none of this to start. Every value has a safe default and can be
 overridden with an environment variable for development or packaging.
 """
+
 from __future__ import annotations
 
 import os

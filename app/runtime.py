@@ -11,6 +11,7 @@ Hard rules, learned the hard way:
 * Nothing here runs a shell on the Windows side. We pass argv lists to
   ``wsl.exe`` directly.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -37,6 +38,7 @@ _PROVISION_STATUS: dict[str, Any] = {}
 
 # --- low level: talking to wsl.exe ----------------------------------------
 
+
 def _wsl_exe() -> str:
     return os.environ.get("KWS_WSL_EXE") or "wsl.exe"
 
@@ -55,8 +57,7 @@ def _popen_kwargs() -> dict[str, Any]:
     return {"creationflags": CREATE_NO_WINDOW, "startupinfo": _startupinfo()}
 
 
-def _run(args: list[str], timeout: int = 60,
-         stdin_text: str | None = None) -> tuple[int, str, str]:
+def _run(args: list[str], timeout: int = 60, stdin_text: str | None = None) -> tuple[int, str, str]:
     """Run ``wsl.exe <args>`` and return (rc, stdout, stderr). Never raises."""
     payload = stdin_text.encode("utf-8") if stdin_text is not None else None
     try:
@@ -77,6 +78,7 @@ def _run(args: list[str], timeout: int = 60,
 
 
 # --- discovery ------------------------------------------------------------
+
 
 def wsl_available() -> bool:
     if os.name != "nt":
@@ -128,6 +130,7 @@ def image_path() -> Path | None:
 
 # --- provisioning ---------------------------------------------------------
 
+
 def _download_image(cfg) -> tuple[bool, str]:
     if not cfg.rootfs_url:
         return False, "no local image and no download URL is configured"
@@ -167,16 +170,17 @@ def _import_distro(cfg, image: Path) -> tuple[bool, str]:
 
 def _write_agent_env(cfg, token: str) -> None:
     body = f"AGENT_TOKEN={token}\nKALISUB_PORT={AGENT_PORT}\n"
-    _run(["-d", cfg.runtime_distro, "-u", "root", "--",
-          "mkdir", "-p", "/etc/kalisub"], timeout=60)
-    _run(["-d", cfg.runtime_distro, "-u", "root", "--",
-          "tee", "/etc/kalisub/agent.env"], timeout=60, stdin_text=body)
+    _run(["-d", cfg.runtime_distro, "-u", "root", "--", "mkdir", "-p", "/etc/kalisub"], timeout=60)
+    _run(
+        ["-d", cfg.runtime_distro, "-u", "root", "--", "tee", "/etc/kalisub/agent.env"],
+        timeout=60,
+        stdin_text=body,
+    )
 
 
 def _start_agent(cfg) -> tuple[bool, str]:
     rc, out, err = _run(
-        ["-d", cfg.runtime_distro, "-u", "root", "--",
-         "/usr/local/bin/kalisub-agent-start"],
+        ["-d", cfg.runtime_distro, "-u", "root", "--", "/usr/local/bin/kalisub-agent-start"],
         timeout=180,
     )
     if rc != 0:
@@ -200,11 +204,11 @@ def status(cfg) -> dict[str, Any]:
     installed = distro_exists(cfg) if available else False
     agent = _agent_up(cfg) if installed else False
     if not available:
-        message = ("WSL2 is not available. Enable it (see docs/PREREQUISITES.md), "
-                   "restart, then try again.")
+        message = (
+            "WSL2 is not available. Enable it (see docs/PREREQUISITES.md), restart, then try again."
+        )
     elif not installed:
-        message = ("The private runtime is not installed yet. "
-                   "Press 'Set up runtime' to import it.")
+        message = "The private runtime is not installed yet. Press 'Set up runtime' to import it."
     elif not agent:
         message = "The runtime exists but its tool agent is not answering."
     else:
@@ -221,17 +225,20 @@ def status(cfg) -> dict[str, Any]:
 
 def ensure(cfg) -> dict[str, Any]:
     """Provision and start the private runtime. Safe to call repeatedly.
-    
+
     If a provision is already running, returns a provisional success response.
     """
     global _PROVISION_LOCK
     if _PROVISION_LOCK is None:
         _PROVISION_LOCK = threading.Lock()
-    
+
     if _PROVISION_LOCK.locked():
-        return {"ok": True, "provisioning": True,
-                "message": "Provision already in progress. Please wait."}
-    
+        return {
+            "ok": True,
+            "provisioning": True,
+            "message": "Provision already in progress. Please wait.",
+        }
+
     # Start provisioning in a daemon thread so Flask requests don't block
     def _provision_worker():
         global _PROVISION_STATUS
@@ -241,16 +248,17 @@ def ensure(cfg) -> dict[str, Any]:
                 _PROVISION_STATUS["phase"] = "preparing"
                 _PROVISION_STATUS["ok"] = False
                 _PROVISION_STATUS["message"] = "Preparing runtime..."
-                
+
                 if not wsl_available():
                     _PROVISION_STATUS["message"] = (
                         "WSL2 is not available on this machine. Enable it (see "
-                        "docs/PREREQUISITES.md), restart Windows, then try again.")
+                        "docs/PREREQUISITES.md), restart Windows, then try again."
+                    )
                     return
-                
+
                 _PROVISION_STATUS["phase"] = "importing"
                 _PROVISION_STATUS["message"] = "Importing runtime..."
-                
+
                 if not distro_exists(cfg):
                     image = image_path()
                     if image is None:
@@ -259,31 +267,32 @@ def ensure(cfg) -> dict[str, Any]:
                             _PROVISION_STATUS["message"] = (
                                 "The runtime image was not found and could not be downloaded. "
                                 "Build it with runtime/build-rootfs.sh, or set KWS_ROOTFS_URL "
-                                f"and KWS_ROOTFS_SHA256. ({detail})")
+                                f"and KWS_ROOTFS_SHA256. ({detail})"
+                            )
                             return
                         image = Path(kws_paths.user_data_dir()) / "kalisub-rootfs.tar"
                     ok, message = _import_distro(cfg, image)
                     if not ok:
                         _PROVISION_STATUS["message"] = message
                         return
-                
+
                 _PROVISION_STATUS["phase"] = "configuring"
                 _PROVISION_STATUS["message"] = "Configuring agent..."
-                
+
                 token = _token()
                 _write_agent_env(cfg, token)
-                
+
                 _PROVISION_STATUS["phase"] = "starting"
                 _PROVISION_STATUS["message"] = "Starting agent..."
-                
+
                 ok, message = _start_agent(cfg)
                 if not ok:
                     _PROVISION_STATUS["message"] = message
                     return
-                
+
                 _PROVISION_STATUS["phase"] = "waiting"
                 _PROVISION_STATUS["message"] = "Waiting for agent to be ready..."
-                
+
                 deadline = time.time() + 90
                 while time.time() < deadline:
                     if _agent_up(cfg):
@@ -293,10 +302,11 @@ def ensure(cfg) -> dict[str, Any]:
                     time.sleep(2)
                 _PROVISION_STATUS["message"] = (
                     "The runtime started but the tool agent did not answer. Check "
-                    "runtime/README.md for troubleshooting.")
+                    "runtime/README.md for troubleshooting."
+                )
         except Exception as exc:
             _PROVISION_STATUS["message"] = f"Provisioning failed: {exc}"
-    
+
     # Start worker thread
     threading.Thread(target=_provision_worker, daemon=True).start()
     return {"ok": True, "provisioning": True, "message": "Starting runtime provisioning..."}

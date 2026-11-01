@@ -3,6 +3,7 @@
 Connects to an MCP server (stdlib or HTTP) and exposes tools/resources
 to the AI chat backend.
 """
+
 from __future__ import annotations
 
 import json
@@ -35,8 +36,9 @@ class MCPClient:
             )
             self._running = True
             # Send initialize
-            self._send({"id": 1, "method": "initialize",
-                        "params": {"protocolVersion": "2024-11-05"}})
+            self._send(
+                {"id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05"}}
+            )
             return True
         except (OSError, FileNotFoundError):
             return False
@@ -63,8 +65,9 @@ class MCPClient:
                 return None
         return None
 
-    def _send_http(self, method: str,
-                 params: dict[str, Any] | None = None) -> dict[str, Any] | None:
+    def _send_http(
+        self, method: str, params: dict[str, Any] | None = None
+    ) -> dict[str, Any] | None:
         """Send a request via HTTP."""
         url = f"{self._url}/mcp" if hasattr(self, "_url") else None
         if url is None:

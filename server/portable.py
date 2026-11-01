@@ -3,6 +3,7 @@
 Handles switching between installed mode and portable USB mode.
 Move configuration, secrets, and user data to a USB drive.
 """
+
 import json
 import os
 import shutil
@@ -46,13 +47,15 @@ def api_portable_drives():
                         import psutil
 
                         usage = psutil.disk_usage(drive)
-                        drives.append({
-                            "path": drive,
-                            "label": f"Drive {letter}",
-                            "total_gb": round(usage.total / (1024**3), 1),
-                            "free_gb": round(usage.free / (1024**3), 1),
-                            "filesystem": "",
-                        })
+                        drives.append(
+                            {
+                                "path": drive,
+                                "label": f"Drive {letter}",
+                                "total_gb": round(usage.total / (1024**3), 1),
+                                "free_gb": round(usage.free / (1024**3), 1),
+                                "filesystem": "",
+                            }
+                        )
                     except Exception:
                         pass
         except Exception:
@@ -69,13 +72,15 @@ def api_portable_drives():
                         if os.path.ismount(path):
                             try:
                                 usage = psutil.disk_usage(path)
-                                drives.append({
-                                    "path": path,
-                                    "label": entry,
-                                    "total_gb": round(usage.total / (1024**3), 1),
-                                    "free_gb": round(usage.free / (1024**3), 1),
-                                    "filesystem": "",
-                                })
+                                drives.append(
+                                    {
+                                        "path": path,
+                                        "label": entry,
+                                        "total_gb": round(usage.total / (1024**3), 1),
+                                        "free_gb": round(usage.free / (1024**3), 1),
+                                        "filesystem": "",
+                                    }
+                                )
                             except Exception:
                                 pass
         except Exception:
@@ -104,11 +109,15 @@ def api_portable_switch():
 
         # Create portable marker
         marker = portable_root / PORTABLE_MARKER
-        marker.write_text(json.dumps({
-            "version": "1.0",
-            "created": datetime.now().isoformat(),
-            "original_data_dir": str(DEFAULT_USER_DATA_DIR)
-        }))
+        marker.write_text(
+            json.dumps(
+                {
+                    "version": "1.0",
+                    "created": datetime.now().isoformat(),
+                    "original_data_dir": str(DEFAULT_USER_DATA_DIR),
+                }
+            )
+        )
 
         # Move directories
         dirs_to_move = [
@@ -149,12 +158,14 @@ def api_portable_status():
     if marker.exists():
         try:
             data = json.loads(marker.read_text())
-            return jsonify({
-                "portable": True,
-                "location": str(marker.parent),
-                "created": data.get("created"),
-                "original_data_dir": data.get("original_data_dir")
-            })
+            return jsonify(
+                {
+                    "portable": True,
+                    "location": str(marker.parent),
+                    "created": data.get("created"),
+                    "original_data_dir": data.get("original_data_dir"),
+                }
+            )
         except Exception:
             pass
 

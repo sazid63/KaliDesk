@@ -3,6 +3,7 @@
 Everything from a tool is escaped before it lands in a report, so output can
 never inject HTML/JS into a document you open in a browser.
 """
+
 from __future__ import annotations
 
 import csv

@@ -4,6 +4,7 @@ A Skill is a predefined tool invocation template that can be executed
 with user-supplied parameters. Skills make complex tool chains reusable
 and discoverable.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -27,6 +28,7 @@ class Skill:
     def from_row(cls, row: dict[str, Any]) -> Skill:
         """Create a Skill from a DB row."""
         import json as _json
+
         return cls(
             name=row.get("name", ""),
             description=row.get("description", ""),
@@ -115,8 +117,9 @@ def _render_args(args_template: dict[str, Any], params: dict[str, Any]) -> dict[
         elif isinstance(value, dict):
             rendered[key] = _render_args(value, params)
         elif isinstance(value, list):
-            rendered[key] = [_render_template(str(v), params) if isinstance(v, str) else v
-                             for v in value]
+            rendered[key] = [
+                _render_template(str(v), params) if isinstance(v, str) else v for v in value
+            ]
         else:
             rendered[key] = value
     return rendered
@@ -124,16 +127,23 @@ def _render_args(args_template: dict[str, Any], params: dict[str, Any]) -> dict[
 
 def load_skills() -> list[Skill]:
     """Load all skills: builtins plus DB-stored custom skills."""
-    skills = [Skill(**{k: v for k, v in s.items() if k in ("name", "description",
-                "category", "tool_id", "args_template")}) for s in BUILTIN_SKILLS]
+    skills = [
+        Skill(
+            **{
+                k: v
+                for k, v in s.items()
+                if k in ("name", "description", "category", "tool_id", "args_template")
+            }
+        )
+        for s in BUILTIN_SKILLS
+    ]
 
     # Load custom skills from DB
     import server.db as db
+
     try:
         with db.connect() as conn:
-            rows = conn.execute(
-                "SELECT * FROM skills WHERE enabled = 1"
-            ).fetchall()
+            rows = conn.execute("SELECT * FROM skills WHERE enabled = 1").fetchall()
             for row in rows:
                 row_dict = dict(row)
                 if row_dict.get("name", "") in [s.name for s in skills]:
@@ -158,6 +168,7 @@ def save_skill(skill: Skill) -> bool:
     import json as _json
 
     import server.db as db
+
     with db.connect() as conn:
         try:
             conn.execute(
@@ -168,8 +179,7 @@ def save_skill(skill: Skill) -> bool:
                 "category=excluded.category, "
                 "config=excluded.config, "
                 "enabled=1",
-                (skill.name, skill.description, skill.category,
-                 _json.dumps(skill.args_template)),
+                (skill.name, skill.description, skill.category, _json.dumps(skill.args_template)),
             )
             return True
         except Exception:  # noqa: BLE001
@@ -179,6 +189,7 @@ def save_skill(skill: Skill) -> bool:
 def delete_skill(name: str) -> bool:
     """Delete a custom skill by name."""
     import server.db as db
+
     with db.connect() as conn:
         try:
             cur = conn.execute("DELETE FROM skills WHERE name = ?", (name,))
@@ -206,8 +217,12 @@ def suggest_skills(context: dict[str, Any]) -> list[dict[str, Any]]:
 
     if tool and target:
         for skill in load_skills():
-            if skill.tool_id == tool and skill.name not in ("port-scan", "web-scan",
-                                                              "hash-crack", "forensics"):
+            if skill.tool_id == tool and skill.name not in (
+                "port-scan",
+                "web-scan",
+                "hash-crack",
+                "forensics",
+            ):
                 suggestions.append(skill.to_dict())
 
     if not suggestions and target:

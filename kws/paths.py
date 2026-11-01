@@ -3,6 +3,7 @@
 Works both when running from source and when frozen by PyInstaller.
 Nothing here writes secrets: see ``app/secrets.py`` for that.
 """
+
 from __future__ import annotations
 
 import os
@@ -28,8 +29,9 @@ def resource(*parts: str) -> str:
 
 def user_data_dir() -> Path:
     """Per-user writable directory (LOCALAPPDATA on Windows)."""
-    base = os.environ.get("KWS_DATA_DIR") or os.environ.get("LOCALAPPDATA") \
-        or os.path.expanduser("~")
+    base = (
+        os.environ.get("KWS_DATA_DIR") or os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
+    )
     path = Path(base) / USER_DIR_NAME
     path.mkdir(parents=True, exist_ok=True)
     return path

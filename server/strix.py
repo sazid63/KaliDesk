@@ -3,6 +3,7 @@
 Manages the Strix AI Pentest agent running in the WSL2 runtime.
 Strix is a separate Python package installed in an isolated venv.
 """
+
 from __future__ import annotations
 
 import json
@@ -28,8 +29,9 @@ def _wsl_exe() -> str:
     return os.environ.get("KWS_WSL_EXE") or "wsl.exe"
 
 
-def _run_wsl(args: list[str], timeout: int = 60,
-             stdin_text: str | None = None) -> tuple[int, str, str]:
+def _run_wsl(
+    args: list[str], timeout: int = 60, stdin_text: str | None = None
+) -> tuple[int, str, str]:
     """Run wsl.exe with args, return (rc, stdout, stderr)."""
     payload = stdin_text.encode("utf-8") if stdin_text else None
     try:
@@ -128,11 +130,12 @@ def _scope_allows(target: str, confirmed: bool) -> tuple[bool, str]:
     return scope_allows(target, confirmed, cfg.private_ranges)
 
 
-def proxy_request(method: str, path: str,
-               body: dict[str, Any] | None = None) -> tuple[int, dict[str, Any]]:
+def proxy_request(
+    method: str, path: str, body: dict[str, Any] | None = None
+) -> tuple[int, dict[str, Any]]:
     """
     Proxy a request to Strix API with authentication and scope guard.
-    
+
     Strix runs in the same WSL2 distro as the tool agent, so we use the
     same agent token for auth. The Strix server validates the token
     and enforces its own scope guard.
@@ -144,21 +147,21 @@ def proxy_request(method: str, path: str,
 
     # Build URL
     url = f"{STRIX_API_BASE}{path}"
-    
+
     # Prepare headers
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {token}",
     }
-    
+
     # Prepare body
     data = json.dumps(body).encode("utf-8") if body is not None else None
-    
+
     # Make request
     req = urllib.request.Request(url, data=data, method=method)
     for key, value in headers.items():
         req.add_header(key, value)
-    
+
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310
             resp_body = resp.read().decode("utf-8", errors="replace")
@@ -180,12 +183,10 @@ def status() -> dict[str, Any]:
     if installed:
         # We could read PID from a file or scan processes
         # For now, just check if port 8080 is listening
-        rc, out, err = _run_wsl(
-            ["netstat", "-tuln"], timeout=5)
+        rc, out, err = _run_wsl(["netstat", "-tuln"], timeout=5)
         if rc == 0 and f":{STRIX_PORT}" in out:
             # Try to find PID
-            rc, out, err = _run_wsl(
-                ["lsof", "-ti", f":{STRIX_PORT}"], timeout=5)
+            rc, out, err = _run_wsl(["lsof", "-ti", f":{STRIX_PORT}"], timeout=5)
             if rc == 0 and out.strip().isdigit():
                 pid = int(out.strip())
                 running = True
@@ -197,9 +198,11 @@ def status() -> dict[str, Any]:
         "url": STRIX_API_BASE if installed and running else None,
     }
 
+
 def main() -> int:
     """CLI entry point for testing."""
     import argparse
+
     parser = argparse.ArgumentParser(description="Strix manager")
     parser.add_argument("cmd", choices=["install", "start", "stop", "status", "proxy"])
     parser.add_argument("--port", type=int, default=STRIX_PORT)

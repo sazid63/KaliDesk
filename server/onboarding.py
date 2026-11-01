@@ -2,6 +2,7 @@
 
 Manages first-run onboarding flow with steps for WSL, runtime, AI setup.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -32,8 +33,7 @@ ONBOARDING_STEPS = [
         "id": "ai",
         "title": "AI Provider Setup",
         "description": (
-            "Configure an AI provider (OpenAI, Anthropic, Ollama, etc.)"
-            " for the cybersecurity chat."
+            "Configure an AI provider (OpenAI, Anthropic, Ollama, etc.) for the cybersecurity chat."
         ),
         "check_fn": lambda: True,  # Runtime check in frontend
     },

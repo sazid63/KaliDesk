@@ -12,8 +12,8 @@ import json
 import subprocess
 from typing import Any
 
-import server.db as db
 import server.config as _cfg
+import server.db as db
 
 # --- Constants --------------------------------------------------------------
 
@@ -43,6 +43,7 @@ def _run_podman(cmd: list[str], timeout: int = DEFAULT_TIMEOUT) -> dict[str, Any
 
 
 # --- Podman operations ------------------------------------------------------
+
 
 def is_podman_installed() -> bool:
     """Check whether podman is installed in the WSL2 distribution."""
@@ -75,12 +76,14 @@ def list_images() -> list[dict[str, Any]]:
             img = json.loads(line)
         except json.JSONDecodeError:
             continue
-        images.append({
-            "id": str(img.get("Id", ""))[:12],
-            "name": f'{img.get("Repository", "")}:{img.get("Tag", "")}',
-            "size": int(img.get("Size") or 0),
-            "created": str(img.get("CreatedAt", "")),
-        })
+        images.append(
+            {
+                "id": str(img.get("Id", ""))[:12],
+                "name": f"{img.get('Repository', '')}:{img.get('Tag', '')}",
+                "size": int(img.get("Size") or 0),
+                "created": str(img.get("CreatedAt", "")),
+            }
+        )
     return images
 
 
@@ -106,14 +109,16 @@ def list_containers(all: bool = False) -> list[dict[str, Any]]:
             cont = json.loads(line)
         except json.JSONDecodeError:
             continue
-        containers.append({
-            "id": str(cont.get("Id", ""))[:12],
-            "names": cont.get("Names") or [],
-            "image": str(cont.get("Image", "")),
-            "status": str(cont.get("Status", "")),
-            "ports": str(cont.get("Ports", "")),
-            "created": str(cont.get("CreatedAt", "")),
-        })
+        containers.append(
+            {
+                "id": str(cont.get("Id", ""))[:12],
+                "names": cont.get("Names") or [],
+                "image": str(cont.get("Image", "")),
+                "status": str(cont.get("Status", "")),
+                "ports": str(cont.get("Ports", "")),
+                "created": str(cont.get("CreatedAt", "")),
+            }
+        )
     return containers
 
 
@@ -194,6 +199,7 @@ def run_container(
 
 
 # --- Audit helpers ----------------------------------------------------------
+
 
 def audit_container_action(action: str, container_id: str, details: str = "") -> None:
     """Record a container action in the local audit log."""

@@ -4,6 +4,7 @@
 knows about. Everything the dashboard shows - tiles, prerequisites, usage and
 the examples - comes from here.
 """
+
 from __future__ import annotations
 
 from functools import lru_cache

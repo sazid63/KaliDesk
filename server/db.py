@@ -2,6 +2,7 @@
 
 One small database in the user's profile. No ORM, no network.
 """
+
 from __future__ import annotations
 
 import sqlite3
@@ -133,8 +134,7 @@ def audit(actor: str, action: str, target: str = "", result: str = "") -> None:
         )
 
 
-def add_finding(tool: str, target: str, severity: str, title: str,
-                detail: str = "") -> int:
+def add_finding(tool: str, target: str, severity: str, title: str, detail: str = "") -> int:
     with connect() as conn:
         cur = conn.execute(
             "INSERT INTO findings (created, tool, target, severity, title, detail) "
@@ -146,17 +146,13 @@ def add_finding(tool: str, target: str, severity: str, title: str,
 
 def findings(limit: int = 200) -> list[dict[str, Any]]:
     with connect() as conn:
-        rows = conn.execute(
-            "SELECT * FROM findings ORDER BY id DESC LIMIT ?", (limit,)
-        ).fetchall()
+        rows = conn.execute("SELECT * FROM findings ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
     return [dict(r) for r in rows]
 
 
 def audits(limit: int = 200) -> list[dict[str, Any]]:
     with connect() as conn:
-        rows = conn.execute(
-            "SELECT * FROM audit ORDER BY id DESC LIMIT ?", (limit,)
-        ).fetchall()
+        rows = conn.execute("SELECT * FROM audit ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
     return [dict(r) for r in rows]
 
 

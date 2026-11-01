@@ -10,6 +10,7 @@ The chat can also *propose* a tool run. It never executes one: it returns an
 ``action`` object that the UI must show and the user must confirm. The normal
 scope guard and allowlist still apply to the confirmed run.
 """
+
 from __future__ import annotations
 
 import json
@@ -50,8 +51,9 @@ def set_config(provider: str, base_url: str, model: str) -> None:
     db.set_setting("ai_model", model or "")
 
 
-def _post(url: str, body: dict[str, Any], headers: dict[str, str],
-          timeout: int = 120) -> dict[str, Any]:
+def _post(
+    url: str, body: dict[str, Any], headers: dict[str, str], timeout: int = 120
+) -> dict[str, Any]:
     data = json.dumps(body).encode("utf-8")
     req = urllib.request.Request(url, data=data, method="POST")
     req.add_header("Content-Type", "application/json")
@@ -112,8 +114,12 @@ def _maybe_action(text: str) -> dict[str, Any]:
     except json.JSONDecodeError:
         return {"type": "message", "text": text}
     if obj.get("action") == "run" and obj.get("tool"):
-        return {"type": "action", "tool": obj["tool"],
-                "payload": obj.get("payload") or {}, "text": text}
+        return {
+            "type": "action",
+            "tool": obj["tool"],
+            "payload": obj.get("payload") or {},
+            "text": text,
+        }
     return {"type": "message", "text": text}
 
 

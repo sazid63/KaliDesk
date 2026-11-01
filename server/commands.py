@@ -7,6 +7,7 @@ Rules that keep this safe:
 * If a tool is not automated here, ``build`` returns ``None`` and the app tells
   the user to run it from the runtime shell instead of pretending it works.
 """
+
 from __future__ import annotations
 
 import ipaddress
@@ -123,6 +124,7 @@ def first_missing(tool_id: str, payload: dict[str, Any]) -> str | None:
 
 
 # --- individual builders --------------------------------------------------
+
 
 def _dns(p: dict, ctx: Context) -> list[str]:
     tokens = _s(p, "name").split()
@@ -255,8 +257,17 @@ def _hashcat(p: dict, ctx: Context) -> list[str]:
 
 
 def _medusa(p: dict, ctx: Context) -> list[str]:
-    return ["medusa", "-h", _s(p, "target"), "-u", _s(p, "user"),
-            "-P", _f(ctx, "passwords.txt"), "-M", _s(p, "service", "ssh")]
+    return [
+        "medusa",
+        "-h",
+        _s(p, "target"),
+        "-u",
+        _s(p, "user"),
+        "-P",
+        _f(ctx, "passwords.txt"),
+        "-M",
+        _s(p, "service", "ssh"),
+    ]
 
 
 def _crunch(p: dict, ctx: Context) -> list[str]:

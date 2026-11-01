@@ -2,6 +2,7 @@
 
 Manages JSONL recording files for tool execution sessions.
 """
+
 from __future__ import annotations
 
 import json

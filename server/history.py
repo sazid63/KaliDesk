@@ -3,6 +3,7 @@
 Provides recording, listing, and deletion of tool execution history.
 Uses the existing DB connection pattern from server.db.
 """
+
 from __future__ import annotations
 
 import json
@@ -11,9 +12,15 @@ from typing import Any
 import server.db as db
 
 
-def record_run(tool: str, target: str, argv: dict[str, Any],
-               rc: int, duration_ms: float, output_preview: str,
-               success: bool) -> int:
+def record_run(
+    tool: str,
+    target: str,
+    argv: dict[str, Any],
+    rc: int,
+    duration_ms: float,
+    output_preview: str,
+    success: bool,
+) -> int:
     """Record a tool execution into the run_history table.
 
     Trims the table to the last 500 rows after insert.
@@ -38,8 +45,9 @@ def record_run(tool: str, target: str, argv: dict[str, Any],
     return run_id
 
 
-def list_history(limit: int = 100, tool: str | None = None,
-                 success: bool | None = None) -> list[dict[str, Any]]:
+def list_history(
+    limit: int = 100, tool: str | None = None, success: bool | None = None
+) -> list[dict[str, Any]]:
     """List run_history entries with optional filtering.
 
     Args:
@@ -53,9 +61,7 @@ def list_history(limit: int = 100, tool: str | None = None,
     with db.connect() as conn:
         if tool is not None and success is not None:
             rows = conn.execute(
-                "SELECT * FROM run_history "
-                "WHERE tool = ? AND success = ? "
-                "ORDER BY id DESC LIMIT ?",
+                "SELECT * FROM run_history WHERE tool = ? AND success = ? ORDER BY id DESC LIMIT ?",
                 (tool, success, limit),
             ).fetchall()
         elif tool is not None:

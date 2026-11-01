@@ -11,6 +11,7 @@ Classic vulns included:
 
 All vulns are sandboxed to 127.0.0.1:3000 and /tmp/kalisub-playground.
 """
+
 from __future__ import annotations
 
 import subprocess
@@ -144,12 +145,20 @@ def start_playground() -> tuple[bool, str]:
         log_path = Path("/tmp/kalisub-playground.log")
         log_file = open(log_path, "w", encoding="utf-8")  # noqa: SIM115
         cmd = [
-            "wsl", "-d", _cfg.load().runtime_distro,
-            "nohup", "python3", "/opt/kalisub-playground/vulnerable_app.py",
+            "wsl",
+            "-d",
+            _cfg.load().runtime_distro,
+            "nohup",
+            "python3",
+            "/opt/kalisub-playground/vulnerable_app.py",
         ]
-        proc = subprocess.Popen(cmd, stdout=log_file, stderr=subprocess.STDOUT,  # noqa: S603
-                                text=True)
         # Detach: don't wait for the background process to exit.
+        subprocess.Popen(
+            cmd,
+            stdout=log_file,
+            stderr=subprocess.STDOUT,  # noqa: S603
+            text=True,
+        )
         time.sleep(2)
         log_file.close()
 
@@ -176,7 +185,8 @@ def stop_playground() -> tuple[bool, str]:
         # Kill any python process running the playground
         subprocess.run(
             ["wsl", "-d", _cfg.load().runtime_distro, "pkill", "-f", "vulnerable_app.py"],
-            capture_output=True, timeout=5
+            capture_output=True,
+            timeout=5,
         )
         _PLAYGROUND_PID = None
         return True, "Playground stopped"

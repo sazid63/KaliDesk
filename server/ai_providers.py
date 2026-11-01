@@ -7,6 +7,7 @@ This module provides a unified interface for multiple AI providers:
 
 All API keys are encrypted via Windows DPAPI (kws_secrets).
 """
+
 from __future__ import annotations
 
 import json
@@ -78,10 +79,12 @@ class _BaseHTTPProvider(AIProvider):
 class OpenAIProvider(_BaseHTTPProvider):
     """OpenAI or OpenAI-compatible provider."""
 
-    def __init__(self,
-                   base_url: str = "https://api.openai.com/v1",
-                   model: str = "gpt-4o-mini",
-                   api_key: str | None = None):
+    def __init__(
+        self,
+        base_url: str = "https://api.openai.com/v1",
+        model: str = "gpt-4o-mini",
+        api_key: str | None = None,
+    ):
         super().__init__(base_url, model, api_key)
 
     @property
@@ -97,10 +100,11 @@ class OpenAIProvider(_BaseHTTPProvider):
 
     def test_connection(self) -> tuple[bool, str]:
         try:
-            self._post("/chat/completions",
-                         {"model": self.model,
-                          "messages": [{"role": "user", "content": "test"}]},
-                         timeout=15)
+            self._post(
+                "/chat/completions",
+                {"model": self.model, "messages": [{"role": "user", "content": "test"}]},
+                timeout=15,
+            )
             return True, "Connection successful"
         except Exception as exc:  # noqa: BLE001
             return False, str(exc)
@@ -109,10 +113,12 @@ class OpenAIProvider(_BaseHTTPProvider):
 class AnthropicProvider(_BaseHTTPProvider):
     """Anthropic Claude provider."""
 
-    def __init__(self,
-                   base_url: str = "https://api.anthropic.com",
-                   model: str = "claude-sonnet-4-20250514",
-                   api_key: str | None = None):
+    def __init__(
+        self,
+        base_url: str = "https://api.anthropic.com",
+        model: str = "claude-sonnet-4-20250514",
+        api_key: str | None = None,
+    ):
         super().__init__(base_url, model, api_key)
 
     @property
@@ -121,14 +127,17 @@ class AnthropicProvider(_BaseHTTPProvider):
 
     def complete(self, messages: list[dict[str, str]]) -> str:
         # Anthropic uses a different format
-        data = json.dumps({
-            "model": self.model,
-            "max_tokens": 4096,
-            "messages": [
-                {"role": m["role"], "content": m["content"]}
-                for m in messages if m["role"] != "system"
-            ],
-        }).encode("utf-8")
+        data = json.dumps(
+            {
+                "model": self.model,
+                "max_tokens": 4096,
+                "messages": [
+                    {"role": m["role"], "content": m["content"]}
+                    for m in messages
+                    if m["role"] != "system"
+                ],
+            }
+        ).encode("utf-8")
         req = urllib.request.Request(f"{self.base_url}/v1/messages", data=data, method="POST")
         req.add_header("Content-Type", "application/json")
         req.add_header("x-api-key", self.api_key or "")
@@ -148,10 +157,12 @@ class AnthropicProvider(_BaseHTTPProvider):
 class GeminiProvider(_BaseHTTPProvider):
     """Google Gemini provider."""
 
-    def __init__(self,
-                   base_url: str = "https://generativelanguage.googleapis.com/v1beta",
-                   model: str = "gemini-2.5-pro",
-                   api_key: str | None = None):
+    def __init__(
+        self,
+        base_url: str = "https://generativelanguage.googleapis.com/v1beta",
+        model: str = "gemini-2.5-pro",
+        api_key: str | None = None,
+    ):
         super().__init__(base_url, model, api_key)
 
     @property
@@ -161,10 +172,7 @@ class GeminiProvider(_BaseHTTPProvider):
     def complete(self, messages: list[dict[str, str]]) -> str:
         # Gemini REST API
         url = f"{self.base_url}/models/{self.model}:generateContent"
-        contents = [
-            {"role": m["role"], "parts": [{"text": m["content"]}]}
-            for m in messages
-        ]
+        contents = [{"role": m["role"], "parts": [{"text": m["content"]}]} for m in messages]
         data = json.dumps({"contents": contents}).encode("utf-8")
         req = urllib.request.Request(url, data=data, method="POST")
         req.add_header("Content-Type", "application/json")
@@ -240,6 +248,7 @@ class LocalAIProvider(_BaseHTTPProvider):
 
     def test_connection(self) -> tuple[bool, str]:
         import os
+
         if os.path.exists(self.model_path):
             return True, f"Model file exists: {self.model_path}"
         return False, f"Model file not found: {self.model_path}"
@@ -284,11 +293,13 @@ class DeepSeekHarnessProvider(AIProvider):
     CyberSecurity tab.
     """
 
-    def __init__(self,
-                 freellmapi_host: str = "127.0.0.1",
-                 freellmapi_port: int = 31415,
-                 model: str = "auto",
-                 api_key: str | None = None):
+    def __init__(
+        self,
+        freellmapi_host: str = "127.0.0.1",
+        freellmapi_port: int = 31415,
+        model: str = "auto",
+        api_key: str | None = None,
+    ):
         self.freellmapi_host = freellmapi_host
         self.freellmapi_port = int(freellmapi_port)
         self.model = model
@@ -454,8 +465,14 @@ def list_configured_providers() -> list[dict[str, Any]]:
     """List all configured providers from the database."""
     providers = []
     for ptype in [
-        "openai", "anthropic", "gemini", "ollama",
-        "localai", "deepseek", "deepseek_harness", "mcp"
+        "openai",
+        "anthropic",
+        "gemini",
+        "ollama",
+        "localai",
+        "deepseek",
+        "deepseek_harness",
+        "mcp",
     ]:
         base_key = f"ai_{ptype}"
         provider_cfg = db.get_setting(f"{base_key}_config", "")
@@ -463,14 +480,16 @@ def list_configured_providers() -> list[dict[str, Any]]:
             try:
                 cfg = json.loads(provider_cfg)
                 has_key = bool(kws_secrets.get_secret(SECRET_PREFIXES.get(ptype, "")))
-                providers.append({
-                    "type": ptype,
-                    "name": get_provider(ptype, cfg).name,
-                    "configured": True,
-                    "has_api_key": has_key if ptype in SECRET_PREFIXES else None,
-                    "model": cfg.get("model", ""),
-                    "base_url": cfg.get("base_url", ""),
-                })
+                providers.append(
+                    {
+                        "type": ptype,
+                        "name": get_provider(ptype, cfg).name,
+                        "configured": True,
+                        "has_api_key": has_key if ptype in SECRET_PREFIXES else None,
+                        "model": cfg.get("model", ""),
+                        "base_url": cfg.get("base_url", ""),
+                    }
+                )
             except json.JSONDecodeError:
                 pass
     return providers
