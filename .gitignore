@@ -62,3 +62,5 @@ desktop.ini
 # live inside the checkout but are not part of the project.
 ~/
 *echo*
+security_audit_report.md
+server/SECURITY_AUDIT.md

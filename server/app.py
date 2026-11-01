@@ -53,9 +53,10 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
         resp = make_response(send_from_directory(UI_DIR, "index.html"))
         token = request.args.get("token", "")
         if token and hmac.compare_digest(token, auth_token):
-            resp.set_cookie(security.AUTH_COOKIE, token, httponly=True, samesite="Strict", path="/")
+            # Set secure cookies (only sent over HTTPS)
+            resp.set_cookie(security.AUTH_COOKIE, token, httponly=True, samesite="Strict", path="/", secure=True)
             resp.set_cookie(
-                security.CSRF_COOKIE, csrf_token, httponly=False, samesite="Strict", path="/"
+                security.CSRF_COOKIE, csrf_token, httponly=True, samesite="Strict", path="/", secure=True
             )
         return resp
 
