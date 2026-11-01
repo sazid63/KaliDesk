@@ -1,8 +1,6 @@
 """Tests for the notebook API endpoints."""
 from __future__ import annotations
 
-import pytest
-
 
 def test_add_and_list_entries(client):
     # Add entries via API

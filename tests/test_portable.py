@@ -1,9 +1,5 @@
 """Tests for portable mode endpoints."""
 import json
-import os
-from pathlib import Path
-
-import pytest
 
 
 def test_portable_drives_endpoint(client):

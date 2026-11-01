@@ -23,7 +23,6 @@ beyond Python itself is installed.
 from __future__ import annotations
 
 import hmac
-import ipaddress
 import json
 import os
 import re
@@ -113,7 +112,7 @@ def host_of(target: str) -> str:
 def in_scope(target: str, confirmed: bool) -> tuple[bool, str]:
     """Check if target is in scope using unified logic from server.security."""
     # Delegate to same classification logic as server for consistency
-    from server.security import classify_target, scope_allows
+    from server.security import classify_target
     
     kind = classify_target(target)
     if kind == "empty":
