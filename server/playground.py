@@ -86,7 +86,7 @@ class KHandler(http.server.BaseHTTPRequestHandler):
         elif path.startswith("/TOKEN"):
             # Weak session: predictable token
             import time as _time
-            token = str(int(_time.time()) % 1000000).zfill(6)
+            token = str(int(_time.time() * 1000000) % 999999).zfill(6)
             self._send_json(200, {"token": token})
         else:
             self._send_json(200, {

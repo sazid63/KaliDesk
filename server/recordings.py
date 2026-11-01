@@ -31,7 +31,11 @@ def start_recording(tool: str, argv: dict[str, Any]) -> str:
         Recording ID (timestamp-based).
     """
     _ensure_recordings_dir()
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    import secrets as _secrets
+    now = datetime.now()
+    # Use microseconds + random suffix for uniqueness
+    timestamp = now.strftime("%Y%m%d_%H%M%S")
+    timestamp += f"_{_secrets.token_hex(4)}"
     recording_id = f"{tool}_{timestamp}"
 
     rec_file = _RECORDINGS_DIR / f"{recording_id}.jsonl"
