@@ -53,8 +53,8 @@ async function startRecording() {
   if (!tool) return;
   
   const { data } = await api("POST", "/api/recordings/start", { tool });
-  if (data.id) {
-    activeRecording = data.id;
+  if (data.recording_id) {
+    activeRecording = data.recording_id;
     toast("Recording started");
   } else {
     toast(data.error || "Failed to start recording", true);
