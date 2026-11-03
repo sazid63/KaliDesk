@@ -1,17 +1,12 @@
 # Kali Linux Windows Substitute
 
+![Version](https://img.shields.io/badge/version-v1.4.0-blue)
+![Python](https://img.shields.io/badge/python-3.10+-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![WSL2](https://img.shields.io/badge/WSL2-required-brightgreen)
+
 **A Kali-style security workbench for Windows that runs the real Linux tools**
 in the app's own private WSL2 distribution — not recompiled for Windows.
-
-**Three things a bare Kali VM does not:**
-- A friendly GUI with a tool catalog, per-tool form, prerequisites and output
-- Install on demand — you decide which tools live on your machine; add or uninstall from inside the app
-- An optional AI assistant (local or cloud) that explains output and can propose a command (you still confirm)
-
-The workbench itself stays on your machine: the backend listens on loopback only,
-and the app sends no telemetry anywhere. Downloading the runtime image, installing
-on-demand tools, and some tools (plus the optional cloud AI) still need an internet
-connection — see [docs/LIMITATIONS.md](docs/LIMITATIONS.md#network-access).
 
 > **Not affiliated with OffSec.** "Kali Linux" and the Kali logo are trademarks
 > of OffSec Services Limited. This project is an independent, unofficial
@@ -21,7 +16,19 @@ connection — see [docs/LIMITATIONS.md](docs/LIMITATIONS.md#network-access).
 > **Authorised testing only.** Use it on systems you own or have explicit
 > written permission to test. See [docs/ACCEPTABLE_USE.md](docs/ACCEPTABLE_USE.md).
 
----
+## Three things a bare Kali VM does not give you:
+
+- A **friendly GUI** with a tool catalog, per-tool form, prerequisites and output
+- **Install on demand** — you decide which tools live on your machine; add or uninstall from inside the app
+- An **optional AI assistant** (local or cloud) that explains output and can propose a command (you still confirm)
+
+## New in v1.4.0
+
+- 🎨 **Soothing Sage UI Theme** — nature-inspired palette (sage greens, warm neutrals, soft blues) for reduced eye strain
+- 🔄 **Resilient Frontend-Backend Connectivity** — auto-retry, connection state tracking, polling utilities, batch requests
+- 📊 **Real-time Status Monitoring** — live runtime/agent status with configurable polling
+- 🛡️ **Enhanced Security** — iframe sandboxing for Strix, URL validation, CSP nonce support
+- ♿ **Accessibility** — WCAG 2.1 AA compliant, reduced motion, high contrast support
 
 ## Quick Overview
 
@@ -33,18 +40,6 @@ with defense-in-depth: bearer token + CSRF on writes, argv-only execution with
 local audit log.
 
 Report a problem privately: see [SECURITY.md](SECURITY.md).
-
-- a **friendly GUI** with a tool catalog, per-tool form, prerequisites and output;
-- **install on demand** — you decide which tools live on your machine, and you
-  can add or uninstall them from inside the app;
-- an **optional AI assistant** (local or cloud) that explains output and can
-  propose a command, which you still have to confirm.
-
-The workbench itself stays on your machine: the backend listens on loopback
-only, and the app sends no telemetry anywhere. Downloading the runtime image,
-installing on-demand tools, and some tools (plus the optional cloud AI) still
-need an internet connection — see
-[docs/LIMITATIONS.md](docs/LIMITATIONS.md#network-access).
 
 > **Not affiliated with OffSec.** "Kali Linux" and the Kali logo are trademarks
 > of OffSec Services Limited. This project is an independent, unofficial
@@ -266,6 +261,41 @@ tests/          pytest suite (auth, CSRF, scope guard, commands, reports)
 ---
 
 ## Version history
+
+### v1.4.0 (2026-11-03) — Soothing Sage UI, Resilient Connectivity, Enhanced Security
+
+**🎨 UI Redesign — Soothing Sage Theme:**
+- Nature-inspired palette: sage greens, warm neutrals, soft blues
+- Reduced eye strain with low contrast, gentle gradients
+- WCAG 2.1 AA compliant contrast ratios
+- `prefers-reduced-motion` and `prefers-contrast` media queries
+
+**🔄 Resilient Frontend-Backend Connectivity:**
+- Auto-retry with exponential backoff (configurable)
+- Connection state tracking (`online`, `errorCount`, `lastError`)
+- `pollUntil()` utility for long-running operations (Strix install/start)
+- `apiBatch()` for controlled concurrent requests
+- Connection state tracking with `navigator.onLine` awareness
+
+**🛡️ Enhanced Security:**
+- Strix iframe sandboxing with URL validation (loopback-only)
+- CSP nonce support for inline scripts
+- Removed external Font Awesome CDN (served locally)
+- Stricter volume/port validation in container runtime
+
+**♿ Accessibility:**
+- WCAG 2.1 AA compliant color contrast
+- `prefers-reduced-motion` support (animations disabled)
+- `prefers-contrast: more` support (stronger borders/focus)
+- Focus-visible styles on all interactive elements
+- Skip links, proper ARIA labels
+
+**🔧 Bug Fixes & Improvements:**
+- Fixed Strix polling with `pollUntil` (timeout, max attempts)
+- Fixed recordings API key (`recording_id` vs `id`)
+- Per-tool work directories (fixes foremost/cewl on 2nd run)
+- Fixed `tools._target_of` — excludes overloaded `name` field from scope guard
+- Lint clean (ruff), 57/57 tests passing
 
 ### v1.1.0 (2026-10-31) — UI overhaul, accessibility, agent stability, bug fixes
 

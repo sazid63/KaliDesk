@@ -1,69 +1,69 @@
-/* Kali Linux Windows Substitute - Soft Bright Theme
- * Eye-soothing, vibrant, cheerful UI with colorful buttons.
- * Soft pastels, warm gradients, rounded corners, gentle shadows. */
+/* Kali Linux Windows Substitute - Soothing Sage Theme
+ * Eye-soothing, nature-inspired palette: sage greens, warm neutrals,
+ * soft blues. Low contrast, gentle transitions, reduced eye strain. */
 
 /* --- A. theme ------------------------------------------------------------ */
-
 :root {
-  /* Base colors - soft, bright, eye-soothing pastels */
-  --bg: #f0f4f8;             /* Soft blue-gray background */
+  /* Base colors - soft warm neutrals */
+  --bg: #faf8f5;             /* Warm off-white (not pure white) */
   --panel: #ffffff;          /* Pure white panels */
-  --panel-2: #f8fafc;        /* Light slate for secondary panels */
-  --line: #e2e8f0;           /* Soft gray borders */
-  --text: #1e293b;           /* Dark slate for text */
-  --muted: #64748b;          /* Medium slate for muted text */
-  
-  /* Primary accent - soft coral/salmon */
-  --accent: #f97066;         /* Warm coral */
-  --accent-light: #ffe4e1;   /* Light coral for hover/active */
-  
-  /* Secondary accents - soft pastel colors */
-  --success: #34d399;        /* Soft emerald green */
-  --success-light: #d1fae5;
-  --warning: #fbbf24;        /* Soft amber */
-  --warning-light: #fef3c7;
-  --error: #f87171;          /* Soft red */
-  --error-light: #fee2e2;
-  --info: #60a5fa;           /* Soft blue */
-  --info-light: #dbeafe;
-  
-  /* Tertiary colors for variety */
-  --purple: #a78bfa;
-  --purple-light: #ede9fe;
-  --pink: #f472b6;
-  --pink-light: #fce7f3;
-  --teal: #2dd4bf;
-  --teal-light: #ccfbf1;
-  
+  --panel-2: #f6f4f0;        /* Warm light for secondary panels */
+  --line: #e6e1d8;           /* Warm gray borders */
+  --text: #3d3832;           /* Warm dark brown (softer than black) */
+  --muted: #8a8279;          /* Medium warm gray */
+
+  /* Primary accent - soothing sage green */
+  --accent: #6b8f71;         /* Muted sage green */
+  --accent-light: #e8efe6;   /* Light sage for hover/active */
+  --accent-dark: #4f6d54;    /* Darker sage for emphasis */
+
+  /* Secondary accents - nature-inspired */
+  --success: #5a9e6f;        /* Soft forest green */
+  --success-light: #e8f3ec;
+  --warning: #c4a96a;        /* Soft amber */
+  --warning-light: #faf3e4;
+  --error: #c4736a;          /* Soft muted red */
+  --error-light: #faf0ee;
+  --info: #6b9cb5;           /* Soft muted blue */
+  --info-light: #eaf3f7;
+
+  /* Tertiary colors - earth tones */
+  --purple: #9b8ec4;
+  --purple-light: #f1ecfb;
+  --pink: #c48a9b;
+  --pink-light: #fbeef3;
+  --teal: #5aa8a0;
+  --teal-light: #e6f4f3;
+
   /* Panel variations */
-  --panel-hover: #f1f5f9;
-  --panel-active: #e2e8f0;
+  --panel-hover: #f1ede6;
+  --panel-active: #e8e1d5;
 
   /* Button states */
-  --btn-bg: #f8fafc;
-  --btn-bg-hover: #f1f5f9;
-  --btn-border: #e2e8f0;
-  --btn-text: #334155;
-  
-  /* Button color variants - vibrant but soft */
-  --btn-coral: #f97066;
-  --btn-coral-hover: #f5554a;
-  --btn-green: #34d399;
-  --btn-green-hover: #10b981;
-  --btn-blue: #60a5fa;
-  --btn-blue-hover: #3b82f6;
-  --btn-purple: #a78bfa;
-  --btn-purple-hover: #8b5cf6;
-  --btn-pink: #f472b6;
-  --btn-pink-hover: #ec4899;
-  --btn-teal: #2dd4bf;
-  --btn-teal-hover: #14b8a6;
+  --btn-bg: #faf8f5;
+  --btn-bg-hover: #f1ede6;
+  --btn-border: #e6e1d8;
+  --btn-text: #3d3832;
+
+  /* Button color variants - soft, nature-inspired */
+  --btn-sage: #6b8f71;
+  --btn-sage-hover: #55735a;
+  --btn-green: #5a9e6f;
+  --btn-green-hover: #478058;
+  --btn-blue: #6b9cb5;
+  --btn-blue-hover: #55839c;
+  --btn-purple: #9b8ec4;
+  --btn-purple-hover: #7d72b0;
+  --btn-pink: #c48a9b;
+  --btn-pink-hover: #a86f82;
+  --btn-teal: #5aa8a0;
+  --btn-teal-hover: #488d86;
 
   /* Shadows - soft and subtle */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
-  --shadow-color: 0 4px 14px 0 rgba(249, 112, 102, 0.2); /* Coral shadow for buttons */
+  --shadow-sm: 0 1px 2px 0 rgba(107, 143, 113, 0.08);
+  --shadow: 0 4px 6px -1px rgba(107, 143, 113, 0.12), 0 2px 4px -1px rgba(107, 143, 113, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(107, 143, 113, 0.15), 0 4px 6px -2px rgba(107, 143, 113, 0.08);
+  --shadow-color: 0 4px 14px 0 rgba(107, 143, 113, 0.25);
 
   /* Radii - extra rounded for friendly feel */
   --radius-sm: 6px;
@@ -131,7 +131,7 @@
 
 .progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--info));
+  background: linear-gradient(90deg, var(--accent), var(--teal));
   border-radius: 999px;
   transition: width 0.3s ease;
 }
@@ -158,7 +158,7 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: linear-gradient(160deg, #f0f4f8 0%, #fdf2f0 50%, #eef4fb 100%);
+  background: linear-gradient(160deg, #faf8f5 0%, #f1ede6 50%, #eaf0eb 100%);
   background-attachment: fixed;
   color: var(--text);
   font-family: var(--font-sans);
@@ -274,64 +274,64 @@ button:active {
   box-shadow: var(--shadow-sm);
 }
 
-/* Primary button - coral/warm red */
+/* Primary button - sage green */
 button.primary {
-  background: linear-gradient(135deg, var(--accent) 0%, #fb8c8c 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, #7d9e7d 100%);
   color: white;
   border-color: var(--accent);
 }
 
 button.primary:hover {
-  background: linear-gradient(135deg, #f5554a 0%, #fca5a5 100%);
+  background: linear-gradient(135deg, var(--accent-dark) 0%, #6b8f71 100%);
   box-shadow: var(--shadow-color);
 }
 
-/* Success button - emerald green */
+/* Success button - forest green */
 button.success {
-  background: linear-gradient(135deg, var(--success) 0%, #6ee7b7 100%);
+  background: linear-gradient(135deg, var(--success) 0%, #7abf8d 100%);
   color: white;
   border-color: var(--success);
 }
 
 button.success:hover {
   background: linear-gradient(135deg, var(--btn-green-hover) 0%, var(--success) 100%);
-  box-shadow: 0 4px 14px 0 rgba(52, 211, 153, 0.3);
+  box-shadow: 0 4px 14px 0 rgba(90, 158, 111, 0.3);
 }
 
-/* Warning button - amber/orange */
+/* Warning button - soft amber */
 button.warning {
-  background: linear-gradient(135deg, var(--warning) 0%, #fcd34d 100%);
+  background: linear-gradient(135deg, var(--warning) 0%, #d4b87a 100%);
   color: white;
   border-color: var(--warning);
 }
 
 button.warning:hover {
-  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
-  box-shadow: 0 4px 14px 0 rgba(251, 191, 36, 0.3);
+  background: linear-gradient(135deg, var(--btn-sage-hover) 0%, var(--warning) 100%);
+  box-shadow: 0 4px 14px 0 rgba(196, 169, 106, 0.3);
 }
 
-/* Error button - soft red */
+/* Error button - soft muted red */
 button.error {
-  background: linear-gradient(135deg, var(--error) 0%, #fca5a5 100%);
+  background: linear-gradient(135deg, var(--error) 0%, #d48a8a 100%);
   color: white;
   border-color: var(--error);
 }
 
 button.error:hover {
-  background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
-  box-shadow: 0 4px 14px 0 rgba(248, 113, 113, 0.3);
+  background: linear-gradient(135deg, var(--btn-pink-hover) 0%, var(--error) 100%);
+  box-shadow: 0 4px 14px 0 rgba(196, 115, 106, 0.3);
 }
 
-/* Info button - soft blue */
+/* Info button - soft muted blue */
 button.info {
-  background: linear-gradient(135deg, var(--info) 0%, #93c5fd 100%);
+  background: linear-gradient(135deg, var(--info) 0%, #7db5c8 100%);
   color: white;
   border-color: var(--info);
 }
 
 button.info:hover {
-  background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
-  box-shadow: 0 4px 14px 0 rgba(96, 165, 250, 0.3);
+  background: linear-gradient(135deg, var(--btn-blue-hover) 0%, var(--info) 100%);
+  box-shadow: 0 4px 14px 0 rgba(107, 156, 181, 0.3);
 }
 
 /* Ghost button - outlined style */
@@ -349,38 +349,38 @@ button.ghost:hover {
 
 /* Purple variant */
 button.purple {
-  background: linear-gradient(135deg, var(--purple) 0%, #c4b5fd 100%);
+  background: linear-gradient(135deg, var(--purple) 0%, #b5a4db 100%);
   color: white;
   border-color: var(--purple);
 }
 
 button.purple:hover {
-  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
-  box-shadow: 0 4px 14px 0 rgba(167, 139, 250, 0.3);
+  background: linear-gradient(135deg, var(--btn-purple-hover) 0%, var(--purple) 100%);
+  box-shadow: 0 4px 14px 0 rgba(155, 142, 196, 0.3);
 }
 
 /* Pink variant */
 button.pink {
-  background: linear-gradient(135deg, var(--pink) 0%, #fbcfe8 100%);
+  background: linear-gradient(135deg, var(--pink) 0%, #db9ba6 100%);
   color: white;
   border-color: var(--pink);
 }
 
 button.pink:hover {
-  background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
-  box-shadow: 0 4px 14px 0 rgba(244, 114, 182, 0.3);
+  background: linear-gradient(135deg, var(--btn-pink-hover) 0%, var(--pink) 100%);
+  box-shadow: 0 4px 14px 0 rgba(196, 138, 155, 0.3);
 }
 
 /* Teal variant */
 button.teal {
-  background: linear-gradient(135deg, var(--teal) 0%, #5eead4 100%);
+  background: linear-gradient(135deg, var(--teal) 0%, #7ab8b0 100%);
   color: white;
   border-color: var(--teal);
 }
 
 button.teal:hover {
-  background: linear-gradient(135deg, #14b8a6 0%, #2dd4bf 100%);
-  box-shadow: 0 4px 14px 0 rgba(45, 212, 191, 0.3);
+  background: linear-gradient(135deg, var(--btn-teal-hover) 0%, var(--teal) 100%);
+  box-shadow: 0 4px 14px 0 rgba(90, 168, 160, 0.3);
 }
 
 button:disabled {
@@ -407,7 +407,7 @@ input, textarea, select {
 input:focus, textarea:focus, select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(249, 112, 102, 0.15);
+  box-shadow: 0 0 0 3px rgba(107, 143, 113, 0.15);
   background: var(--panel);
 }
 
@@ -453,7 +453,7 @@ form .check {
 
 .card:hover, .panel:hover {
   box-shadow: var(--shadow);
-  border-color: rgba(249, 112, 102, 0.3);
+  border-color: rgba(107, 143, 113, 0.3);
 }
 
 .tile {
@@ -480,8 +480,8 @@ form .check {
 }
 
 .tile:hover {
-  border-color: rgba(249, 112, 102, 0.4);
-  box-shadow: 0 8px 24px -8px rgba(249, 112, 102, 0.25);
+  border-color: rgba(107, 143, 113, 0.4);
+  box-shadow: 0 8px 24px -8px rgba(107, 143, 113, 0.25);
   transform: translateY(-4px);
 }
 
@@ -523,11 +523,11 @@ form .check {
   float: right;
   font-size: 0.7rem;
   color: white;
-  background: linear-gradient(135deg, var(--accent), #fb8c8c);
+  background: linear-gradient(135deg, var(--accent), #7d9e7d);
   border-radius: var(--radius-full);
   padding: 0.25rem 0.75rem;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(249, 112, 102, 0.3);
+  box-shadow: 0 2px 8px rgba(107, 143, 113, 0.3);
 }
 
 .tile .mode {
@@ -787,7 +787,7 @@ form .check {
 
 .toolbar input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(249, 112, 102, 0.15);
+  box-shadow: 0 0 0 3px rgba(107, 143, 113, 0.15);
 }
 
 .toolbar .grow {
@@ -844,7 +844,7 @@ form .check {
 .msg.error {
   border-color: var(--error);
   color: var(--error);
-  background: #fef2f2;
+  background: #faf0ee;
 }
 
 .chat-input {
@@ -901,7 +901,7 @@ form .check {
   border-radius: var(--radius);
   padding: 1rem 1.25rem;
   margin: 1rem 0;
-  background: #fffbeb;
+  background: #faf3e4;
   font-size: 0.9rem;
 }
 
@@ -911,7 +911,7 @@ form .check {
   overflow: auto;
   font-family: var(--font-mono);
   font-size: 0.85rem;
-  background: #f8fafc;
+  background: #f6f4f0;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0.75rem;
@@ -929,7 +929,7 @@ form .check {
 .tool-result .tool-badge {
   background: var(--success);
   color: white;
-  border: 1px solid #059669;
+  border: 1px solid var(--success);
   border-radius: var(--radius-full);
   padding: 0.25rem 0.75rem;
   font-size: 0.75rem;
@@ -943,14 +943,14 @@ form .check {
   overflow: auto;
   font-family: var(--font-mono);
   font-size: 0.85rem;
-  background: #f8fafc;
+  background: #f6f4f0;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0.75rem;
 }
 
 .code-block {
-  background: #f8fafc;
+  background: #f6f4f0;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0.75rem;
@@ -965,7 +965,7 @@ form .check {
 .prereq {
   border: 1px solid var(--line);
   border-left: 4px solid var(--success);
-  background: #f0fdf4;
+  background: #e8f3ec;
   border-radius: var(--radius);
   padding: 1rem 1.25rem;
   margin: 1rem 0;
@@ -1019,7 +1019,7 @@ form .check {
   font-family: var(--font-mono);
   font-size: 0.85rem;
   color: var(--text);
-  background: #f8fafc;
+  background: #f6f4f0;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0.5rem 0.75rem;
@@ -1123,7 +1123,7 @@ a { color: var(--accent); }
 .badge.on {
   color: var(--success);
   border-color: var(--success);
-  background: #f0fdf4;
+  background: #e8f3ec;
 }
 
 .badge.off {
@@ -1186,9 +1186,9 @@ a { color: var(--accent); }
   animation: slideIn 0.3s ease-out;
 }
 
-.toast.error { border-color: var(--error); background: #fef2f2; }
-.toast.success { border-color: var(--success); background: #f0fdf4; }
-.toast.warning { border-color: var(--warning); background: #fffbeb; }
+.toast.error { border-color: var(--error); background: #faf0ee; }
+.toast.success { border-color: var(--success); background: #e8f3ec; }
+.toast.warning { border-color: var(--warning); background: #faf3e4; }
 .toast.info { border-color: var(--info); background: #eff6ff; }
 
 @keyframes slideIn {
@@ -1237,8 +1237,8 @@ a { color: var(--accent); }
 
 /* Focus visible for keyboard navigation */
 :root {
-  --focus-ring: 0 0 0 3px rgba(249, 112, 102, 0.4);
-  --focus-ring-dark: 0 0 0 3px rgba(251, 146, 60, 0.5);
+  --focus-ring: 0 0 0 3px rgba(107, 143, 113, 0.4);
+  --focus-ring-dark: 0 0 0 3px rgba(107, 143, 113, 0.5);
   --focus-outline: 2px solid var(--accent);
 }
 
@@ -1410,39 +1410,44 @@ li[role="option"]:focus-visible {
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0f172a;
-    --panel: #1e293b;
-    --panel-2: #334155;
-    --line: #334155;
-    --text: #f1f5f9;
-    --muted: #94a3b8;
-    --accent: #fb923c;
-    --accent-light: #7c2d12;
-    --success: #34d399;
-    --success-light: #064e3b;
-    --warning: #fbbf24;
-    --warning-light: #78350f;
-    --error: #f87171;
-    --error-light: #7f1d1d;
-    --info: #60a5fa;
-    --info-light: #1e3a8a;
-    --purple: #a78bfa;
-    --purple-light: #4c1d95;
-    --pink: #f472b6;
-    --pink-light: #831843;
-    --teal: #2dd4bf;
-    --teal-light: #134e4a;
-    --btn-bg: #334155;
-    --btn-bg-hover: #475569;
-    --btn-border: #475569;
-    --btn-text: #f1f5f9;
-    --panel-hover: #334155;
-    --panel-active: #475569;
+    --bg: #1a1d1a;
+    --panel: #242924;
+    --panel-2: #2d332d;
+    --line: #3d453d;
+    --text: #e8eae5;
+    --muted: #a0a89f;
+    --accent: #7d9e7d;
+    --accent-light: #2d3f30;
+    --accent-dark: #8fae8f;
+    --success: #5a9e6f;
+    --success-light: #1e3524;
+    --warning: #c4a96a;
+    --warning-light: #3d3420;
+    --error: #c4736a;
+    --error-light: #3d2523;
+    --info: #6b9cb5;
+    --info-light: #1e3540;
+    --purple: #9b8ec4;
+    --purple-light: #2e2840;
+    --pink: #c48a9b;
+    --pink-light: #3d2530;
+    --teal: #5aa8a0;
+    --teal-light: #1e3835;
+    --btn-bg: #2d332d;
+    --btn-bg-hover: #3d453d;
+    --btn-border: #3d453d;
+    --btn-text: #e8eae5;
+    --panel-hover: #2d332d;
+    --panel-active: #3d453d;
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.15);
   }
-  
+
+  html, body {
+    background: linear-gradient(160deg, #1a1d1a 0%, #232623 50%, #1d251f 100%);
+  }
+
   .topbar, .sidebar, .panel, .card, .results { 
     background: var(--panel); 
     border-color: var(--line);
@@ -1456,7 +1461,7 @@ li[role="option"]:focus-visible {
   
   input:focus, textarea:focus, select:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.2);
+    box-shadow: 0 0 0 3px rgba(107, 143, 113, 0.2);
   }
   
   .chat-input input {
@@ -1470,12 +1475,13 @@ li[role="option"]:focus-visible {
   .msg.error { background: #2a1215; }
   .tool-proposal { background: #292013; }
   .tool-result { background: var(--panel); }
-  .code-block, .tool-proposal pre, .tool-result pre { background: #0f172a; }
-  .prereq { background: #0d2b21; }
-  .toast.success { background: #0d2b21; }
+  .code-block, .tool-proposal pre, .tool-result pre { background: #151815; }
+  .prereq { background: #1a2b1e; }
+  .toast.success { background: #1a2b1e; }
   .toast.error { background: #2a1215; }
   .toast.warning { background: #292013; }
-  .toast.info { background: #172554; }
-  .badge.on { background: #0d2b21; }
+  .toast.info { background: #172530; }
+  .badge.on { background: #1a2b1e; }
   .toast { background: var(--panel); }
+  .examples code { background: #151815; }
 }

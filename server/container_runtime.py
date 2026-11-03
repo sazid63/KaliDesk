@@ -52,7 +52,11 @@ def _bad_volume_reason(host: str) -> str:
     # The data directory in WSL is typically under /mnt/c/Users/.../KaliWindowsSubstitute
     # or a user-specified path. We use a safe default of /tmp only.
     allowed_prefixes = ("/tmp/",)
-    if not any(norm == prefix.rstrip("/") or norm.startswith(prefix) for prefix in allowed_prefixes):
+    is_allowed = any(
+        norm == prefix.rstrip("/") or norm.startswith(prefix)
+        for prefix in allowed_prefixes
+    )
+    if not is_allowed:
         return f"host path must be under /tmp, got {norm!r}"
     return ""
 
@@ -240,8 +244,16 @@ def validate_exec_command(cmd: list[str]) -> tuple[bool, str]:
         for i, arg in enumerate(cmd[1:], 1):
             if arg.startswith("-e") and len(arg) > 2:
                 # Inline script execution - check for system calls
-                script = arg[2:] if arg.startswith("-e") else cmd[i+1] if i+1 < len(cmd) else ""
-                if any(kw in script for kw in ("os.system", "subprocess", "__import__", "eval(", "exec(")):
+                if arg.startswith("-e"):
+                    script = arg[2:]
+                elif i + 1 < len(cmd):
+                    script = cmd[i + 1]
+                else:
+                    script = ""
+                if any(
+                    kw in script
+                    for kw in ("os.system", "subprocess", "__import__", "eval(", "exec(")
+                ):
                     return False, "script contains dangerous system calls"
     
     return True, ""

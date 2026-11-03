@@ -30,10 +30,45 @@ function toast(message, isError) {
 }
 
 /* --- API Helper --------------------------------------------------------- */
+// Per-request configuration
+const API_CONFIG = {
+  timeout: 10000,
+  retries: 2,
+  retryDelay: 1000,
+};
+
+// Connection state tracking
+const connectionState = {
+  online: true,
+  lastError: null,
+  errorCount: 0,
+};
+
+function isOnline() {
+  return navigator.onLine && connectionState.online;
+}
+
+function markOnline() {
+  connectionState.online = true;
+  connectionState.lastError = null;
+  connectionState.errorCount = 0;
+}
+
+function markOffline(error) {
+  connectionState.online = false;
+  connectionState.lastError = error;
+  connectionState.errorCount++;
+}
+
+function getApiBase() {
+  // Use the same origin as the page (backend serves on loopback)
+  return window.location.origin;
+}
+
 async function api(method, path, body, options = {}) {
   // 10-second timeout to prevent indefinite hangs.
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.timeout);
 
   // If the caller also supplies a signal (e.g. a Stop button), abort on either.
   const callerSignal = options.signal;
@@ -53,23 +88,98 @@ async function api(method, path, body, options = {}) {
     opts.body = JSON.stringify(body);
   }
   if (method !== "GET") opts.headers["X-KWS-CSRF"] = csrf();
-  try {
-    const resp = await fetch(path, opts);
-    clearTimeout(timeoutId);
-    const text = await resp.text();
-    let data;
-    try { data = text ? JSON.parse(text) : {}; } catch (_) { data = { raw: text }; }
-    if (!resp.ok && !data.error) data.error = "request failed (" + resp.status + ")";
-    return { ok: resp.ok, status: resp.status, data };
-  } catch (err) {
-    clearTimeout(timeoutId);
-    if (err.name === "AbortError") {
-      // Distinguish our timeout from a caller-initiated cancellation.
-      if (callerSignal && callerSignal.aborted) throw err;
-      return { ok: false, status: 408, data: { error: "Request timeout (10s)" } };
+
+  // Build full URL - resolve relative paths against current origin
+  const url = path.startsWith("http") ? path : getApiBase() + path;
+
+  let lastError = null;
+  for (let attempt = 0; attempt <= API_CONFIG.retries; attempt++) {
+    try {
+      const resp = await fetch(url, opts);
+      clearTimeout(timeoutId);
+
+      // Track connection state
+      if (resp.ok) {
+        markOnline();
+      } else if (resp.status >= 500) {
+        markOffline("Server error: " + resp.status);
+      }
+
+      const text = await resp.text();
+      let data;
+      try { data = text ? JSON.parse(text) : {}; } catch (_) { data = { raw: text }; }
+      if (!resp.ok && !data.error) data.error = "request failed (" + resp.status + ")";
+      return { ok: resp.ok, status: resp.status, data, attempt };
+    } catch (err) {
+      clearTimeout(timeoutId);
+      lastError = err;
+
+      if (err.name === "AbortError") {
+        // Distinguish our timeout from a caller-initiated cancellation.
+        if (callerSignal && callerSignal.aborted) throw err;
+        markOffline("Request timeout");
+        return { ok: false, status: 408, data: { error: "Request timeout (" + API_CONFIG.timeout + "ms)" } };
+      }
+
+      // Network error - retry if we have attempts left
+      if (attempt < API_CONFIG.retries && navigator.onLine) {
+        markOffline("Network error: " + err.message);
+        await new Promise(r => setTimeout(r, API_CONFIG.retryDelay * (attempt + 1)));
+        continue;
+      }
+
+      markOffline("Network error: " + err.message);
+      throw err;
     }
-    throw err;
   }
+
+  // All retries exhausted
+  markOffline("All retries exhausted: " + (lastError && lastError.message));
+  return { ok: false, status: 0, data: { error: "Connection failed after " + (API_CONFIG.retries + 1) + " attempts" } };
+}
+
+// Poll an endpoint with backoff until condition is met or timeout
+async function pollUntil(path, condition, options = {}) {
+  const maxAttempts = options.maxAttempts || 30;
+  const interval = options.interval || 1000;
+  const timeout = options.timeout || 30000;
+
+  const start = Date.now();
+  for (let i = 0; i < maxAttempts; i++) {
+    if (Date.now() - start > timeout) {
+      return { ok: false, status: 408, data: { error: "Poll timeout" } };
+    }
+    const result = await api("GET", path);
+    if (!result.ok) return result;
+    if (condition(result.data)) return result;
+    await new Promise(r => setTimeout(r, interval));
+  }
+  return { ok: false, status: 408, data: { error: "Poll max attempts reached" } };
+}
+
+// Batch multiple API calls with controlled concurrency
+async function apiBatch(calls, concurrency = 3) {
+  const results = [];
+  const queue = [...calls];
+
+  async function worker() {
+    while (queue.length) {
+      const { method, path, body, options } = queue.shift();
+      try {
+        const result = await api(method, path, body, options);
+        results.push({ method, path, result, error: null });
+      } catch (err) {
+        results.push({ method, path, result: null, error: err });
+      }
+    }
+  }
+
+  const workers = [];
+  for (let i = 0; i < Math.min(concurrency, queue.length); i++) {
+    workers.push(worker());
+  }
+  await Promise.all(workers);
+  return results;
 }
 
 function csrf() {
