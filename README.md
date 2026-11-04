@@ -1,53 +1,45 @@
+<div align="center">
+
+<img src="https://capsule-render.vercel.app/api?type=rect&color=0:071812,25:123A2D,68:214E3D,100:0D1B1B&height=180&section=header&text=KALIDESK&font=Orbitron&fontSize=30&fontColor=CFEBD9&animation=fadeIn&fontAlignY=38&desc=WINDOWS%20SECURITY%20WORKBENCH%20FOR%20REAL%20LINUX%20TOOLS&descAlignY=63&descSize=12" width="100%" alt="KaliDesk banner" />
+
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![WSL2](https://img.shields.io/badge/Runtime-Private%20WSL2-3AAE66?style=flat-square)](#)
+[![Windows](https://img.shields.io/badge/Platform-Windows-4A7A9B?style=flat-square)](#)
+[![MIT](https://img.shields.io/badge/License-MIT-6F8F76?style=flat-square)](LICENSE)
+
+</div>
+
 # Kali Linux Windows Substitute
 
-![Version](https://img.shields.io/badge/version-v1.4.0-blue)
-![Python](https://img.shields.io/badge/python-3.10+-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![WSL2](https://img.shields.io/badge/WSL2-required-brightgreen)
+**A Kali-style security workbench for Windows that runs the real Linux tools** in the app's own private WSL2 distribution — not recompiled for Windows.
 
-**A Kali-style security workbench for Windows that runs the real Linux tools**
-in the app's own private WSL2 distribution — not recompiled for Windows.
+> **Not affiliated with OffSec.** "Kali Linux" and the Kali logo are trademarks of OffSec Services Limited. This project is an independent, unofficial workbench that runs Debian/Kali packages. It is not endorsed by or connected to OffSec or the Kali Linux project.
+>
+> **Authorised testing only.** Use it on systems you own or have explicit written permission to test. See [docs/ACCEPTABLE_USE.md](docs/ACCEPTABLE_USE.md).
 
-> **Not affiliated with OffSec.** "Kali Linux" and the Kali logo are trademarks
-> of OffSec Services Limited. This project is an independent, unofficial
-> workbench that runs Debian/Kali packages. It is not endorsed by or connected
-> to OffSec or the Kali Linux project.
+## Three things a bare Kali VM does not give you
 
-> **Authorised testing only.** Use it on systems you own or have explicit
-> written permission to test. See [docs/ACCEPTABLE_USE.md](docs/ACCEPTABLE_USE.md).
-
-## Three things a bare Kali VM does not give you:
-
-- A **friendly GUI** with a tool catalog, per-tool form, prerequisites and output
+- A **friendly GUI** with a tool catalog, per-tool form, prerequisites, and output
 - **Install on demand** — you decide which tools live on your machine; add or uninstall from inside the app
 - An **optional AI assistant** (local or cloud) that explains output and can propose a command (you still confirm)
 
 ## New in v1.4.0
 
-- 🎨 **Soothing Sage UI Theme** — nature-inspired palette (sage greens, warm neutrals, soft blues) for reduced eye strain
-- 🔄 **Resilient Frontend-Backend Connectivity** — auto-retry, connection state tracking, polling utilities, batch requests
-- 📊 **Real-time Status Monitoring** — live runtime/agent status with configurable polling
-- 🛡️ **Enhanced Security** — iframe sandboxing for Strix, URL validation, CSP nonce support
-- ♿ **Accessibility** — WCAG 2.1 AA compliant, reduced motion, high contrast support
+- **Soothing sage UI theme** — nature-inspired palette with reduced eye strain
+- **Resilient frontend-backend connectivity** — auto-retry, connection state tracking, polling utilities, batch requests
+- **Real-time status monitoring** — live runtime and agent status with configurable polling
+- **Enhanced security** — iframe sandboxing for Strix, URL validation, CSP nonce support
+- **Accessibility** — WCAG 2.1 AA compliant, reduced motion, high contrast support
 
-## Quick Overview
+## Quick overview
 
-Run real Linux security tools (nmap, sqlmap, hashcat, tshark, etc.) natively on
-Windows via a private WSL2 runtime. The Flask backend + pywebview UI gives you
-a graphical tool catalog, form-driven tool execution, and audit capabilities — all
-with defense-in-depth: bearer token + CSRF on writes, argv-only execution with
-`shell=False`, an in-runtime allowlist, scope guard, timeouts, output caps, and a
-local audit log.
+Run real Linux security tools (nmap, sqlmap, hashcat, tshark, etc.) natively on Windows via a private WSL2 runtime. The Flask backend + pywebview UI gives you a graphical tool catalog, form-driven tool execution, and audit capabilities — all with defense-in-depth: bearer token + CSRF on writes, argv-only execution with `shell=False`, an in-runtime allowlist, scope guard, timeouts, output caps, and a local audit log.
 
 Report a problem privately: see [SECURITY.md](SECURITY.md).
 
-> **Not affiliated with OffSec.** "Kali Linux" and the Kali logo are trademarks
-> of OffSec Services Limited. This project is an independent, unofficial
-> workbench that runs Debian/Kali packages. It is not endorsed by or connected
-> to OffSec or the Kali Linux project.
-
-> **Authorised testing only.** Use it on systems you own or have explicit
-> written permission to test. See [docs/ACCEPTABLE_USE.md](docs/ACCEPTABLE_USE.md).
+> **Not affiliated with OffSec.** "Kali Linux" and the Kali logo are trademarks of OffSec Services Limited. This project is an independent, unofficial workbench that runs Debian/Kali packages. It is not endorsed by or connected to OffSec or the Kali Linux project.
+>
+> **Authorised testing only.** Use it on systems you own or have explicit written permission to test. See [docs/ACCEPTABLE_USE.md](docs/ACCEPTABLE_USE.md).
 
 ---
 
@@ -59,37 +51,31 @@ Report a problem privately: see [SECURITY.md](SECURITY.md).
 - [The runtime](#the-runtime)
 - [Tools: install, use, remove](#tools-install-use-remove)
 - [The optional AI](#the-optional-ai)
-- [Adding a tool to the catalog](#tools-install-use-remove)
-- [Safety and repository hygiene](#safety-and-repo-hygiene)
+- [Adding a tool to the catalog](#adding-a-tool-to-the-catalog)
+- [Safety and repo hygiene](#safety-and-repo-hygiene)
 - [Project layout](#project-layout)
+- [Version history](#version-history)
 - [Documentation](#documentation)
-- [Licence](#licence)
-- [Publishing to GitHub](#publishing-to-github)
+- [License](#license)
 
 ---
 
 ## How it works
 
-```
-Windows                                   private WSL2 distribution
-┌──────────────────────────────┐          ┌──────────────────────────────┐
-│  desktop window (pywebview)  │          │  kalisub-agent               │
-│    │ loopback + token+CSRF   │          │  127.0.0.1:5055              │
-│  Flask backend 127.0.0.1:8788│  HTTP →  │  allowlist + scope guard     │
-│        │ bearer token        │          │  runs argv, shell=False      │
-└────────┼─────────────────────┘          └──────────────┬───────────────┘
-         │ wsl.exe -d KaliSubstitute                      │
-         ▼                                                ▼
-   your evidence folder  <──── /mnt/c/.../evidence ────────┘
+```text
+Windows                              private WSL2 distribution
+┌──────────────────────────────┐    ┌────────────────────────────────────┐
+│ Kali Linux Windows Substitute │◄──►│ KaliSubstitute                     │
+│ pywebview window             │    │ kalisub-agent                     │
+│ Flask backend + UI           │    │ allowlist from /etc/kalisub/tools.json │
+│ loopback only, token + CSRF  │    │ runs argv with shell=False        │
+│ wsl.exe -d KaliSubstitute    │    │ scope guard + output caps         │
+└──────────────────────────────┘    └────────────────────────────────────┘
 ```
 
-1. The launcher starts a small Flask backend on `127.0.0.1` and opens the UI in a
-   native window.
-2. When you run a tool, the backend builds an **argv list** (never a shell
-   string), applies a scope guard, and asks the in-runtime agent over loopback.
-3. The agent on the Linux side checks the tool is on its allowlist, checks the
-   target is in scope, and runs the binary with `shell=False`, a timeout and an
-   output cap.
+1. The launcher starts a small Flask backend on `127.0.0.1` and opens the UI in a native window.
+2. When you run a tool, the backend builds an argv list (never a shell string), applies a scope guard, and asks the in-runtime agent over loopback.
+3. The agent on the Linux side checks the tool is on its allowlist, checks the target is in scope, and runs the binary with `shell=False`, a timeout, and an output cap.
 4. Output comes back to the UI, and the run is written to a local audit log.
 
 More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
@@ -98,37 +84,20 @@ More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Prerequisites
 
-The app needs **WSL2** on Windows 10 (build 19041+) or Windows 11, and a
-**private runtime image** to import into it.
+The app needs **WSL2** on Windows 10 (build 19041+) or Windows 11, and a **private runtime image** to import into it.
 
-Full, link-by-link instructions are in
-**[docs/PREREQUISITES.md](docs/PREREQUISITES.md)**. The short version:
+Full, link-by-link instructions are in [docs/PREREQUISITES.md](docs/PREREQUISITES.md). The short version:
 
-| What | Why | How |
-| --- | --- | --- |
-| Windows 10 2004+ or Windows 11 | WSL2 needs it | — |
-| WSL2 feature | runs the Linux runtime | `wsl --install` (admin), then restart |
-| Virtualisation enabled in BIOS/UEFI | WSL2 is a VM | see the docs page |
-| ~2 GB free disk | the runtime image | — |
-| The runtime image | the actual Linux tools | built with `runtime/build-rootfs.sh`, or downloaded |
+- Windows 10/11 with WSL2 enabled
+- A private runtime image or built rootfs tarball
+- Python 3.10+
+- PowerShell 5.1+
 
-One-time, elevated PowerShell:
-
-```powershell
-wsl --install --no-distribution
-# restart Windows, then
-wsl --status
-```
-
-You do **not** need Docker. If you already run Docker Desktop, this app will not
-disturb it: it never shares a distribution with anything else and never runs
-`wsl --shutdown`.
+The runtime image is the actual Linux tools. It is built using `runtime/build-rootfs.sh`, or downloaded from a pinned URL you configure.
 
 ---
 
 ## Quick start
-
-### Run from source (recommended while the project is young)
 
 ```powershell
 git clone https://github.com/sazid63/KaliDesk.git
@@ -142,66 +111,82 @@ The app opens. Press **Set up runtime** on the first run.
 Useful flags:
 
 ```powershell
-python app/main.py --check      # headless self-check (used by CI)
+python app/main.py --check      # headless self-check used by CI
 python app/main.py --no-gui     # start the backend and print the URL
 python app/main.py --port 8899  # use a different loopback port
 ```
 
-### Build and install
+Build and install:
 
 ```powershell
 ./installer/build.ps1
 # -> installer/dist/KaliWindowsSubstitute-Setup.exe
 ```
 
-The installer copies the app to `%LOCALAPPDATA%\Programs\KaliWindowsSubstitute`
-and adds a Start Menu shortcut and an uninstall entry. See
-[installer/README.md](installer/README.md).
+The installer copies the app to `%LOCALAPPDATA%\Programs\KaliWindowsSubstitute` and adds a Start Menu shortcut and an uninstall entry. See [installer/README.md](installer/README.md).
 
 ---
 
 ## The runtime
 
-The tools run in a WSL2 distribution called `KaliSubstitute`. It is the app's
-own; the app creates it, and only the app uses it.
+The tools run in a WSL2 distribution called `KaliSubstitute`. It is the app's own runtime; nothing is recompiled for Windows and the app never touches the user's other distributions or Docker Desktop.
 
-- **It never runs `wsl --shutdown`.** WSL2 runs every distribution in one shared
-  VM, so shutting that VM down would disturb Docker Desktop and your own
-  distributions. The app simply does not do it.
-- **It never terminates, exports or unregisters another distribution.**
-- **It never silently downloads and runs something unverified.** A downloaded
-  image must match a SHA-256 you configured.
+```text
+┌──────────────────────── Windows ────────────────────────┐
+│  Kali Linux Windows Substitute (pywebview window)       │
+│        │  fetch, loopback only, token + CSRF            │
+│  Flask backend  127.0.0.1:8788                          │
+│        │  HTTP, loopback, bearer token                  │
+│  wsl.exe -d KaliSubstitute                              │
+└────────┼────────────────────────────────────────────────┘
+          ▼
+┌──────────── private WSL2 distro: KaliSubstitute ────────┐
+│  kalisub-agent  127.0.0.1:5055 (inside the distro)      │
+│    - allowlist from /etc/kalisub/tools.json             │
+│    - runs argv with shell=False, timeout, output cap    │
+│    - scope guard: public targets need confirmation      │
+│  /mnt/c/...\KaliWindowsSubstitute\evidence  (shared)    │
+└─────────────────────────────────────────────────────────┘
+```
 
-Build the image (on any Linux host with root):
+### Ground rules
+
+* The app only ever names its own distribution (`KaliSubstitute`).
+* It never runs `wsl --shutdown`. WSL2 runs every distribution in one VM; shutting that VM down would disturb Docker Desktop and the user's distros.
+* It never terminates, exports or unregisters another distribution.
+
+### Building the image
 
 ```bash
+# On any Linux host with root, debootstrap and python3-yaml:
 sudo apt-get update && sudo apt-get install -y debootstrap python3-yaml
 sudo ./runtime/build-rootfs.sh
 # -> runtime/dist/kalisub-rootfs.tar.gz
 ```
 
-Then press **Set up runtime** in the app. Details and troubleshooting:
-[runtime/README.md](runtime/README.md).
+Then, from Windows, press **Set up runtime** in the app. It runs:
+
+```powershell
+wsl --import KaliSubstitute %LOCALAPPDATA%\KaliWindowsSubstitute\wsl runtime\dist\kalisub-rootfs.tar --version 2
+```
+
+### Alternative: download a pinned image
+
+Set `KWS_ROOTFS_URL` and `KWS_ROOTFS_SHA256` (see `.env.example`). The app will validate the archive before using it.
 
 ---
 
 ## Tools: install, use, remove
 
-Open any tile to see, in plain English:
+Open any tool to see, in plain English:
 
-- **What this tool needs** — the prerequisites for that specific tool, written
-  for someone who has not used it before.
-- **How to use it** — a short walkthrough and copyable examples.
-- **A form** — for the tools the app can drive, with a *Preview command* button
-  that shows the exact argv before anything runs.
+- **What this tool needs** — the prerequisites for that specific tool, written for someone who has not used it before
+- **How to use it** — a short walkthrough and copyable examples
+- **A form** — for the tools the app can drive, with a **Review command** button that shows the exact argv before anything runs
 
-The **Tool manager** installs and uninstalls any tool inside the runtime, and
-shows what is present. The same information is written up per tool in
-[docs/TOOLS.md](docs/TOOLS.md).
+The **Tool manager** installs and uninstalls any tool inside the runtime and shows what is present. The same information is written up per tool in [docs/TOOLS.md](docs/TOOLS.md).
 
-Want a tool the catalog does not have? Add one entry to
-[`catalog/tools.yaml`](catalog/tools.yaml), run `python tools/gen_docs.py`, and it
-appears everywhere: dashboard, manager, prerequisites and docs.
+Want a tool the catalog does not have? Add one entry to [catalog/tools.yaml](catalog/tools.yaml), run `python tools/gen_docs.py`, and it appears everywhere: dashboard, manager, prerequisites and docs.
 
 ---
 
@@ -209,36 +194,32 @@ appears everywhere: dashboard, manager, prerequisites and docs.
 
 You do not need the AI to use any tool. If you want it:
 
-- **Local:** install [Ollama](https://ollama.com), then point Settings at
-  `http://127.0.0.1:11434`.
-- **Cloud:** any OpenAI-compatible endpoint. The API key is encrypted with the
-  Windows Data Protection API and stored per user — never in the repository,
-  never in the database, never in a log.
+- **Local:** install Ollama, then point Settings at `http://127.0.0.1:11434`.
+- **Cloud:** any OpenAI-compatible endpoint. The API key is encrypted with the Windows Data Protection API and stored per user — never in the repo, never in the database, never in logs.
 
-The chat can explain output, answer questions, and **propose** a tool run. A
-proposal is shown with a confirm button; the app never runs what the model
-suggests without you approving it, and the normal scope guard still applies. See
-[docs/AI.md](docs/AI.md).
+The chat can explain output, answer questions, and propose a tool run. A proposal is shown with a confirm button; the app never runs what the model suggests without you approving it, and the normal scope guard still applies.
+
+See [docs/AI.md](docs/AI.md).
 
 ---
 
-## Security and test hygiene
+## Adding a tool to the catalog
+
+Want a tool the catalog does not have? Add one entry to [catalog/tools.yaml](catalog/tools.yaml), run `python tools/gen_docs.py`, and it appears everywhere: dashboard, manager, prerequisites and docs.
+
+This keeps the app's catalog and the documentation in sync without editing a bunch of screenshots or copies in multiple places.
+
+---
+
+## Safety and repo hygiene
 
 This repository is meant to be safe to clone and read.
 
 - **No secrets in the tree.** `.env.example` only, gitleaks in pre-commit and CI.
-- **No machine-specific absolute paths.** Paths are built at runtime from the
-  user's own profile.
-- **No telemetry.** The backend is loopback-only. The only network traffic it
-  ever initiates itself is to the AI endpoint you configure, or to download
-  the runtime image from a pinned URL you configure. Tool installs come from
-  the Kali package mirrors, and tools themselves only contact targets you
-  authorise.
-- **Defence in depth.** Bearer token + CSRF on writes, strict CSP, argv-only
-  execution with `shell=False`, an in-runtime allowlist, a scope guard, timeouts,
-  output caps, and a local audit log.
-- **Reports are download-only attachments**, so a finding can never run script
-  in the app's own window.
+- **No machine-specific absolute paths.** Paths are built at runtime from the user's own profile.
+- **No telemetry.** The backend is localhost-only. The only network traffic it initiates is to the AI endpoint you configure, or to the runtime image download URL you configured. Tool installs come from the Kali package mirrors, and tools themselves only contact targets you authorize.
+- **Defence in depth.** Bearer token + CSRF on writes, strict CSP, argv-only execution with `shell=False`, an in-runtime allowlist, a scope guard, timeouts, output caps, and a local audit log.
+- **Reports are download-only attachments.** A finding can never run script in the app's own window.
 
 Report a problem privately: see [SECURITY.md](SECURITY.md).
 
@@ -246,133 +227,51 @@ Report a problem privately: see [SECURITY.md](SECURITY.md).
 
 ## Project structure
 
-```
-app/            launcher (main.py) and WSL2 runtime lifecycle (runtime.py)
-server/         Flask backend: routes, catalog, commands, security, DB, reports, AI
-ui/             the window: index.html, app.js, styles.css (soft bright theme)
-catalog/        tools.yaml - the single source of truth for every tool
-runtime/        the private WSL2 image: agent, build script, overlay
-installer/      PowerShell build + install/uninstall scripts
-tools/          gen_docs.py and other maintenance scripts
-docs/           prerequisites, architecture, per-tool docs, limitations
-tests/          pytest suite (auth, CSRF, scope guard, commands, reports)
+```text
+app/                    launcher (main.py) and WSL runtime lifecycle
+server/                 Flask backend: routes, catalog, commands, security, DB, reports, AI
+ui/                     the window: index.html, app.js, styles.css (soft bright theme)
+catalog/                tools.yaml — the single source of truth for every tool
+runtime/                the private WSL2 image: agent, build scripts, overlay
+installer/              PowerShell build + install/uninstall scripts
+tools/                  gen_docs.py and other maintenance scripts
+docs/                   prerequisites, architecture, AI, tools, limits
+tests/                  pytest suite (auth, CSRF, scope guard, commands, reports)
 ```
 
 ---
 
 ## Version history
 
-### v1.4.0 (2026-11-03) — Soothing Sage UI, Resilient Connectivity, Enhanced Security
+### v1.4.0 (2026-11-03)
 
-**🎨 UI Redesign — Soothing Sage Theme:**
-- Nature-inspired palette: sage greens, warm neutrals, soft blues
-- Reduced eye strain with low contrast, gentle gradients
-- WCAG 2.1 AA compliant contrast ratios
-- `prefers-reduced-motion` and `prefers-contrast` media queries
+- **Sage UI redesign** with lower eye strain and subtle gradients
+- **Resilient frontend-backend connectivity** with auto-retry and status tracking
+- **Real-time status monitoring** with polling utilities and batch requests
+- **Enhanced security** via iframe sandboxing for Strix, URL validation, CSP nonce support
+- **Accessibility** improvements with WCAG 2.1 AA color contrast
 
-**🔄 Resilient Frontend-Backend Connectivity:**
-- Auto-retry with exponential backoff (configurable)
-- Connection state tracking (`online`, `errorCount`, `lastError`)
-- `pollUntil()` utility for long-running operations (Strix install/start)
-- `apiBatch()` for controlled concurrent requests
-- Connection state tracking with `navigator.onLine` awareness
+### v1.3.0
 
-**🛡️ Enhanced Security:**
-- Strix iframe sandboxing with URL validation (loopback-only)
-- CSP nonce support for inline scripts
-- Removed external Font Awesome CDN (served locally)
-- Stricter volume/port validation in container runtime
+- **Interactive tool catalog** with install/remove actions
+- **AI support integration** for local or cloud models
+- **Application logs and audit history** in file-backed storage
 
-**♿ Accessibility:**
-- WCAG 2.1 AA compliant color contrast
-- `prefers-reduced-motion` support (animations disabled)
-- `prefers-contrast: more` support (stronger borders/focus)
-- Focus-visible styles on all interactive elements
-- Skip links, proper ARIA labels
+---
 
-**🔧 Bug Fixes & Improvements:**
-- Fixed Strix polling with `pollUntil` (timeout, max attempts)
-- Fixed recordings API key (`recording_id` vs `id`)
-- Per-tool work directories (fixes foremost/cewl on 2nd run)
-- Fixed `tools._target_of` — excludes overloaded `name` field from scope guard
-- Lint clean (ruff), 57/57 tests passing
+## Documentation
 
-### v1.1.0 (2026-10-31) — UI overhaul, accessibility, agent stability, bug fixes
+Useful docs are kept in the repository and updated as the app changes:
 
-**UI Overhaul:**
-- Soft bright pastel gradient theme (eye-soothing colors)
-- 8 colorful button variants with gradients + colored shadows
-- Glassmorphic topbar, animated tiles with gradient borders
-- Full responsive design (760px breakpoint)
-
-**Accessibility (ARIA, WCAG 2.1 AA):**
-- Semantic landmarks: `role=banner`, `main`, `navigation`
-- Skip link, `focus-visible` outlines, `prefers-reduced-motion` support
-- ARIA roles on panels, dialogs, listboxes, options
-- Live region for runtime status, `aria-label` on all controls
-
-**Agent Runtime Stability:**
-- Fixed `kalisub-agent-start` PID file race condition
-- Port-based detection with `ss`/`netstat` fallback
-- No more duplicate agent spawns / "Address already in use"
-
-**Bug Fixes (20 issues from ui-tester):**
-- HIGH: History/Achievements API response shape
-- MEDIUM: Settings AI form, Notebook/Recordings/Portable wiring, Onboarding IDs
-- LOW: Dark mode toggle, mobile sidebar, shortcut conflicts
-
-**Code Quality:**
-- Deduplicated `$`, `$$`, `esc`, `toast`, `api`, `csrf` across 9 modules
-- Merged duplicate `wire()` functions
-- Fixed toast memory leak (module variable vs function property)
-- API timeout with `AbortController` + caller signal support
-- Fixed multi-line string syntax errors in 3 files
-
-**Infrastructure:**
-- Podman installed in WSL2 distro (Containers panel functional)
-- `.hidden` CSS class restored (`display: none !important`)
-- `.main-content overflow: auto` (scrolling restored)
-- CSP updated for Font Awesome CDN
-
-### v1.0.0-pre (tag) — Pre-overhaul baseline
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- [docs/PREREQUISITES.md](docs/PREREQUISITES.md)
+- [docs/TOOLS.md](docs/TOOLS.md)
+- [docs/AI.md](docs/AI.md)
+- [docs/ACCEPTABLE_USE.md](docs/ACCEPTABLE_USE.md)
+- [SECURITY.md](SECURITY.md)
 
 ---
 
 ## License
 
-MIT. See [LICENSE](LICENSE). Third-party tools keep their own licences; see
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) — nmap in particular ships under
-the NPSL, which is not OSI-approved.
-
----
-
-## Publishing to GitHub
-
-This tree is safe to push as-is: no secrets, no machine-specific absolute paths,
-and the commit author is a neutral project identity rather than a personal one.
-
-Three placeholders point at a repository that does not exist yet. Replace them
-after you create the repository:
-
-| Where | Placeholder | Replace with |
-| --- | --- | --- |
-| `pyproject.toml` | `Homepage = "https://github.com/your-org/..."` | your repository URL |
-| `catalog/tools.yaml` (the `report` tool) | `homepage: "https://github.com/your-org/..."` | your repository URL |
-| `README.md`, `CONTRIBUTING.md` | `<your-fork-url>` / `<your-fork>` | your fork URL |
-
-After editing `catalog/tools.yaml`, run `python tools/gen_docs.py` so the
-generated docs match, then push:
-
-```powershell
-# Create the repository first (web UI, or: gh repo create <you>/Kali-Windows-Substitute --source . --push)
-git remote add origin https://github.com/<you>/Kali-Windows-Substitute.git
-git push -u origin main
-```
-
-If you would rather your own name appear on the commits than the neutral
-identity, set it before you commit: `git config --local user.name "<name>"` and
-`git config --local user.email "<email>"`.
-
-CI (`.github/workflows/ci.yml`) runs lint, the test suite, generated-file
-drift checks and gitleaks on every push. It needs no secrets beyond the
-automatic `GITHUB_TOKEN`.
+MIT. See [LICENSE](LICENSE) for details.
