@@ -17,30 +17,71 @@ not a claim of any relationship with OffSec.
 
 ## Licences of the tools the catalog can install
 
-The catalog records a licence for every entry. Grouped by licence family:
+The table below is generated from the `license` field of each entry in
+`catalog/tools.yaml` by `tools/gen_docs.py`. Do not edit it by hand: change the
+catalog entry and re-run the generator. The built-in report is this project's
+own code and is left out.
 
-| Licence | Tools |
-| --- | --- |
-| MIT | nuclei, ffuf, binwalk, hcxtools, volatility3(1) |
-| Apache-2.0 | gobuster |
-| BSD-3-Clause | metasploit (plus module licences), msfvenom, tcpdump |
-| ISC | dns (dig / BIND) |
-| GPL-2.0 | whois, whatweb, dnsrecon, theharvester, nikto, searchsploit, sqlmap, hashcat, medusa, crunch, cewl, aircrack-ng, wifite, tshark, netcat, foremost, photorec, steghide, strace |
-| GPL-3.0 | lynis, wpscan(2), commix, wapiti, hydra, john, bettercap, responder, socat, weevely, gdb |
-| AGPL-3.0 | masscan |
-| LGPL-3.0 | radare2 |
-| CPL / IBM Public License | sleuthkit |
-| Public domain (US Air Force) | exiftool(3) |
-| Perl Artistic / GPL | exiftool |
-| Source-available | wpscan (WPScan licence) |
+<!-- BEGIN GENERATED: tool licences -->
+| Tool | Catalog id | Licence (from `catalog/tools.yaml`) |
+| --- | --- | --- |
+| DNS Lookup (dig) | `dns` | ISC |
+| WHOIS Lookup | `whois` | GPL-2.0 |
+| Nmap | `nmap` | NPSL (not OSI-approved; bundled with the runtime for convenience) |
+| Masscan | `masscan` | AGPL-3.0 |
+| WhatWeb | `whatweb` | GPL-2.0 |
+| DNSRecon | `dnsrecon` | GPL-2.0 |
+| theHarvester | `theharvester` | GPL-2.0 |
+| Nikto | `nikto` | GPL-2.0 |
+| Nuclei | `nuclei` | MIT |
+| Lynis | `lynis` | GPL-3.0 |
+| SearchSploit | `searchsploit` | GPL-2.0 |
+| SQLMap | `sqlmap` | GPL-2.0 |
+| Gobuster | `gobuster` | Apache-2.0 |
+| ffuf | `ffuf` | MIT |
+| WPScan | `wpscan` | WPScan licence (source-available; see upstream) |
+| Commix | `commix` | GPL-3.0 |
+| Wapiti | `wapiti` | GPL-2.0 |
+| Hydra | `hydra` | GPL-3.0 |
+| John the Ripper | `john` | GPL-2.0 |
+| Hashcat | `hashcat` | MIT |
+| Medusa | `medusa` | GPL-2.0 |
+| Crunch | `crunch` | GPL-2.0 |
+| CeWL | `cewl` | GPL-2.0 |
+| Aircrack-ng | `aircrack-ng` | GPL-2.0 |
+| Bettercap | `bettercap` | GPL-3.0 |
+| Wifite | `wifite` | GPL-2.0 |
+| hcxtools | `hcxtools` | MIT |
+| Metasploit Framework | `metasploit` | BSD-3-Clause (plus module licences) |
+| msfvenom | `msfvenom` | BSD-3-Clause |
+| tcpdump | `tcpdump` | BSD-3-Clause |
+| Packet Analysis (tshark) | `tshark` | GPL-2.0 |
+| Responder | `responder` | GPL-3.0 |
+| Netcat | `netcat` | GPL-2.0 |
+| Socat | `socat` | GPL-2.0 |
+| Weevely | `weevely` | GPL-3.0 |
+| Foremost | `foremost` | Public domain (US Air Force) |
+| Binwalk | `binwalk` | MIT |
+| PhotoRec | `photorec` | GPL-2.0 |
+| ExifTool | `exiftool` | Perl Artistic / GPL |
+| Steghide | `steghide` | GPL-2.0 |
+| Volatility 3 | `volatility3` | GPL-2.0 |
+| The Sleuth Kit | `sleuthkit` | CPL / IBM Public License |
+| Radare2 | `radare2` | LGPL-3.0 |
+| GDB | `gdb` | GPL-3.0 |
+| strace | `strace` | GPL-2.0 |
+<!-- END GENERATED: tool licences -->
 
-Notes:
+Notes on the table:
 
-1. Volatility 3 is MIT; the memory *samples* you might analyse are not part of
-   this project.
-2. WPScan is source-available under its own licence with usage terms. Read it
-   before using it against anything.
-| NPSL | nmap — **not OSI-approved**. See below. |
+- The catalog licence is a summary of each upstream project's licence, recorded
+  for orientation. Read the upstream licence before you redistribute a tool.
+- **nmap** is under the Nmap Public Source License, which is not OSI-approved.
+  See the nmap section below.
+- **WPScan** is source-available under its own licence with usage terms. Read it
+  before using it against anything.
+- Volatility 3 is listed under its catalog licence. The memory *samples* you
+  might analyse are not part of this project.
 
 ## nmap
 
@@ -58,12 +99,29 @@ an image containing nmap, you must pass those conditions through.
 
 ## Other components
 
+These are the Python packages and runtimes that the app itself needs, either
+directly (`requirements.txt`) or as dependencies of those packages, when it is
+run from source or bundled as the Windows installer. Licences were checked
+against the package metadata in the build environment.
+
 | Component | Licence |
 | --- | --- |
-| Python | PSF-2.0 |
+| Python (CPython) | PSF-2.0 |
 | Flask | BSD-3-Clause |
+| Werkzeug | BSD-3-Clause |
+| Jinja2 | BSD-3-Clause |
+| MarkupSafe | BSD-3-Clause |
+| click | BSD-3-Clause |
+| itsdangerous | BSD-3-Clause |
+| blinker | MIT |
 | PyYAML | MIT |
 | pywebview | BSD-3-Clause |
+| pythonnet | MIT |
+| clr_loader | MIT |
+| cffi | MIT |
+| bottle | MIT |
+| proxy_tools | MIT |
+| setuptools | MIT |
 | WSL2 | Microsoft's terms (Windows component; not redistributed here) |
 | Kali / Debian base packages in the image | each package's own licence |
 

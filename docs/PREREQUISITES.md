@@ -86,13 +86,25 @@ If you only use the built installer, you do not need Python.
 
 ## 4. The runtime image
 
-The tools live in a WSL2 distribution the app imports from a rootfs image. You
-have two options.
+The tools live in a private WSL2 distribution called `KaliSubstitute`. **You do
+not have to build anything.** Press **Set up runtime** in the app and it will:
 
-### Build it yourself (recommended, fully transparent)
+1. download the official Kali WSL image from `kali.download` (about 240 MB) and
+   verify it against Kali's published `SHA256SUMS`. A file that fails the check
+   is deleted and never imported;
+2. import it as `KaliSubstitute` (your other distributions and Docker Desktop
+   are not touched);
+3. install the tool agent and the baseline tools with `apt` (a few minutes);
+4. start the agent and keep it running.
 
-You need a Linux host — Kali, Debian or Ubuntu, or a WSL distribution you
-already have — with `root`, `debootstrap` and `python3-yaml`:
+The first run needs an internet connection and roughly 2 GB of free disk. If
+setup fails, the banner says why and **Try again** resumes where it stopped.
+
+### Use your own image (optional)
+
+Put a root filesystem named `kalisub-rootfs.tar.gz` in
+`%LOCALAPPDATA%\KaliWindowsSubstitute`, or build one on a Linux host (`root`,
+`debootstrap`, `python3-yaml`):
 
 ```bash
 sudo apt-get update && sudo apt-get install -y debootstrap python3-yaml
@@ -100,29 +112,25 @@ sudo ./runtime/build-rootfs.sh
 # writes runtime/dist/kalisub-rootfs.tar.gz and its .sha256
 ```
 
-Then, on Windows, press **Set up runtime** in the app. It imports the image into
-`%LOCALAPPDATA%\KaliWindowsSubstitute\wsl`.
-
-`debootstrap` reference: <https://wiki.debian.org/Debootstrap>
-
-### Download a pinned image
-
-If a maintainer publishes an image, set these in your environment (see
-`.env.example`):
+Or pin a download (see `.env.example`). A checksum is **required**:
 
 ```
 KWS_ROOTFS_URL=https://example.invalid/kalisub-rootfs.tar.gz
 KWS_ROOTFS_SHA256=<the sha256 of that file>
 ```
 
-The app downloads it and **refuses to import it if the SHA-256 does not match**.
+### Open a shell in the runtime
+
+```powershell
+wsl -d KaliSubstitute
+```
 
 ## Optional prerequisites
 
 | Feature | Needs |
 | --- | --- |
-| AI, local | [Ollama](https://ollama.com) running on `127.0.0.1:11434` |
-| AI, cloud | an API key for an OpenAI-compatible endpoint |
+| AI, local | [Ollama](https://ollama.com) running on `127.0.0.1:11434` (see [AI.md](AI.md)) |
+| AI, cloud | an API key for Anthropic, Google Gemini, or an OpenAI-compatible endpoint (see [AI.md](AI.md)) |
 | Wireless tools | a USB Wi-Fi adapter that can be passed through to WSL2 (see [LIMITATIONS.md](LIMITATIONS.md)) |
 
 ## What you do *not* need

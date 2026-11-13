@@ -1,0 +1,39 @@
+name: Tools smoke test
+
+# Installs every catalog tool inside a real Kali container and runs it through the
+# real in-runtime agent (tools/smoke.py). Slow (~20-40 min), so it runs on demand,
+# weekly, and whenever the catalog, command builders or agent change.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 5 * * 1"
+  pull_request:
+    paths:
+      - "catalog/tools.yaml"
+      - "server/commands.py"
+      - "runtime/agent/agent.py"
+      - "runtime/tools/make_manifest.py"
+      - "tools/smoke.py"
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Every tool installs and runs (Kali)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    container:
+      image: kalilinux/kali-rolling
+    steps:
+      - name: Prepare container
+        run: |
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            git ca-certificates python3 python3-yaml wordlists
+          [ -f /usr/share/wordlists/rockyou.txt ] || gunzip -k /usr/share/wordlists/rockyou.txt.gz || true
+
+      - uses: actions/checkout@v4
+
+      - name: Install and run every tool
+        run: python3 tools/smoke.py

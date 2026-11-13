@@ -1,7 +1,7 @@
 """Application paths.
 
 Works both when running from source and when frozen by PyInstaller.
-Nothing here writes secrets: see ``app/secrets.py`` for that.
+Nothing here writes secrets: see ``kws/secrets.py`` for that.
 """
 
 from __future__ import annotations
@@ -53,6 +53,10 @@ def work_dir() -> Path:
 
 def secrets_dir() -> Path:
     return sub_dir("secrets")
+
+
+def log_dir() -> Path:
+    return sub_dir("logs")
 
 
 def db_path() -> Path:

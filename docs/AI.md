@@ -16,18 +16,38 @@ Open **Settings → AI provider**.
 
 Nothing leaves your machine.
 
-### Cloud, OpenAI-compatible
+### The four providers
 
-1. Provider **OpenAI-compatible**.
-2. Base URL: `https://api.openai.com/v1`, or your own gateway (e.g. a
-   self-hosted vLLM, LiteLLM or Azure endpoint that speaks the same API).
-3. Model: e.g. `gpt-4o-mini`.
-4. Paste an API key.
+`server/ai.py` supports four providers. Pick one in the Provider list; each
+has its own default base URL and model, which you can change:
 
-**The key is stored with the Windows Data Protection API**, encrypted to your
-Windows user account, at
-`%LOCALAPPDATA%\KaliWindowsSubstitute\secrets`. It is never written to the
-repository, the database or a log. Clearing it in Settings deletes it. Treat a
+| Provider | Where it runs | Default base URL | Default model | Key needed |
+| --- | --- | --- | --- | --- |
+| Ollama (local) | your machine | `http://127.0.0.1:11434` | `llama3.1` | no |
+| OpenAI-compatible | OpenAI or any gateway that speaks its API | `https://api.openai.com/v1` | `gpt-4o-mini` | yes |
+| Anthropic | Anthropic's API | `https://api.anthropic.com` | `claude-sonnet-4-5` | yes |
+| Google Gemini | Google's Generative Language API | `https://generativelanguage.googleapis.com/v1beta` | `gemini-2.0-flash` | yes |
+
+The OpenAI-compatible option works with a self-hosted vLLM, LiteLLM or Azure
+endpoint, as long as it speaks the same API. Use the **Test connection** button
+to check a provider before you save it. It lists the models the endpoint
+reports.
+
+### Cloud providers
+
+1. Choose the provider, leave the base URL as the default or set your own
+   (for OpenAI-compatible gateways).
+2. Choose a model, e.g. `gpt-4o-mini`, `claude-sonnet-4-5` or `gemini-2.0-flash`.
+3. Paste an API key and save.
+
+Each provider has its own saved key. The app sends a stored key only to the
+base URL it was saved for (or the provider's default), and only over **https**
+unless the base URL is a loopback address.
+
+**Keys are stored with the Windows Data Protection API**, encrypted to your
+Windows user account, under
+`%LOCALAPPDATA%\KaliWindowsSubstitute\secrets`. They are never written to the
+repository, the database or a log. Clearing a key in Settings deletes it. Treat a
 key like a password: do not paste it into a shared machine.
 
 Be aware that when you use a cloud model, **the text you send (including tool

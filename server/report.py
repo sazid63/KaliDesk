@@ -30,6 +30,15 @@ def to_json(findings: list[dict[str, Any]], app_name: str) -> str:
     return json.dumps(payload, indent=2, ensure_ascii=False)
 
 
+_FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _csv_cell(value: Any) -> str:
+    """Neutralise spreadsheet formulas: a cell that starts with = + - @ is shown as text."""
+    text = "" if value is None else str(value)
+    return "'" + text if text.startswith(_FORMULA_START) else text
+
+
 def to_csv(findings: list[dict[str, Any]]) -> str:
     out = io.StringIO()
     writer = csv.writer(out)
@@ -37,12 +46,12 @@ def to_csv(findings: list[dict[str, Any]]) -> str:
     for f in sorted(findings, key=lambda r: _SEV_ORDER.get(r.get("severity", "info"), 9)):
         writer.writerow(
             [
-                f.get("created", ""),
-                f.get("tool", ""),
-                f.get("target", ""),
-                f.get("severity", ""),
-                f.get("title", ""),
-                f.get("detail", ""),
+                _csv_cell(f.get("created", "")),
+                _csv_cell(f.get("tool", "")),
+                _csv_cell(f.get("target", "")),
+                _csv_cell(f.get("severity", "")),
+                _csv_cell(f.get("title", "")),
+                _csv_cell(f.get("detail", "")),
             ]
         )
     return out.getvalue()

@@ -1,86 +1,22 @@
-"""Onboarding wizard for KWS.
+"""First-run onboarding state.
 
-Manages first-run onboarding flow with steps for WSL, runtime, AI setup.
+The guide itself lives in ui/onboarding.js and reflects the real state of the runtime and
+tools. The server only remembers that the user finished it and accepted the acceptable-use
+statement.
 """
 
 from __future__ import annotations
 
-from typing import Any
-
 import server.db as db
 
-#: Onboarding step definitions
-ONBOARDING_STEPS = [
-    {
-        "id": "welcome",
-        "title": "Welcome to Kali Desktop Substitute",
-        "description": "A Kali Linux toolset running natively on Windows via WSL2.",
-        "check_fn": lambda: True,
-    },
-    {
-        "id": "wsl",
-        "title": "WSL2 & KaliSubstitute",
-        "description": "Verify WSL2 is installed and the KaliSubstitute distro is running.",
-        "check_fn": lambda: True,  # Runtime check in frontend
-    },
-    {
-        "id": "runtime",
-        "title": "Agent Runtime",
-        "description": "Start the KWS agent inside WSL2 for tool execution.",
-        "check_fn": lambda: True,  # Runtime check in frontend
-    },
-    {
-        "id": "ai",
-        "title": "AI Provider Setup",
-        "description": (
-            "Configure an AI provider (OpenAI, Anthropic, Ollama, etc.) for the cybersecurity chat."
-        ),
-        "check_fn": lambda: True,  # Runtime check in frontend
-    },
-]
 
-
-def _ensure_settings_table() -> None:
-    """Ensure the settings table exists (created by db.init_db())."""
-    db.init_db()
-
-
-def finish_onboarding() -> bool:
-    """Mark onboarding as complete.
-
-    Returns:
-        True if successfully marked complete.
-    """
-    _ensure_settings_table()
-    with db.connect() as conn:
-        conn.execute(
-            "INSERT INTO settings (key, value) VALUES ('onboarding_complete', '1') "
-            "ON CONFLICT(key) DO UPDATE SET value='1'",
-        )
+def finish_onboarding(accepted: bool) -> bool:
+    """Record completion. Refuses unless the acceptable-use statement was accepted."""
+    if not accepted:
+        return False
+    db.set_setting("onboarding_complete", "1")
     return True
 
 
 def is_onboarding_needed() -> bool:
-    """Check if onboarding is needed (not completed).
-
-    Returns:
-        True if onboarding should be shown.
-    """
-    _ensure_settings_table()
-    with db.connect() as conn:
-        row = conn.execute(
-            "SELECT value FROM settings WHERE key = 'onboarding_complete'"
-        ).fetchone()
-        return row is None or row["value"] != "1"
-
-
-def onboarding_steps() -> list[dict[str, Any]]:
-    """Get the list of onboarding step definitions.
-
-    Returns:
-        List of step dicts with id, title, description.
-    """
-    return [
-        {"id": s["id"], "title": s["title"], "description": s["description"]}
-        for s in ONBOARDING_STEPS
-    ]
+    return db.get_setting("onboarding_complete", "") != "1"

@@ -11,6 +11,17 @@ from typing import Any
 
 import server.db as db
 
+# Form fields that hold secrets or sensitive material; never written to the history.
+_SENSITIVE = {"password", "passwords", "passphrase", "users", "user", "hash", "hashes", "token"}
+
+
+def redact(payload: dict[str, Any]) -> dict[str, Any]:
+    """Return a copy of a form payload that is safe to store."""
+    return {
+        key: ("[redacted]" if key in _SENSITIVE and value else value)
+        for key, value in (payload or {}).items()
+    }
+
 
 def record_run(
     tool: str,
@@ -31,18 +42,16 @@ def record_run(
             "INSERT INTO run_history "
             "(tool, target, argv, rc, duration_ms, output_preview, success, created) "
             "VALUES (?,?,?,?,?,?,?, datetime('now'))",
-            (tool, target, json.dumps(argv), rc, duration_ms, output_preview, success),
+            (tool, target, json.dumps(redact(argv)), rc, duration_ms, output_preview, success),
         )
         run_id = int(cur.lastrowid or 0)
 
-    # Trim to last 500 rows (simple O(1) approach)
+    # Keep only the newest 500 rows. The 501st-newest row is the first one to drop.
     with db.connect() as conn:
-        # Find the ID threshold for the 501st oldest row
-        cur = conn.execute("SELECT id FROM run_history ORDER BY id ASC LIMIT 1 OFFSET 500")
-        row = cur.fetchone()
-        if row:
-            threshold_id = row["id"]
-            conn.execute("DELETE FROM run_history WHERE id <= ?", (threshold_id,))
+        conn.execute(
+            "DELETE FROM run_history WHERE id <= "
+            "(SELECT id FROM run_history ORDER BY id DESC LIMIT 1 OFFSET 500)"
+        )
 
     return run_id
 

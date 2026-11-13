@@ -1,348 +1,270 @@
-"""MCP Server for Kali Linux Windows Substitute.
+"""MCP server for Kali Linux Windows Substitute.
 
-Implements a subset of the Model Context Protocol (JSON-RPC 2.0 over stdio)
-to expose KWS functionality to AI assistants.
+Lets an MCP client (for example Claude Desktop) use this app's tools. It speaks a
+subset of the Model Context Protocol (JSON-RPC 2.0, one message per line over stdio):
 
-Built-in tools:
-  - kali_desktop_run_tool: run a tool via the agent
-  - kali_desktop_read_file: read a file (sandboxed to user_data_dir)
-  - kali_desktop_write_file: write a file (sandboxed to work_dir only)
-  - kali_desktop_list_files: list files in a directory (sandboxed)
+    python -m server.mcp_server
 
-Built-in resources:
-  - file://...: files within user_data_dir
-  - findings://: all findings from the DB
-  - audit://: all audit entries from the DB
+Tools
+  kali_desktop_run_tool   run a catalog tool through the runtime agent
+  kali_desktop_list_files list the evidence or work folder
+  kali_desktop_read_file  read a file in the evidence or work folder
+  kali_desktop_write_file write a text file into the work folder
+
+Resources: findings://all and audit://all.
+
+Safety: a tool run goes through the same scope guard and allow-list as the UI, and a
+client can never confirm a public target (only a person clicking in the app can), so
+only private/loopback targets are reachable from here. Files are limited to the
+evidence and work folders; the database, secrets and everything else are out of reach.
 """
 
 from __future__ import annotations
 
 import json
-import os
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
 import kws.paths as kws_paths
 import server.config as config
 import server.db as db
+import server.history as history
 import server.tools as tools_api
+from kws.__about__ import __version__
 
-# --- Built-in tool definitions ------------------------------------------------
+PROTOCOL_VERSION = "2024-11-05"
+MAX_READ = 512 * 1024
+MAX_WRITE = 1024 * 1024
+SERVER_INFO = {"name": "kali-desktop-mcp", "version": __version__}
 
-
-def _list_builtin_tools() -> list[dict[str, Any]]:
-    return [
-        {
-            "name": "kali_desktop_run_tool",
-            "description": "Run a tool in the runtime agent. Target must pass the scope guard.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "tool_id": {"type": "string", "description": "Tool ID from the catalog"},
-                    "payload": {"type": "object", "description": "Tool arguments"},
-                },
-                "required": ["tool_id", "payload"],
+TOOLS: list[dict[str, Any]] = [
+    {
+        "name": "kali_desktop_run_tool",
+        "description": (
+            "Run a tool from the catalog in the private Kali runtime. Only private or "
+            "loopback targets are allowed from here."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "tool_id": {"type": "string", "description": "Tool id from the catalog"},
+                "payload": {"type": "object", "description": "The tool's form fields"},
             },
+            "required": ["tool_id", "payload"],
         },
-        {
-            "name": "kali_desktop_read_file",
-            "description": "Read a file within the user data directory (sandboxed).",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "path": {"type": "string", "description": "Path relative to user_data_dir"},
-                },
-                "required": ["path"],
+    },
+    {
+        "name": "kali_desktop_list_files",
+        "description": "List files in the evidence or work folder.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"directory": {"type": "string", "enum": ["evidence", "work"]}},
+            "required": ["directory"],
+        },
+    },
+    {
+        "name": "kali_desktop_read_file",
+        "description": "Read a text file from the evidence or work folder.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "directory": {"type": "string", "enum": ["evidence", "work"]},
+                "name": {"type": "string", "description": "File name inside that folder"},
             },
+            "required": ["directory", "name"],
         },
-        {
-            "name": "kali_desktop_write_file",
-            "description": "Write a text file to the work directory (sandboxed).",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "path": {"type": "string", "description": "Filename in work_dir"},
-                    "content": {"type": "string", "description": "File content"},
-                },
-                "required": ["path", "content"],
+    },
+    {
+        "name": "kali_desktop_write_file",
+        "description": "Write a text file into the work folder.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "File name (no folders)"},
+                "content": {"type": "string"},
             },
+            "required": ["name", "content"],
         },
-        {
-            "name": "kali_desktop_list_files",
-            "description": "List files in the evidence or work directory (sandboxed).",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "directory": {
-                        "type": "string",
-                        "enum": ["evidence", "work"],
-                        "description": "Which directory to list",
-                    },
-                },
-                "required": ["directory"],
-            },
-        },
-    ]
+    },
+]
+
+RESOURCES = [
+    {"uri": "findings://all", "name": "Findings", "mimeType": "application/json",
+     "description": "All findings recorded in the app"},
+    {"uri": "audit://all", "name": "Audit log", "mimeType": "application/json",
+     "description": "The app's audit log"},
+]
 
 
-def _list_builtin_resources() -> list[dict[str, Any]]:
-    return [
-        {
-            "uri": "file://",
-            "name": "User data files",
-            "description": "Files within the user data directory",
-            "mimeType": "application/json",
-        },
-        {
-            "uri": "findings://all",
-            "name": "Findings",
-            "description": "All findings from the database",
-            "mimeType": "application/json",
-        },
-        {
-            "uri": "audit://all",
-            "name": "Audit log",
-            "description": "All audit entries from the database",
-            "mimeType": "application/json",
-        },
-    ]
+class RPCError(Exception):
+    def __init__(self, code: int, message: str):
+        super().__init__(message)
+        self.code, self.message = code, message
 
 
-def _sandbox_path(relative: str) -> Path | None:
-    """Resolve a relative path within user_data_dir, preventing escapes."""
-    if not relative:
+def _text(text: str, error: bool = False) -> dict[str, Any]:
+    result: dict[str, Any] = {"content": [{"type": "text", "text": text}]}
+    if error:
+        result["isError"] = True
+    return result
+
+
+def _folder(name: str) -> Path | None:
+    return {"evidence": kws_paths.evidence_dir(), "work": kws_paths.work_dir()}.get(name)
+
+
+def _file_in(directory: str, name: str) -> Path | None:
+    """A regular file directly inside the evidence/work folder (no subfolders, no links)."""
+    base = _folder(directory)
+    if base is None or not name or name in (".", "..") or "/" in name or "\\" in name:
         return None
-    base = kws_paths.user_data_dir()
+    path = base / name
+    if path.is_symlink():
+        return None
     try:
-        resolved = (base / relative).resolve()
+        path.resolve().relative_to(base.resolve())
     except (OSError, ValueError):
         return None
-    # Ensure resolved is within base using commonpath to prevent symlink escapes
-    try:
-        common = os.path.commonpath([str(base), str(resolved)])
-        if common != str(base):
-            return None
-    except (OSError, ValueError):
-        return None
-    return resolved
+    return path
 
 
-def _call_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
-    """Execute a built-in tool and return the result."""
+def call_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
     if name == "kali_desktop_run_tool":
-        tool_id = str(arguments.get("tool_id", ""))
-        payload = arguments.get("payload", {})
+        payload = args.get("payload")
         if not isinstance(payload, dict):
-            return {
-                "content": [{"type": "text", "text": "payload must be an object"}],
-                "isError": True,
-            }
-        cfg = config.load()
-        result, status = tools_api.run(cfg, tool_id, payload)
-        return {"content": [{"type": "text", "text": json.dumps(result)}], "isError": status != 200}
-
-    if name == "kali_desktop_read_file":
-        path = str(arguments.get("path", ""))
-        resolved = _sandbox_path(path)
-        if resolved is None or not resolved.exists():
-            return {"content": [{"type": "text", "text": f"Cannot read: {path}"}], "isError": True}
-        try:
-            text = resolved.read_text(encoding="utf-8", errors="replace")
-            return {"content": [{"type": "text", "text": text}]}
-        except OSError as exc:
-            return {"content": [{"type": "text", "text": str(exc)}], "isError": True}
-
-    if name == "kali_desktop_write_file":
-        path = str(arguments.get("path", ""))
-        content = str(arguments.get("content", ""))
-        # Only allow writes to the work directory
-        work_dir = kws_paths.work_dir()
-        try:
-            resolved = (work_dir / path).resolve()
-            resolved.relative_to(work_dir)
-        except (OSError, ValueError):
-            return {"content": [{"type": "text", "text": f"Cannot write: {path}"}], "isError": True}
-        try:
-            resolved.write_text(content, encoding="utf-8")
-            msg = f"Written {len(content)} bytes to {path}"
-            return {"content": [{"type": "text", "text": msg}]}
-        except OSError as exc:
-            return {"content": [{"type": "text", "text": str(exc)}], "isError": True}
+            return _text("payload must be an object", True)
+        tool_id = str(args.get("tool_id", ""))
+        started = time.time()
+        # No user_confirmed: a client cannot grant itself permission to hit public hosts.
+        result, status = tools_api.run(config.load(), tool_id, payload)
+        duration_ms = round((time.time() - started) * 1000, 1)
+        # Record the run as the app does, so MCP runs show in History and the audit log.
+        rc, ok, preview = tools_api.run_outcome(result, status)
+        target = tools_api._target_of(payload)  # every host field, as the scope guard saw them
+        history.record_run(tool_id, target, payload, rc, duration_ms, preview, ok)
+        db.audit("mcp", f"tool:{tool_id}", target, "ok" if ok else f"status {status}, rc {rc}")
+        return _text(json.dumps(result), status != 200)
 
     if name == "kali_desktop_list_files":
-        directory = str(arguments.get("directory", ""))
-        if directory == "evidence":
-            target_dir = kws_paths.evidence_dir()
-        elif directory == "work":
-            target_dir = kws_paths.work_dir()
-        else:
-            return {
-                "content": [{"type": "text", "text": f"Unknown directory: {directory}"}],
-                "isError": True,
-            }
-        try:
-            files = sorted(
-                p.name for p in target_dir.iterdir() if p.is_file() if not p.is_symlink()
-            )
-            return {"content": [{"type": "text", "text": json.dumps(files)}]}
-        except OSError as exc:
-            return {"content": [{"type": "text", "text": str(exc)}], "isError": True}
+        base = _folder(str(args.get("directory", "")))
+        if base is None:
+            return _text("directory must be 'evidence' or 'work'", True)
+        files = sorted(p.name for p in base.iterdir() if p.is_file() and not p.is_symlink())
+        return _text(json.dumps(files))
 
-    return {"content": [{"type": "text", "text": f"Unknown tool: {name}"}], "isError": True}
+    if name == "kali_desktop_read_file":
+        path = _file_in(str(args.get("directory", "")), str(args.get("name", "")))
+        if path is None or not path.is_file():
+            return _text("no such file", True)
+        with path.open("rb") as handle:  # never load more than MAX_READ bytes
+            data = handle.read(MAX_READ)
+        return _text(data.decode("utf-8", errors="replace"))
+
+    if name == "kali_desktop_write_file":
+        path = _file_in("work", str(args.get("name", "")))
+        content = str(args.get("content", ""))
+        if path is None:
+            return _text("file name must be a plain name inside the work folder", True)
+        if len(content.encode("utf-8")) > MAX_WRITE:
+            return _text("content too large", True)
+        path.write_text(content, encoding="utf-8")
+        return _text(f"wrote {len(content)} characters to work/{path.name}")
+
+    return _text(f"unknown tool: {name}", True)
 
 
-def _read_resource(uri: str) -> dict[str, Any]:
-    """Read a built-in resource."""
-    if uri in ("findings://all", "findings://"):
+def read_resource(uri: str) -> dict[str, Any]:
+    if uri == "findings://all":
         rows = db.findings()
-        return {"contents": [{"uri": uri, "text": json.dumps(rows, default=str)}]}
-
-    if uri in ("audit://all", "audit://"):
+    elif uri == "audit://all":
         rows = db.audits()
-        return {"contents": [{"uri": uri, "text": json.dumps(rows, default=str)}]}
-
-    if uri.startswith("file://"):
-        rel = uri[len("file://") :]
-        resolved = _sandbox_path(rel)
-        if resolved is None or not resolved.exists():
-            return {"contents": [{"uri": uri, "text": ""}]}
-        try:
-            text = resolved.read_text(encoding="utf-8", errors="replace")
-            return {"contents": [{"uri": uri, "text": text}]}
-        except OSError:
-            return {"contents": [{"uri": uri, "text": ""}]}
-
-    return {"contents": [{"uri": uri, "text": ""}]}
+    else:
+        raise RPCError(-32002, f"unknown resource: {uri}")
+    return {"contents": [{"uri": uri, "mimeType": "application/json",
+                          "text": json.dumps(rows, default=str)}]}
 
 
 class MCPServer:
-    """MCP server (JSON-RPC 2.0 over stdio)."""
+    """Handles one connection; ``handle`` maps a decoded message to a reply (or None)."""
 
     def __init__(self) -> None:
-        self._initialized = False
+        self.initialized = False
 
-    def _handle_request(self, request_id: Any, method: str, params: Any) -> dict[str, Any]:
-        # Enforce init handshake: reject everything until initialized
-        if not self._initialized:
-            if method == "initialize":
-                # Validate params contain protocolVersion
-                if isinstance(params, dict) and params.get("protocolVersion"):
-                    self._initialized = True
-                    return {
-                        "id": request_id,
-                        "result": {
-                            "protocolVersion": "2024-11-05",
-                            "capabilities": {"tools": {}, "resources": {}},
-                            "serverInfo": {"name": "kali-desktop-mcp", "version": "1.0.0"},
-                        },
-                    }
-                # Invalid initialize
-                return {
-                    "error": {"code": -32602, "message": "Missing protocolVersion"},
-                    "id": request_id,
-                }
-            return {
-                "error": {"code": -32600, "message": "Server not initialized"},
-                "id": request_id,
-            }
-
+    def dispatch(self, method: str, params: Any) -> Any:
         if method == "initialize":
-            # Already initialized; optionally return existing state
+            if not isinstance(params, dict) or not params.get("protocolVersion"):
+                raise RPCError(-32602, "missing protocolVersion")
+            self.initialized = True
             return {
-                "id": request_id,
-                "result": {
-                    "protocolVersion": "2024-11-05",
-                    "capabilities": {"tools": {}, "resources": {}},
-                    "serverInfo": {"name": "kali-desktop-mcp", "version": "1.0.0"},
-                },
+                "protocolVersion": PROTOCOL_VERSION,
+                "capabilities": {"tools": {}, "resources": {}},
+                "serverInfo": SERVER_INFO,
             }
-
-        if method == "initialized":
-            return {"id": request_id, "result": None}
-
+        if method == "ping":
+            return {}
+        if not self.initialized:
+            raise RPCError(-32600, "server not initialized")
         if method == "tools/list":
-            return {"id": request_id, "result": {"tools": _list_builtin_tools()}}
-
+            return {"tools": TOOLS}
         if method == "tools/call":
             if not isinstance(params, dict):
-                return {"error": {"code": -32602, "message": "Invalid params", "id": request_id}}
-            name = str(params.get("name", ""))
-            arguments = params.get("arguments", {})
-            result = _call_tool(name, arguments)
-            return {"id": request_id, "result": result}
-
+                raise RPCError(-32602, "invalid params")
+            args = params.get("arguments") or {}
+            if not isinstance(args, dict):
+                raise RPCError(-32602, "arguments must be an object")
+            return call_tool(str(params.get("name", "")), args)
         if method == "resources/list":
-            return {"id": request_id, "result": {"resources": _list_builtin_resources()}}
-
+            return {"resources": RESOURCES}
         if method == "resources/read":
             if not isinstance(params, dict):
-                return {"error": {"code": -32602, "message": "Invalid params", "id": request_id}}
-            uri = str(params.get("uri", ""))
-            result = _read_resource(uri)
-            return {"id": request_id, "result": result}
+                raise RPCError(-32602, "invalid params")
+            return read_resource(str(params.get("uri", "")))
+        raise RPCError(-32601, f"method not found: {method}")
 
-        return {
-            "error": {"code": -32601, "message": f"Method not found: {method}", "id": request_id}
-        }
+    def handle(self, message: Any) -> dict[str, Any] | None:
+        if not isinstance(message, dict) or message.get("jsonrpc") != "2.0":
+            return {"jsonrpc": "2.0", "id": None,
+                    "error": {"code": -32600, "message": "invalid request"}}
+        method = message.get("method")
+        if not isinstance(method, str):
+            return None  # a response from the client; nothing to do
+        if "id" not in message:
+            return None  # notifications (e.g. notifications/initialized) get no reply
+        try:
+            result = self.dispatch(method, message.get("params"))
+            return {"jsonrpc": "2.0", "id": message["id"], "result": result}
+        except RPCError as exc:
+            return {"jsonrpc": "2.0", "id": message["id"],
+                    "error": {"code": exc.code, "message": exc.message}}
+        except Exception as exc:  # noqa: BLE001
+            return {"jsonrpc": "2.0", "id": message["id"],
+                    "error": {"code": -32603, "message": f"internal error: {type(exc).__name__}"}}
 
     def run_stdio(self) -> None:
-        """Run the MCP server over stdio, processing one request per line."""
-        import select
-
-        MAX_REQUEST_SIZE = 1 * 1024 * 1024  # 1 MB max per message
-        READLINE_TIMEOUT = 30  # seconds of idle before shutting down
-
-        while True:
-            # Timeout on readline: bail out if no data arrives
-            try:
-                rlist, _, _ = select.select([sys.stdin], [], [], READLINE_TIMEOUT)
-            except (OSError, ValueError):
-                break
-            if not rlist:
-                break  # idle timeout
-
-            line = sys.stdin.readline()
-            if not line:
-                break  # EOF
-
+        for line in sys.stdin:
             line = line.strip()
             if not line:
                 continue
-
-            # Enforce request size limit
-            if len(line) > MAX_REQUEST_SIZE:
-                resp = {
-                    "jsonrpc": "2.0",
-                    "id": None,
-                    "error": {"code": -32000, "message": "Request too large"},
-                }
-                print(json.dumps(resp), flush=True)
-                continue
-
-            try:
-                req = json.loads(line)
-            except json.JSONDecodeError:
-                resp = {
-                    "jsonrpc": "2.0",
-                    "id": None,
-                    "error": {"code": -32700, "message": "Parse error"},
-                }
-                print(json.dumps(resp), flush=True)
-                continue
-
-            request_id = req.get("id")
-            method = str(req.get("method", ""))
-            params = req.get("params")
-            result = self._handle_request(request_id, method, params)
-            resp = {"jsonrpc": "2.0", **result}
-            print(json.dumps(resp), flush=True)
+            if len(line) > 1_000_000:
+                reply: dict[str, Any] | None = {
+                    "jsonrpc": "2.0", "id": None,
+                    "error": {"code": -32000, "message": "request too large"}}
+            else:
+                try:
+                    reply = self.handle(json.loads(line))
+                except json.JSONDecodeError:
+                    reply = {"jsonrpc": "2.0", "id": None,
+                             "error": {"code": -32700, "message": "parse error"}}
+            if reply is not None:
+                print(json.dumps(reply), flush=True)
 
 
 def main() -> int:
-    server = MCPServer()
+    db.init_db()
     try:
-        server.run_stdio()
+        MCPServer().run_stdio()
     except KeyboardInterrupt:
         pass
     return 0

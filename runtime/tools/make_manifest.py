@@ -67,7 +67,8 @@ BINARIES = {
     "strace": "strace",
 }
 
-MAX_ARGS = 48
+# Upper bound on argv length the agent accepts for one tool (written into the manifest).
+MAX_ARGS = 32
 
 
 def build(catalog_path: Path) -> dict:
@@ -85,7 +86,8 @@ def build(catalog_path: Path) -> dict:
             "packages": packages,
             "repo": tool.get("repo", "debian"),
             "baseline": bool(tool.get("baseline")),
-            "max_args": 32,
+            "max_args": MAX_ARGS,
+            **{key: tool[key] for key in ("install_steps", "remove_steps") if tool.get(key)},
         })
     return {
         "generated_from": "catalog/tools.yaml",

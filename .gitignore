@@ -61,6 +61,10 @@ desktop.ini
 # Local Python installs, scratch dirs and editor/harness scratch files that
 # live inside the checkout but are not part of the project.
 ~/
-*echo*
+/echo*.txt
+/echo*.log
+.impeccable/
+.claude/settings.local.json
+runtime/.work/
 security_audit_report.md
 server/SECURITY_AUDIT.md

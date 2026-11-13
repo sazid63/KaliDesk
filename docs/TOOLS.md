@@ -70,54 +70,54 @@ _46 tools in 11 categories._
 
 ## Summary table
 
-| Tool | Category | Baseline | Packages | Impact |
-| --- | --- | --- | --- | --- |
-| DNS Lookup (dig) | information-gathering | yes | dnsutils | low |
-| WHOIS Lookup | information-gathering | yes | whois | low |
-| Nmap | information-gathering | yes | nmap | moderate |
-| Masscan | information-gathering | no | masscan | high |
-| WhatWeb | information-gathering | yes | whatweb | moderate |
-| DNSRecon | information-gathering | no | dnsrecon | moderate |
-| theHarvester | information-gathering | no | theharvester | low |
-| Nikto | vulnerability-analysis | no | nikto | moderate |
-| Nuclei | vulnerability-analysis | no | nuclei | moderate |
-| Lynis | vulnerability-analysis | no | lynis | low |
-| SearchSploit | vulnerability-analysis | no | exploitdb | low |
-| SQLMap | web-applications | yes | sqlmap | high |
-| Gobuster | web-applications | yes | gobuster | moderate |
-| ffuf | web-applications | yes | ffuf | moderate |
-| WPScan | web-applications | no | wpscan | moderate |
-| Commix | web-applications | no | commix | high |
-| Wapiti | web-applications | no | wapiti | moderate |
-| Hydra | password-attacks | yes | hydra | high |
-| John the Ripper | password-attacks | yes | john | moderate |
-| Hashcat | password-attacks | yes | hashcat | moderate |
-| Medusa | password-attacks | no | medusa | high |
-| Crunch | password-attacks | no | crunch | low |
-| CeWL | password-attacks | no | cewl | moderate |
-| Aircrack-ng | wireless-attacks | no | aircrack-ng | high |
-| Bettercap | wireless-attacks | no | bettercap | high |
-| Wifite | wireless-attacks | no | wifite | high |
-| hcxtools | wireless-attacks | no | hcxtools | moderate |
-| Metasploit Framework | exploitation-tools | no | metasploit-framework | high |
-| msfvenom | exploitation-tools | no | metasploit-framework | high |
-| tcpdump | sniffing-spoofing | yes | tcpdump | moderate |
-| Packet Analysis (tshark) | sniffing-spoofing | yes | tshark | low |
-| Responder | sniffing-spoofing | no | responder | high |
-| Netcat | post-exploitation | yes | netcat-openbsd | moderate |
-| Socat | post-exploitation | yes | socat | moderate |
-| Weevely | post-exploitation | no | weevely | high |
-| Foremost | forensics | yes | foremost | low |
-| Binwalk | forensics | yes | binwalk | low |
-| PhotoRec | forensics | yes | testdisk | low |
-| ExifTool | forensics | yes | libimage-exiftool-perl | low |
-| Steghide | forensics | no | steghide | low |
-| Volatility 3 | forensics | no | volatility3 | low |
-| The Sleuth Kit | forensics | yes | sleuthkit | low |
-| Radare2 | reverse-engineering | no | radare2 | low |
-| GDB | reverse-engineering | no | gdb | low |
-| strace | reverse-engineering | no | strace | low |
-| Report Builder | reporting | no | built-in | low |
+| Tool | Category | Baseline | Packages | Impact | How you run it |
+| --- | --- | --- | --- | --- | --- |
+| DNS Lookup (dig) | information-gathering | yes | dnsutils | low | one-click form |
+| WHOIS Lookup | information-gathering | yes | whois | low | one-click form |
+| Nmap | information-gathering | yes | nmap | moderate | one-click form |
+| Masscan | information-gathering | no | masscan | high | one-click form |
+| WhatWeb | information-gathering | yes | whatweb | moderate | one-click form |
+| DNSRecon | information-gathering | no | dnsrecon | moderate | one-click form |
+| theHarvester | information-gathering | no | theharvester | low | one-click form |
+| Nikto | vulnerability-analysis | no | nikto | moderate | one-click form |
+| Nuclei | vulnerability-analysis | no | nuclei | moderate | one-click form |
+| Lynis | vulnerability-analysis | no | lynis | low | one-click form |
+| SearchSploit | vulnerability-analysis | no | exploitdb | low | one-click form |
+| SQLMap | web-applications | yes | sqlmap | high | one-click form |
+| Gobuster | web-applications | yes | gobuster | moderate | one-click form |
+| ffuf | web-applications | yes | ffuf | moderate | one-click form |
+| WPScan | web-applications | no | wpscan | moderate | one-click form |
+| Commix | web-applications | no | commix | high | one-click form |
+| Wapiti | web-applications | no | wapiti | moderate | one-click form |
+| Hydra | password-attacks | yes | hydra | high | one-click form |
+| John the Ripper | password-attacks | yes | john | moderate | one-click form |
+| Hashcat | password-attacks | yes | hashcat | moderate | one-click form |
+| Medusa | password-attacks | no | medusa | high | one-click form |
+| Crunch | password-attacks | no | crunch | low | one-click form |
+| CeWL | password-attacks | no | cewl | moderate | one-click form |
+| Aircrack-ng | wireless-attacks | no | aircrack-ng | high | one-click form |
+| Bettercap | wireless-attacks | no | bettercap | high | runtime terminal |
+| Wifite | wireless-attacks | no | wifite | high | runtime terminal |
+| hcxtools | wireless-attacks | no | hcxtools | moderate | one-click form |
+| Metasploit Framework | exploitation-tools | no | metasploit-framework | high | one-click form |
+| msfvenom | exploitation-tools | no | metasploit-framework | high | one-click form |
+| tcpdump | sniffing-spoofing | yes | tcpdump | moderate | one-click form |
+| Packet Analysis (tshark) | sniffing-spoofing | yes | tshark | low | one-click form |
+| Responder | sniffing-spoofing | no | responder | high | runtime terminal |
+| Netcat | post-exploitation | yes | netcat-openbsd | moderate | one-click form |
+| Socat | post-exploitation | yes | socat | moderate | one-click form |
+| Weevely | post-exploitation | no | weevely | high | one-click form |
+| Foremost | forensics | yes | foremost | low | one-click form |
+| Binwalk | forensics | yes | binwalk | low | one-click form |
+| PhotoRec | forensics | yes | photorec, testdisk | low | one-click form |
+| ExifTool | forensics | yes | libimage-exiftool-perl | low | one-click form |
+| Steghide | forensics | no | steghide | low | one-click form |
+| Volatility 3 | forensics | no | python3-venv, python3-pip | low | one-click form |
+| The Sleuth Kit | forensics | yes | sleuthkit | low | one-click form |
+| Radare2 | reverse-engineering | no | radare2 | low | one-click form |
+| GDB | reverse-engineering | no | gdb | low | one-click form |
+| strace | reverse-engineering | no | strace | low | one-click form |
+| Report Builder | reporting | no | built-in | low | built in |
 
 ---
 

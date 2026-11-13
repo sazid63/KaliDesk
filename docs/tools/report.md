@@ -24,4 +24,4 @@ Record findings as you work, then export a report (HTML for reading, JSON or CSV
 - Install with: built into the app
 - Baseline: no
 - Licence: MIT (part of this project)
-- Upstream: <https://github.com/your-org/kali-windows-substitute>
+- Upstream: <https://github.com/sazid63/KaliDesk>

@@ -1,5 +1,8 @@
 """End-to-end test harness for Kali Linux Windows Substitute (NOT part of the app).
 
+Manual dev harness: not run by pytest or CI. It needs a real WSL2 runtime on
+Windows. Run it from the repository root with: .venv/Scripts/python tools/e2e_test.py
+
 Drives the real app code paths a fresh user would hit:
   status -> ensure (provision) -> run tools via server.tools -> manage tools.
 
@@ -109,7 +112,7 @@ def main():
     # Missing required field must be a clear 400, not a broken tool run.
     r, s = tools.run(cfg, "nmap", {"profile": "tcp-quick"}, timeout=30)
     print(f"\n--- missing input (nmap, no target) -> HTTP {s} "
-          f"{r.get('error') if isinstance(result, dict) else r}")
+          f"{r.get('error') if isinstance(r, dict) else r}")
     summary.append(("missing-input", s, None))
 
     # Scope guard: external target without confirmation must be refused.

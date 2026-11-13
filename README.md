@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0B2A7D,50:8A1C1C,100:0B2A7D&height=200&section=header&text=KALIDESK&font=Orbitron&fontSize=32&fontColor=F5F7FF&animation=fadeIn&fontAlignY=38&desc=Real%20Linux%20tools%20for%20Windows&descAlignY=62&descSize=16" alt="KaliDesk — real Linux tools for Windows" width="100%" />
-
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![WSL2](https://img.shields.io/badge/Runtime-Private%20WSL2-3AAE66?style=flat-square)](#the-runtime)
 [![Windows](https://img.shields.io/badge/Platform-Windows-4A7A9B?style=flat-square)](#prerequisites)
@@ -31,13 +29,15 @@ A bare Kali VM gives you command-line tools. KaliDesk adds a guided Windows desk
 - **Optional AI assistant:** use a local or cloud model to explain output or propose a command. AI is not required, and suggestions are never run without your confirmation.
 - **Private WSL2 runtime:** the app manages its own distribution and does not interfere with your other WSL distributions or Docker Desktop.
 
-## New in v1.4.0
+## New in v1.5.0
 
-- **Soothing sage UI theme** with a nature-inspired palette and reduced eye strain.
-- **Resilient frontend/backend connectivity** with automatic retry, connection-state tracking, polling utilities, and batch requests.
-- **Real-time status monitoring** for runtime and agent state with configurable polling.
-- **Enhanced security** including iframe sandboxing for Strix, URL validation, and CSP nonce support.
-- **Accessibility improvements** including WCAG 2.1 AA support, reduced motion, and high contrast.
+- **One-click first run:** *Set up runtime* downloads the official Kali WSL image, verifies its SHA-256, imports it as the private `KaliSubstitute` distro, installs the baseline tools and keeps the agent running. Live progress and clear errors in the banner.
+- **Live runs:** tool runs and installs stream their output, show elapsed time and have a **Stop** button. A timeout keeps the partial output.
+- **Every tool reachable:** 42 tools have one-click forms (new: socat, msfvenom, weevely, photorec), 3 (responder, bettercap, wifite) open in a runtime terminal, and the report builder is built in: 46 catalog entries in all. Tiles show whether a tool is installed and offer an Install button.
+- **Safer by default:** form values can no longer inject options, Metasploit is limited to auxiliary scanner modules, the scope guard handles CIDR/IPv6 bypasses, only your own click can confirm an external target, and secrets are not written to history.
+- **The extras now really work:** run transcripts are saved automatically, achievements are earned from your history, the playground is a real vulnerable practice target, containers (Podman) validate everything they run, *Backup and restore* replaces the old portable mode, and the first-run guide reflects the real state of the runtime. One AI assistant (Ollama, OpenAI-compatible, Anthropic or Gemini) replaces the three overlapping AI panels, and the MCP server lets other AI apps use your tools safely.
+- **Removed, not hidden:** the Strix panel (Strix is a command-line tool that needs Docker and an LLM key, not a service on port 8080; see `docs/LIMITATIONS.md`), the unsafe MCP client, "skills", and the local model downloader.
+- **Fixes:** the in-runtime agent now starts, the UI buttons attach, long runs are no longer cut off after 10 s, and CI and the installer build are green again.
 
 ## How it works
 
@@ -61,14 +61,14 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the architecture details.
 
 ## Prerequisites
 
-KaliDesk requires **WSL2** on Windows 10 (build 19041 or newer) or Windows 11, plus a private Linux runtime image to import.
+KaliDesk requires **WSL2** on Windows 10 (build 19041 or newer) or Windows 11.
 
 - Windows 10/11 with WSL2 enabled
-- A private runtime image or a root filesystem tarball you build
-- Python 3.10 or newer
+- Python 3.10 or newer, only if you run from source
 - PowerShell 5.1 or newer
+- An internet connection for the first **Set up runtime**, which downloads the official Kali WSL image (about 240 MB) and verifies it against Kali's published SHA-256 sums
 
-The runtime image contains the Linux environment and tools. Build it with `runtime/build-rootfs.sh`, or configure a pinned image URL and SHA-256. Follow [docs/PREREQUISITES.md](docs/PREREQUISITES.md) for complete instructions.
+Building your own runtime image is optional. Follow [docs/PREREQUISITES.md](docs/PREREQUISITES.md) for complete instructions.
 
 ## Quick start
 
@@ -138,10 +138,10 @@ sudo ./runtime/build-rootfs.sh
 # -> runtime/dist/kalisub-rootfs.tar.gz
 ```
 
-Then, from Windows, press **Set up runtime** in the app. The import is equivalent to:
+Or skip the build: pressing **Set up runtime** in the app downloads and verifies the official Kali WSL image for you. A manual import is equivalent to:
 
 ```powershell
-wsl --import KaliSubstitute %LOCALAPPDATA%\KaliWindowsSubstitute\wsl runtime\dist\kalisub-rootfs.tar --version 2
+wsl --import KaliSubstitute %LOCALAPPDATA%\KaliWindowsSubstitute\wsl runtime\dist\kalisub-rootfs.tar.gz --version 2
 ```
 
 Alternatively, set `KWS_ROOTFS_URL` and `KWS_ROOTFS_SHA256` (see `.env.example`) to download a pinned image. KaliDesk validates the archive against the configured SHA-256 before using it.
@@ -171,7 +171,7 @@ The catalog is the source of truth used by the dashboard, tool manager, prerequi
 AI is optional; KaliDesk's tools work without it.
 
 - **Local:** install Ollama and point Settings to `http://127.0.0.1:11434`.
-- **Cloud:** configure an OpenAI-compatible endpoint. The API key is encrypted with the Windows Data Protection API and stored per user—not in the repository, database, or logs.
+- **Cloud:** choose Anthropic, Google Gemini, or any OpenAI-compatible endpoint, and enter your own API key in Settings. Keys are encrypted with the Windows Data Protection API and stored per user and per provider, not in the repository, database, or logs.
 
 The assistant can explain output, answer questions, and propose a tool run. A proposal is presented for your review and confirmation; KaliDesk does not run model suggestions without your approval. See [docs/AI.md](docs/AI.md).
 
@@ -203,12 +203,16 @@ tests/                  pytest suite (auth, CSRF, scope guard, commands, reports
 
 ## Version history
 
+### v1.5.0 (2026-11-10)
+
+See the list above and [CHANGELOG.md](CHANGELOG.md).
+
 ### v1.4.0 (2026-11-03)
 
 - **Sage UI redesign** with lower eye strain and subtle gradients.
 - **Resilient frontend/backend connectivity** with auto-retry and status tracking.
 - **Real-time status monitoring** with polling utilities and batch requests.
-- **Enhanced security** via iframe sandboxing for Strix, URL validation, and CSP nonce support.
+- **Enhanced security** via URL validation and a strict CSP.
 - **Accessibility** improvements with WCAG 2.1 AA color contrast.
 
 ### v1.3.0

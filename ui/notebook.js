@@ -1,3 +1,5 @@
+(function () {
+"use strict";
 /*
  * Kali Linux Windows Substitute - OSINT Notebook Panel
  */
@@ -6,13 +8,12 @@ let notebookEntries = [];
 
 async function initNotebook() {
   await loadEntries();
-  wireNotebook();
 }
 
 async function loadEntries() {
   const { data } = await api("GET", "/api/notebook/entries");
-  if (!data) return;
-  notebookEntries = data;
+  if (!data || !Array.isArray(data.entries)) return;
+  notebookEntries = data.entries;
   renderEntries();
 }
 
@@ -55,9 +56,10 @@ async function addEntry() {
   }
   
   const tags = tagsRaw ? tagsRaw.split(",").map(t => t.trim()).filter(Boolean) : [];
-  const { data } = await api("POST", "/api/notebook/entries", { type, content, tags });
+  const { ok, data } = await api("POST", "/api/notebook/entries", { type, content, tags });
+  if (!ok) { toast((data && data.error) || "Could not save the entry", true); return; }
   toast(data.message || "Entry added");
-  $("#entry-form").style.display = "none";
+  $("#entry-form").classList.add("hidden");
   $("#notebook-content").value = "";
   $("#notebook-tags").value = "";
   loadEntries();
@@ -65,7 +67,8 @@ async function addEntry() {
 
 async function deleteEntry(id) {
   if (!confirm("Delete this entry?")) return;
-  await api("DELETE", "/api/notebook/entries/" + id);
+  const { ok, data } = await api("DELETE", "/api/notebook/entries/" + encodeURIComponent(id));
+  if (!ok) { toast((data && data.error) || "Could not delete the entry", true); return; }
   loadEntries();
   toast("Entry deleted");
 }
@@ -103,17 +106,17 @@ async function searchEntries(query) {
   }
 }
 
-function wire() {
+function wireNotebook() {
   const addBtn = $("#notebook-add");
   const form = $("#entry-form");
   if (addBtn) addBtn.addEventListener("click", () => {
-    if (form) form.style.display = (form.style.display === "none") ? "" : "none";
+    if (form) form.classList.toggle("hidden");
   });
   const saveBtn = $("#notebook-save");
   if (saveBtn) saveBtn.addEventListener("click", addEntry);
   const cancelBtn = $("#notebook-cancel");
   if (cancelBtn) cancelBtn.addEventListener("click", () => {
-    if (form) form.style.display = "none";
+    if (form) form.classList.add("hidden");
   });
   const exportBtn = $("#notebook-export");
   if (exportBtn) exportBtn.addEventListener("click", exportNotebook);
@@ -127,4 +130,7 @@ function wire() {
   }
 }
 
-wire();
+wireNotebook();
+
+  window.initNotebook = initNotebook;
+})();

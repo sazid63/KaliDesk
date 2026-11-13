@@ -30,11 +30,12 @@ def test_hydra_uses_files_from_the_context():
     ctx = {"files": {"users.txt": "/w/users.txt", "passwords.txt": "/w/passwords.txt"}}
     base = {"users": "admin", "passwords": "pw"}
     assert commands.build("hydra", {**base, "target": "10.0.0.5", "service": "ssh"}, ctx) == [
-        "hydra", "-L", "/w/users.txt", "-P", "/w/passwords.txt", "ssh://10.0.0.5"
+        "hydra", "-t", "4", "-f", "-L", "/w/users.txt", "-P", "/w/passwords.txt", "ssh://10.0.0.5"
     ]
     assert commands.build(
         "hydra", {**base, "target": "10.0.0.5", "service": "http-get"}, ctx
-    ) == ["hydra", "-L", "/w/users.txt", "-P", "/w/passwords.txt", "10.0.0.5", "http-get", "/"]
+    ) == ["hydra", "-t", "4", "-f", "-L", "/w/users.txt", "-P", "/w/passwords.txt",
+          "10.0.0.5", "http-get", "/"]
 
 
 def test_required_inputs_are_enforced():
@@ -84,10 +85,10 @@ def test_nothing_returns_a_shell_string():
     # argv entries are the only output shape; a single concatenated string is a bug.
     for tool_id in commands.automated_ids():
         payload = {
-            "target": "10.0.0.1", "url": "https://10.0.0.1/", "query": "x",
+            "target": "10.0.0.1", "url": "https://10.0.0.1/FUZZ", "query": "x",
             "name": "example.com", "file": "a.bin", "user": "u", "users": "u",
             "passwords": "p", "hashes": "h", "hash": "h", "min": "1", "max": "2",
-            "charset": "ab", "module": "auxiliary/x", "filter": "port 53",
+            "charset": "ab", "module": "auxiliary/scanner/x", "lhost": "10.0.0.2", "password": "pw123", "filter": "port 53",
             "port": "22", "service": "ssh", "profile": "service", "mode": "0", "mask": "",
         }
         ctx = {"files": {"users.txt": "/w/u", "passwords.txt": "/w/p",

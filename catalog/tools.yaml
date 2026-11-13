@@ -1,11 +1,16 @@
 # =============================================================================
 # Kali Linux Windows Substitute - tool catalog
 # =============================================================================
-# This file is the single source of truth for every tool the app knows about.
+# This file is the single source of truth for the tools the app knows about.
 # The dashboard, the Tool Manager, the in-app "What you need" / prerequisites
-# panels and docs/TOOLS.md are all generated from the entries below.
+# panels and docs/TOOLS.md (via tools/gen_docs.py) are built from the entries below.
 #
-# Add a tool by adding an entry. There is no other place to register it.
+# Add a tool by adding an entry. If the app should drive it with a one-click
+# form, also add a builder in server/commands.py (BUILDERS).
+#
+# Runtime settings are not catalog keys: the WSL distro name and the agent port
+# live in server/config.py (KWS_DISTRO, KWS_AGENT_URL). Only app.name and
+# app.version are read from the app: block (server/catalog.py, tests/test_version.py).
 #
 # Field reference
 #   id            short unique id used in URLs and the runtime allowlist
@@ -13,7 +18,9 @@
 #   category      one of the ids under `categories:`
 #   summary       1-2 sentences, plain English, shown on the tile and panel
 #   packages      apt package name(s) that provide the tool
-#   repo          "debian" (default) or "kali" (needs the Kali repository)
+#   repo          "debian" (default), "kali" (needs the Kali repository) or "pypi"
+#   install_steps optional list of argv lists run instead of `apt-get install` (for tools that
+#   remove_steps  are not packaged); remove_steps likewise replaces `apt-get remove`
 #   baseline      true = preinstalled in the runtime image
 #   danger        low | moderate | high (drives the safety copy and defaults)
 #   license       upstream licence, shown in THIRD_PARTY_NOTICES
@@ -27,9 +34,7 @@ version: 1
 
 app:
   name: "Kali Linux Windows Substitute"
-  version: "1.1.0"
-  runtime_distro: "KaliSubstitute"
-  agent_port: 5055
+  version: "1.5.0"
 
 categories:
   - id: information-gathering
@@ -113,7 +118,7 @@ tools:
       - "For SYN/host-discovery modes the runtime needs raw sockets; in WSL2 this is available but see docs/LIMITATIONS.md."
     usage: >
       Pick a profile. Host discovery sends pings to find live hosts; TCP quick
-      scan checks the 1000 most common ports; Service sends version probes;
+      scan checks the 100 most common ports (nmap -F); Service sends version probes;
       OS tries operating-system fingerprinting (unreliable through WSL2's NAT).
       Start small: a single host, TCP quick, then narrow down.
     examples:
@@ -543,6 +548,7 @@ tools:
     category: wireless-attacks
     summary: "A modular framework for network, Wi-Fi and Bluetooth reconnaissance and attacks."
     packages: [bettercap]
+    repo: kali
     danger: high
     license: "GPL-3.0"
     homepage: "https://www.bettercap.org/"
@@ -562,6 +568,7 @@ tools:
     category: wireless-attacks
     summary: "Automates the common Wi-Fi audit workflow around aircrack-ng and friends."
     packages: [wifite]
+    repo: kali
     danger: high
     license: "GPL-2.0"
     homepage: "https://github.com/derv82/wifite2"
@@ -610,8 +617,9 @@ tools:
     usage: >
       `msfconsole` opens an interactive session. This app wires the auxiliary
       scanner path so you can run non-destructive checks (e.g.
-      auxiliary/scanner/http/http_version) from a form. Exploit modules are
-      launched in the terminal, deliberately not automated.
+      auxiliary/scanner/http/http_version) from a form. Exploit modules are not
+      run from the form and are not automated: if you need one, open the runtime
+      shell and start msfconsole yourself, with authorisation.
     examples:
       - "msfconsole -q -x 'use auxiliary/scanner/portscan/tcp; set RHOSTS 192.168.1.10; run; exit'"
 
@@ -688,10 +696,13 @@ tools:
       - "Root, and a bridged network (WSL2 NAT limits what it can see)."
       - "Explicit authorisation: Responder captures credentials."
     usage: >
-      Responder poisons LLMNR/NBT-NS/mDNS so clients send you their hashes. Only
-      ever run it on an authorised internal assessment; it is disruptive.
+      Responder answers LLMNR/NBT-NS/mDNS lookups, which can make clients send
+      you their hashes. The runtime terminal starts it in analyse-only mode
+      (-A): it listens and logs but poisons nothing. Active modes poison
+      traffic, so run them only on an authorised internal assessment; they are
+      disruptive.
     examples:
-      - "responder -I eth0 -wrf"
+      - "responder -I eth0 -A"
 
   # ---------------------------------------------------------------------------
   # Post Exploitation
@@ -794,7 +805,7 @@ tools:
     name: PhotoRec
     category: forensics
     summary: "Recovers deleted files of many types from disks, images and memory cards."
-    packages: [testdisk]
+    packages: [photorec, testdisk]
     baseline: true
     danger: low
     license: "GPL-2.0"
@@ -848,8 +859,17 @@ tools:
     name: Volatility 3
     category: forensics
     summary: "Analyses memory dumps to list processes, connections and injected code."
-    packages: [volatility3]
-    repo: kali
+    # Not packaged in Kali's apt any more: installed with pip into its own venv.
+    packages: [python3-venv, python3-pip]
+    install_steps:
+      - [apt-get, update, -qq]
+      - [apt-get, install, -y, --no-install-recommends, python3-venv, python3-pip]
+      - [python3, -m, venv, /opt/volatility3]
+      - [/opt/volatility3/bin/pip, install, --no-cache-dir, volatility3]
+      - [ln, -sf, /opt/volatility3/bin/vol, /usr/local/bin/vol]
+    remove_steps:
+      - [rm, -rf, /opt/volatility3, /usr/local/bin/vol]
+    repo: pypi
     danger: low
     license: "GPL-2.0"
     homepage: "https://github.com/volatilityfoundation/volatility3"
@@ -945,7 +965,7 @@ tools:
     builtin: true
     danger: low
     license: "MIT (part of this project)"
-    homepage: "https://github.com/your-org/kali-windows-substitute"
+    homepage: "https://github.com/sazid63/KaliDesk"
     prerequisites:
       - "Nothing extra. Uses the app's own findings database."
     usage: >

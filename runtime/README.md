@@ -39,11 +39,15 @@ sudo ./runtime/build-rootfs.sh
 # -> runtime/dist/kalisub-rootfs.tar.gz
 ```
 
-Then, from Windows, press **Set up runtime** in the app. It runs:
+Then, from Windows, press **Set up runtime** in the app. It imports the image
+with the equivalent of:
 
 ```
-wsl --import KaliSubstitute %LOCALAPPDATA%\KaliWindowsSubstitute\wsl runtime\dist\kalisub-rootfs.tar --version 2
+wsl --import KaliSubstitute %LOCALAPPDATA%\KaliWindowsSubstitute\wsl runtime\dist\kalisub-rootfs.tar.gz --version 2
 ```
+
+If you have not built an image, **Set up runtime** downloads the official Kali
+WSL image instead (see the main README).
 
 ### Alternative: download a pinned image
 

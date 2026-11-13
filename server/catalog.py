@@ -53,9 +53,3 @@ def get(tool_id: str) -> dict[str, Any] | None:
     return None
 
 
-def baseline_ids() -> list[str]:
-    return [t.get("id") for t in tools() if t.get("baseline")]
-
-
-def installable_ids() -> list[str]:
-    return [t.get("id") for t in tools() if t.get("packages")]

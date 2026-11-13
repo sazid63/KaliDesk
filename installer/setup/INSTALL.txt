@@ -1,9 +1,20 @@
 Kali Linux Windows Substitute - installer notes
 ==============================================
 
+This folder is the installed app folder. The files next to this note are:
+
+  KaliWindowsSubstitute.exe   the app
+  Prereqs.ps1                 enables WSL2 (run elevated; see below)
+  enable-wsl.ps1              same as Prereqs.ps1 -Wsl, with a reboot prompt
+  Uninstall.ps1               removes the app (also in Settings > Apps)
+  Common.ps1                  helpers shared by the scripts above
+  kws-install.marker          written at install time; uninstall needs it
+  LICENSE, THIRD_PARTY_NOTICES.md
+
 What this installs
 ------------------
-* The app, into %LOCALAPPDATA%\Programs\KaliWindowsSubstitute
+* The app, into <chosen folder>\KaliWindowsSubstitute
+  (default: %LOCALAPPDATA%\Programs\KaliWindowsSubstitute)
 * A Start Menu shortcut
 * A per-user uninstall entry (Settings > Apps)
 
@@ -16,10 +27,13 @@ What this does NOT do
 
 Before you start
 ----------------
-You need WSL2 (a one-time Windows feature). See docs/PREREQUISITES.md, or run
-enable-wsl.ps1 from an elevated PowerShell:
+You need WSL2 (a one-time Windows feature). From an elevated PowerShell, in
+this folder, run:
 
     powershell -ExecutionPolicy Bypass -File enable-wsl.ps1
+
+Prereqs.ps1 can also be run directly:  Prereqs.ps1 -Wsl  (add -Python for
+Python 3). Exit codes: 0 done, 1 a step failed, 3010 a restart is needed.
 
 After installing
 ----------------
@@ -27,10 +41,19 @@ After installing
 2. Press "Set up runtime". The app imports its private Kali image.
 3. Pick a tool, read what it needs, then install it on demand.
 
-If the image is not bundled, build it with runtime/build-rootfs.sh (see
-runtime/README.md), or set KWS_ROOTFS_URL and KWS_ROOTFS_SHA256.
+If the image is not bundled, the app downloads the official Kali WSL image on
+first run (internet needed). Offline, place a kalisub-rootfs.tar in
+%LOCALAPPDATA%\KaliWindowsSubstitute and press "Set up runtime" again.
 
 Uninstalling
 ------------
-Settings > Apps > Kali Linux Windows Substitute > Uninstall.
-The uninstaller asks separately whether to delete the private runtime.
+Settings > Apps > Kali Linux Windows Substitute > Uninstall, or run
+Uninstall.ps1 in this folder. The uninstaller:
+
+  1. asks whether to remove the private WSL2 runtime (default No);
+  2. asks whether to delete your data - findings, evidence, secrets (default No);
+  3. unregisters the runtime (only the distribution named by the KWS_DISTRO
+     environment variable, default KaliSubstitute) before deleting any data;
+  4. deletes the app folder only if it contains kws-install.marker.
+
+If the runtime is kept, its \wsl folder is kept too.

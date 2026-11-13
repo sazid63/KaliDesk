@@ -29,6 +29,22 @@ def client():
     application = app_module.create_app(config.load(), token, csrf)
     application.config.update(TESTING=True)
     test_client = application.test_client()
-    test_client.set_cookie("kws_auth", token)
-    test_client.set_cookie("kws_csrf", csrf)
+    test_client.set_cookie(application.config["KWS_AUTH_COOKIE"], token)
+    test_client.set_cookie(application.config["KWS_CSRF_COOKIE"], csrf)
     return test_client
+
+
+def wait_until(predicate, limit: float = 15.0, step: float = 0.05):
+    """Poll ``predicate`` until it returns a truthy value; return that value.
+
+    Used instead of fixed sleeps: a fast machine finishes early, a slow one still gets time.
+    """
+    import time
+
+    end = time.time() + limit
+    while time.time() < end:
+        value = predicate()
+        if value:
+            return value
+        time.sleep(step)
+    raise AssertionError("condition not met in time")

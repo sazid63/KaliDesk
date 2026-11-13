@@ -61,8 +61,32 @@ check_tools() {
   }
 }
 
+# A bind mount left under $WORK by an interrupted run would make `rm -rf` walk
+# into the host's /dev, /proc and /sys. Unmount everything under $WORK first and
+# refuse to continue if anything is still mounted there.
+unmount_work() {
+  local work_abs mounts_under
+  work_abs="$(readlink -f "$WORK" 2>/dev/null || echo "$WORK")"
+  mounts_under() {
+    awk -v w="$work_abs/" '{ p = $2; gsub(/\\040/, " ", p); if (index(p, w) == 1 || p == work) print p }' \
+      work="$work_abs" /proc/mounts
+  }
+  # Deepest mount points first, so nested mounts go before their parents.
+  while IFS= read -r mp; do
+    [ -n "$mp" ] || continue
+    echo "    unmounting leftover mount: $mp"
+    umount -l "$mp" || true
+  done < <(mounts_under | sort -r)
+  if [ -n "$(mounts_under)" ]; then
+    echo "error: something is still mounted under $WORK; refusing to delete it:" >&2
+    mounts_under >&2
+    exit 1
+  fi
+}
+
 bootstrap() {
   echo "==> bootstrapping $SUITE from $MIRROR"
+  unmount_work
   rm -rf "$WORK"
   mkdir -p "$WORK"
 
@@ -95,6 +119,9 @@ install_packages() {
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -qq
     apt-get install -y --no-install-recommends ${BASELINE_PACKAGES[*]}
+    # rockyou ships compressed; the password tools expect the plain file.
+    f=/usr/share/wordlists/rockyou.txt
+    [ -f \$f ] || { [ -f \$f.gz ] && gunzip -k \$f.gz; } || true
     apt-get clean
     rm -rf /var/lib/apt/lists/*
   "

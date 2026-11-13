@@ -1,0 +1,5 @@
+# Packages needed to build the Windows installer (installer/build.ps1 and the
+# release workflow). The PyInstaller pins match the build the project tested.
+-r requirements.txt
+pyinstaller==6.22.3
+pyinstaller-hooks-contrib==2026.10

@@ -1,120 +1,175 @@
-/*
- * Kali Linux Windows Substitute - Onboarding Wizard Panel
- */
+(function () {
+"use strict";
+/* First-run guide. Each step reflects the real state of the app, not just text. */
 
-const STEPS = [
-  {
-    icon: "fa-solid fa-house",
-    title: "Welcome to Kali Windows Substitute",
-    body: "This is a Kali-style workbench for Windows. It runs real Linux security tools inside a private WSL2 runtime. You can install tools on demand, record findings, and export reports."
-  },
-  {
-    icon: "fa-solid fa-toolbox",
-    title: "Tool Manager",
-    body: "Use the Tool Manager tab to install or uninstall tools. Each tool shows its prerequisites and usage. Tools are installed only inside the WSL2 runtime, not on Windows."
-  },
-  {
-    icon: "fa-solid fa-bug",
-    title: "Findings & Audit",
-    body: "Record your findings as you test. Each finding includes severity, tool, target, and details. The Audit log tracks every tool run, install, and removal."
-  },
-  {
-    icon: "fa-solid fa-robot",
-    title: "AI Assistance",
-    body: "The AI chat can explain tool output and propose commands. It never runs anything without your confirmation. Configure providers in AI Settings."
-  },
-  {
-    icon: "fa-solid fa-box",
-    title: "Containers (Advanced)",
-    body: "Run vulnerable apps in Podman containers for safe testing. Containers are isolated in WSL2. Never run privileged containers."
-  },
-  {
-    icon: "fa-solid fa-rocket",
-    title: "Ready to Start",
-    body: "You're all set! Start by installing a tool from the Tool Manager, or explore the other tabs. Remember: only test systems you own or are authorized to test."
+let step = 0;
+let accepted = false;
+let timer = null;
+// Bumped on every step change or panel exit; async work from an older generation stops quietly.
+let gen = 0;
+let lastRuntimeStart = 0;
+
+const STEPS = ["welcome", "runtime", "tool", "try", "done"];
+
+function el(tag, text, cls) {
+  const node = document.createElement(tag);
+  if (text) node.textContent = text;
+  if (cls) node.className = cls;
+  return node;
+}
+
+function button(label, handler, cls) {
+  const b = el("button", label, cls || "primary");
+  b.type = "button";
+  b.addEventListener("click", handler);
+  return b;
+}
+
+async function runtimeState() {
+  const { data } = await api("GET", "/api/runtime", undefined, { timeout: 30000 });
+  const s = data || {};
+  // Start the agent only when it is installed but down, nothing is provisioning, and at most once per 60 s.
+  const provisioning = !!(s.provisioning && !s.provisioning.done);
+  if (s.installed && !s.agent && !provisioning && Date.now() - lastRuntimeStart >= 60000) {
+    lastRuntimeStart = Date.now();
+    api("POST", "/api/runtime/start", {});
   }
-];
+  return s;
+}
 
-let currentStep = 0;
+async function installedState(id) {
+  const { data } = await api("GET", "/api/tools/manage");
+  if (!data || !data.online) return null;
+  const row = (data.tools || []).find((t) => t.id === id);
+  return row ? row.present : null;
+}
+
+async function render() {
+  clearTimeout(timer);
+  const myGen = ++gen;
+  const box = $("#onboarding-content");
+  box.textContent = "";
+  $("#onboarding-progress-bar").style.width = ((step + 1) / STEPS.length) * 100 + "%";
+  const next = $("#onboarding-next");
+  const prev = $("#onboarding-prev");
+  prev.disabled = step === 0;
+  next.disabled = false;
+  next.textContent = step === STEPS.length - 1 ? "Finish" : "Next";
+
+  const name = STEPS[step];
+  if (name === "welcome") {
+    box.append(
+      el("h3", "Welcome"),
+      el("p", "This is a Kali-style workbench for Windows. The real Linux tools run in a private WSL2 " +
+        "runtime that this app owns; nothing is installed on Windows itself."),
+      el("p", "These tools can harm systems and break laws if misused. Use them only on systems you " +
+        "own or have written permission to test.", "warning"),
+    );
+    const label = el("label", "", "check");
+    const box1 = document.createElement("input");
+    box1.type = "checkbox";
+    box1.checked = accepted;
+    box1.addEventListener("change", () => { accepted = box1.checked; next.disabled = !accepted; });
+    label.append(box1, el("span", "I will only test systems I own or am authorised to test."));
+    box.appendChild(label);
+    next.disabled = !accepted;
+  } else if (name === "runtime") {
+    const status = el("p", "Checking the runtime…", "muted");
+    box.append(el("h3", "Set up the runtime"), status);
+    const act = el("div", "", "actions");
+    box.appendChild(act);
+    const refresh = async () => {
+      clearTimeout(timer);
+      const s = await runtimeState();
+      if (myGen !== gen) return; // the user left this step or the panel while the request was in flight
+      const prov = s.provisioning;
+      act.textContent = "";
+      if (s.agent) {
+        status.textContent = "The runtime is online. You can continue.";
+        next.disabled = false;
+        return;
+      }
+      next.disabled = true;
+      if (prov && !prov.done) {
+        status.textContent = provisionText(prov);
+        timer = setTimeout(refresh, 2000);
+      } else if (!s.wsl) {
+        status.textContent = s.message;
+        act.appendChild(button("Check again", refresh, "ghost"));
+      } else {
+        status.textContent = (prov && prov.error) ? prov.message : s.message;
+        act.appendChild(button(prov && prov.error ? "Try again" : "Set up runtime", async () => {
+          const mine = gen;
+          await ensureRuntime();
+          if (mine === gen) refresh();
+        }));
+        if (s.installed) timer = setTimeout(refresh, 4000);
+      }
+    };
+    refresh();
+  } else if (name === "tool") {
+    const status = el("p", "Checking…", "muted");
+    box.append(el("h3", "Install your first tool"),
+      el("p", "Nmap finds the devices and open ports on a network. It is already part of the runtime " +
+        "image; if it is missing you can install it here."), status);
+    const act = el("div", "", "actions");
+    box.appendChild(act);
+    const refresh = async () => {
+      const present = await installedState("nmap");
+      if (myGen !== gen) return;
+      act.textContent = "";
+      if (present === true) {
+        status.textContent = "Nmap is installed.";
+      } else if (present === false) {
+        status.textContent = "Nmap is not installed yet.";
+        act.appendChild(button("Install Nmap", async () => { await installTool("nmap"); if (myGen === gen) refresh(); }));
+      } else {
+        status.textContent = "The runtime is not reachable yet - go back one step.";
+      }
+    };
+    refresh();
+  } else if (name === "try") {
+    box.append(el("h3", "Try it"),
+      el("p", "Scan your own computer (127.0.0.1). It is always allowed, and it shows how a run, its " +
+        "live output and the Stop button work."));
+    const act = el("div", "", "actions");
+    act.appendChild(button("Open Nmap with 127.0.0.1", async () => {
+      showPanel("home");
+      await openTool("nmap");
+      const target = document.getElementById("f-target");
+      if (target) target.value = "127.0.0.1";
+    }));
+    box.appendChild(act);
+  } else {
+    box.append(el("h3", "You are set"),
+      el("p", "Pick a tool from the home screen. Findings, History and Run transcripts keep your " +
+        "results. The AI assistant is optional: set it up in Settings."));
+  }
+}
+
+async function finish() {
+  clearTimeout(timer);
+  gen++;
+  const { ok, data } = await api("POST", "/api/onboarding/finish", { accepted });
+  if (!ok) { toast(data.error || "could not finish", true); return; }
+  toast("All set");
+  showPanel("home");
+}
+
+function wire() {
+  $("#onboarding-prev").addEventListener("click", () => { if (step > 0) { step--; render(); } });
+  $("#onboarding-next").addEventListener("click", () => {
+    if (step < STEPS.length - 1) { step++; render(); } else { finish(); }
+  });
+  $("#onboarding-skip").addEventListener("click", () => { clearTimeout(timer); gen++; showPanel("home"); });
+}
+
+wire();
 
 async function initOnboarding() {
-  await loadStatus();
-  showStep(0);
-  wireOnboarding();
+  step = 0;
+  render();
 }
 
-async function loadStatus() {
-  const { data } = await api("GET", "/api/onboarding/status");
-  if (data && data.needed) {
-    currentStep = 0;
-  } else {
-    currentStep = STEPS.length - 1;
-  }
-}
-
-function showStep(index) {
-  currentStep = index;
-  const step = STEPS[index];
-  
-  // Update the content area directly
-  const content = $("#onboarding-content");
-  if (content) {
-    content.innerHTML = `
-      <h3 id="onboarding-title">${esc(step.title)}</h3>
-      <p id="onboarding-body">${esc(step.body)}</p>
-    `;
-  }
-
-  const progressBar = $("#onboarding-progress-bar");
-  if (progressBar) {
-    const progress = ((index + 1) / STEPS.length) * 100;
-    progressBar.style.width = progress + "%";
-  }
-
-  const prevBtn = $("#onboarding-prev");
-  const nextBtn = $("#onboarding-next");
-  const finishBtn = $("#onboarding-finish");
-  
-  if (prevBtn) prevBtn.disabled = index === 0;
-  if (nextBtn) nextBtn.textContent = index === STEPS.length - 1 ? "Finish" : "Next";
-  if (finishBtn) finishBtn.style.display = index === STEPS.length - 1 ? "" : "none";
-}
-
-async function nextStep() {
-  if (currentStep < STEPS.length - 1) {
-    showStep(currentStep + 1);
-  } else {
-    await finishWizard();
-  }
-}
-
-async function prevStep() {
-  if (currentStep > 0) {
-    showStep(currentStep - 1);
-  }
-}
-
-async function finishWizard() {
-  const { data } = await api("POST", "/api/onboarding/finish");
-  toast(data.message || "Onboarding complete!");
-  // Navigate to home panel
-  const homeLink = Array.from(document.querySelectorAll("[data-view]")).find(el => el.dataset.view === "home");
-  if (homeLink) homeLink.click();
-}
-
-async function skipWizard() {
-  // Navigate to home panel
-  const homeLink = Array.from(document.querySelectorAll("[data-view]")).find(el => el.dataset.view === "home");
-  if (homeLink) homeLink.click();
-}
-
-/* $, $$, esc, toast, api provided globally by utils.js */
-
-function wireOnboarding() {
-  const prevBtn = $("#onboarding-prev");
-  const nextBtn = $("#onboarding-next");
-  const skipBtn = $("#onboarding-skip");
-  if (prevBtn) prevBtn.addEventListener("click", prevStep);
-  if (nextBtn) nextBtn.addEventListener("click", nextStep);
-  if (skipBtn) skipBtn.addEventListener("click", skipWizard);
-}
+window.initOnboarding = initOnboarding;
+})();

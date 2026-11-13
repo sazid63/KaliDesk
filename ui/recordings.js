@@ -1,124 +1,94 @@
-/*
- * Kali Linux Windows Substitute - Terminal Recordings Panel
- */
+(function () {
+"use strict";
+/* Run transcripts: every finished tool run saved with its full output. */
 
 let recordings = [];
-let activeRecording = null;
 
 async function initRecordings() {
   await loadRecordings();
-  wireRecordings();
 }
 
 async function loadRecordings() {
   const { data } = await api("GET", "/api/recordings");
-  if (!data) return;
-  recordings = data;
+  recordings = (data && data.recordings) || [];
   renderRecordings();
 }
+
+const RESULT = { done: "finished", failed: "failed", cancelled: "stopped", timeout: "timed out" };
 
 function renderRecordings() {
   const tbody = $("#recordings-table-body");
   tbody.innerHTML = "";
-  
   if (!recordings.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="muted">No recordings found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="muted">Nothing yet. Run a tool and its output is saved here.</td></tr>';
     return;
   }
-  
   recordings.forEach((rec) => {
     const tr = document.createElement("tr");
-    tr.innerHTML =
-      '<td>' + esc(rec.tool) + '</td>' +
-      '<td>' + esc(formatDuration(rec.duration_ms)) + '</td>' +
-      '<td>' + esc((rec.size_bytes / 1024).toFixed(1) + " KB") + '</td>' +
-      '<td>' + esc(rec.created) + '</td>' +
-      '<td>' +
-      '<button class="ghost tiny" data-id="' + rec.id + '" data-act="load">Load</button>' +
-      '<button class="ghost tiny" data-id="' + rec.id + '" data-act="delete">Delete</button>' +
-      '</td>';
+    const cells = [
+      rec.tool,
+      (RESULT[rec.state] || rec.state) + (rec.rc != null ? " (exit " + rec.rc + ")" : ""),
+      formatDuration(rec.duration_ms),
+      (rec.size_bytes / 1024).toFixed(1) + " KB",
+      formatWhen(rec.started),
+    ];
+    cells.forEach((text) => {
+      const td = document.createElement("td");
+      td.textContent = text;
+      tr.appendChild(td);
+    });
+    const actions = document.createElement("td");
+    [["View", () => viewRecording(rec.id)],
+     ["Save", () => { window.location.href = "/api/recordings/" + encodeURIComponent(rec.id) + "?download=1"; }],
+     ["Delete", () => deleteRecording(rec.id)]].forEach(([label, handler]) => {
+      const btn = document.createElement("button");
+      btn.className = "ghost tiny";
+      btn.type = "button";
+      btn.textContent = label;
+      btn.addEventListener("click", handler);
+      actions.appendChild(btn);
+    });
+    tr.appendChild(actions);
     tbody.appendChild(tr);
   });
-  
-  tbody.querySelectorAll('[data-act="load"]').forEach((btn) => {
-    btn.addEventListener("click", () => loadRecording(btn.dataset.id));
-  });
-  tbody.querySelectorAll('[data-act="delete"]').forEach((btn) => {
-    btn.addEventListener("click", () => deleteRecording(btn.dataset.id));
-  });
 }
 
-async function startRecording() {
-  const tool = prompt("Enter tool name (e.g., nmap, sqlmap):");
-  if (!tool) return;
-  
-  const { data } = await api("POST", "/api/recordings/start", { tool });
-  if (data.recording_id) {
-    activeRecording = data.recording_id;
-    toast("Recording started");
-  } else {
-    toast(data.error || "Failed to start recording", true);
-  }
-}
-
-async function stopRecording() {
-  if (!activeRecording) {
-    toast("No active recording", true);
+async function viewRecording(id) {
+  const { ok, data } = await api("GET", "/api/recordings/" + encodeURIComponent(id));
+  if (!ok || !data.meta) {
+    toast("Could not load that transcript", true);
     return;
   }
-  
-  const { data } = await api("POST", "/api/recordings/stop", { id: activeRecording });
-  activeRecording = null;
-  toast(data.message || "Recording stopped");
-  loadRecordings();
-}
-
-async function loadRecording(id) {
-  const { data } = await api("GET", "/api/recordings/" + id);
-  if (!data || !data.lines) {
-    toast("Failed to load recording", true);
-    return;
-  }
-  
-  // Show in a modal-like overlay
   const modal = document.createElement("div");
   modal.className = "modal recording-modal";
-  modal.innerHTML =
-    '<div class="modal-content">' +
-    '<h3>Recording</h3>' +
-    '<pre class="recording-lines">' + esc(data.lines.join("\n")) + '</pre>' +
-    '<div class="actions">' +
-    '<button class="primary" id="recording-modal-close">Close</button>' +
-    '</div>' +
-    '</div>';
+  const box = document.createElement("div");
+  box.className = "modal-content";
+  const title = document.createElement("h3");
+  title.textContent = data.meta.tool + (data.meta.target ? " → " + data.meta.target : "");
+  const cmd = document.createElement("p");
+  cmd.className = "muted";
+  cmd.textContent = "$ " + (data.meta.argv || []).join(" ");
+  const pre = document.createElement("pre");
+  pre.className = "recording-lines";
+  pre.textContent = data.text;
+  const close = document.createElement("button");
+  close.className = "primary";
+  close.type = "button";
+  close.textContent = "Close";
+  close.addEventListener("click", () => modal.remove());
+  box.append(title, cmd, pre, close);
+  modal.appendChild(box);
   document.body.appendChild(modal);
-  
-  modal.querySelector("#recording-modal-close").addEventListener("click", () => {
-    modal.remove();
-  });
+  close.focus();
 }
 
 async function deleteRecording(id) {
-  if (!confirm("Delete this recording?")) return;
-  await api("DELETE", "/api/recordings/" + id);
+  if (!confirm("Delete this transcript?")) return;
+  const { ok, data } = await api("DELETE", "/api/recordings/" + encodeURIComponent(id));
+  if (!ok) { toast((data && data.error) || "Could not delete that transcript", true); return; }
+  toast("Transcript deleted");
   loadRecordings();
-  toast("Recording deleted");
 }
 
-function formatDuration(ms) {
-  if (!ms) return "—";
-  if (ms < 1000) return ms + "ms";
-  const s = (ms / 1000).toFixed(1);
-  return s + "s";
-}
-
-/* $, $$, esc, toast, api provided globally by utils.js */
-
-function wire() {
-  const startBtn = $("#recordings-start");
-  if (startBtn) startBtn.addEventListener("click", startRecording);
-  const stopBtn = $("#recordings-stop");
-  if (stopBtn) stopBtn.addEventListener("click", stopRecording);
-}
-
-wire();
+window.initRecordings = initRecordings;
+})();

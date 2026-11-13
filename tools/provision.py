@@ -1,6 +1,7 @@
 """Provision the private runtime, for testing (NOT part of the app).
 
-Run from the repository root:  python tools/provision.py
+Manual dev harness: not run by pytest or CI. It changes the real WSL2 runtime.
+Run from the repository root with: .venv/Scripts/python tools/provision.py
 """
 import sys
 from pathlib import Path

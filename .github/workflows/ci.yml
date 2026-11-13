@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  # Lets release.yml run this whole pipeline before it builds a release.
+  workflow_call:
 
 permissions:
   contents: read
@@ -29,19 +31,21 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
-      # The test suite needs Flask, PyYAML and pytest only. pywebview (the GUI
-      # shell) is deliberately not installed here: it needs a display, and every
-      # test runs headless.
+      # requirements-dev.txt pins pytest and ruff. pywebview comes in with the
+      # runtime requirements but no test imports it, and every test runs headless.
       - name: Install test dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install "flask>=3.0,<4" "PyYAML>=6.0,<7" "pytest>=8.0,<9" "ruff>=0.6,<1"
+          python -m pip install -r requirements-dev.txt
 
       - name: Lint
         run: python -m ruff check .
 
       - name: Tests
         run: python -m pytest -q
+
+      - name: UI scripts parse
+        run: for f in ui/*.js; do node --check "$f"; done
 
       - name: Headless self-check
         run: python app/main.py --check
@@ -51,7 +55,14 @@ jobs:
           python tools/gen_docs.py
           python runtime/tools/make_manifest.py \
             catalog/tools.yaml runtime/rootfs/etc/kalisub/tools.json
-          git diff --exit-code -- docs runtime/rootfs/etc/kalisub/tools.json
+          # `git diff` ignores untracked files, so a newly generated page would
+          # slip through. `git status --porcelain` reports those too.
+          if [ -n "$(git status --porcelain -- docs runtime/rootfs/etc/kalisub/tools.json)" ]; then
+            git status --porcelain -- docs runtime/rootfs/etc/kalisub/tools.json
+            git --no-pager diff -- docs runtime/rootfs/etc/kalisub/tools.json
+            echo "Generated files are stale. Run tools/gen_docs.py and make_manifest.py, then commit the result." >&2
+            exit 1
+          fi
 
   secrets:
     name: Secret scan
@@ -71,5 +82,36 @@ jobs:
       - uses: actions/checkout@v4
       - name: bash -n on shell scripts
         run: |
-          find . -name '*.sh' -not -path './.git/*' -print0 \
-            | xargs -0 -n1 bash -n
+          # Every tracked *.sh file, plus extension-less scripts whose first
+          # line is a bash/sh shebang (e.g. runtime/rootfs/usr/local/bin/kalisub-agent-start).
+          fail=0
+          while IFS= read -r -d '' f; do
+            if [[ "$f" == *.sh ]] || head -n1 "$f" | grep -qE '^#!.*[ /](ba)?sh([[:space:]]|$)'; then
+              bash -n "$f" || fail=1
+            fi
+          done < <(git ls-files -z)
+          exit $fail
+
+  installer:
+    name: Installer builds (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+          python -m pip install -r requirements-build.txt
+
+      - name: Run the test suite on Windows
+        run: python -m pytest -q
+
+      - name: Build the installer
+        shell: pwsh
+        run: ./installer/build.ps1
