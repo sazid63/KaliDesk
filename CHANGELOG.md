@@ -58,7 +58,7 @@ All notable changes to this project are documented here. The format follows
   achievements are computed from history (no click-to-unlock), the playground is a real
   vulnerable app confined to its own folder, containers validate images, ports (loopback
   only), volumes and exec commands, onboarding is a live first-run guide, cheat sheets match
-  the catalog (46 tools) and come from the server, and the panels' scripts no longer share
+  the catalog (45 tools; Report is built in, not installed) and come from the server, and the panels' scripts no longer share
   global names.
 - One AI assistant (Ollama, OpenAI-compatible, Anthropic, Gemini) replaces three overlapping
   AI panels. Keys are per provider (DPAPI) and are only ever sent to the URL they were saved
