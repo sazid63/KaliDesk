@@ -92,7 +92,8 @@ def index_page(catalog_data: dict) -> str:
     lines.append("Every tool below is documented with its prerequisites and usage. "
                  "Nothing is preinstalled except the small baseline set; everything "
                  "else is installed on demand from inside the app.\n")
-    lines.append(f"_{len(tools)} tools in {len(categories)} categories._\n")
+    installable = [t for t in tools if not t.get("builtin")]
+    lines.append(f"_{len(installable)} tools in {len(categories)} categories, plus the built-in Report builder._\n")
 
     lines.append("## Contents\n")
     for cat in categories:

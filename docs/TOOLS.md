@@ -6,7 +6,7 @@
 
 Every tool below is documented with its prerequisites and usage. Nothing is preinstalled except the small baseline set; everything else is installed on demand from inside the app.
 
-_46 tools in 11 categories._
+_45 tools in 11 categories, plus the built-in Report builder._
 
 ## Contents
 
