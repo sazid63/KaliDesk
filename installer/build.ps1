@@ -83,6 +83,14 @@ foreach ($b in $bundled) {
     }
 }
 
+# 0b. Dependencies. The self-check imports the runtime packages (Flask, pywebview),
+#     so install them before it runs. A clean build machine has none of them.
+if (-not $SkipCheck) {
+    Write-Host "`n[0/4] dependencies" -ForegroundColor Cyan
+    Invoke-Python -m pip install --upgrade pip | Out-Null
+    Invoke-Python -m pip install -r (Join-Path $Root 'requirements-build.txt') | Out-Null
+}
+
 # 1. Headless self-check.
 if (-not $SkipCheck) {
     Write-Host "`n[1/4] self-check" -ForegroundColor Cyan
