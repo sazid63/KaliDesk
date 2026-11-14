@@ -166,11 +166,16 @@ if (-not $csc) {
 $setup = Join-Path $Dist 'KaliWindowsSubstitute-Setup.exe'
 # The .NET Framework csc.exe is a C# 5 compiler: the stub must not use newer
 # syntax (e.g. `using static`), and the zip assemblies are not referenced by default.
-& $csc /nologo /target:winexe /out:$setup `
+# Build each compiler argument as one string: passing "/resource:$payload,..." inline let
+# the path reach csc as a literal "$payload" on the CI runner.
+$outArg = "/out:$setup"
+$resArg = "/resource:$payload,$AppName.payload"
+$stubSource = Join-Path $Here 'SetupStub.cs'
+& $csc /nologo /target:winexe $outArg `
     /r:System.Windows.Forms.dll /r:System.IO.Compression.dll `
     /r:System.IO.Compression.FileSystem.dll `
-    /resource:$payload,"$AppName.payload" `
-    (Join-Path $Here 'SetupStub.cs')
+    $resArg `
+    $stubSource
 if ($LASTEXITCODE -ne 0) { throw "csc failed with code $LASTEXITCODE" }
 Remove-Item $payload -Force
 
