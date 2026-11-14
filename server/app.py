@@ -518,13 +518,16 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
         name = data.get("name")
         ports = data.get("ports") or []
         volumes = data.get("volumes") or []
+        command = data.get("command") or []
 
         if not isinstance(image, str) or not isinstance(name, str) or not image or not name:
             return jsonify({"error": "Image and name required"}), 400
         if not _is_text_list(ports) or not _is_text_list(volumes):
             return jsonify({"error": "ports and volumes must be lists of text"}), 400
+        if not _is_text_list(command):
+            return jsonify({"error": "command must be a list of text"}), 400
 
-        result = container_runtime.run_container(image, name, ports, volumes)
+        result = container_runtime.run_container(image, name, ports, volumes, command)
         if result["ok"]:
             db.audit("user", "container:run", result.get("container_id", ""), f"image={image}")
         return jsonify(result), 200 if result["ok"] else 500
@@ -763,7 +766,10 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @app.get("/api/onboarding/status")
     @security.require_auth
     def api_onboarding_status():
-        return jsonify({"needed": onboarding.is_onboarding_needed()})
+        return jsonify({
+            "needed": onboarding.is_onboarding_needed(),
+            "skipped": onboarding.is_skipped(),
+        })
 
     @app.post("/api/onboarding/finish")
     @security.require_auth
@@ -773,6 +779,13 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
         if not onboarding.finish_onboarding(data.get("accepted") is True):
             return jsonify({"error": "please confirm the acceptable-use statement first"}), 400
         db.audit("user", "onboarding:finish", "", "accepted acceptable use")
+        return jsonify({"ok": True})
+
+    @app.post("/api/onboarding/skip")
+    @security.require_auth
+    @security.require_csrf
+    def api_onboarding_skip():
+        onboarding.mark_skipped()
         return jsonify({"ok": True})
 
     return app

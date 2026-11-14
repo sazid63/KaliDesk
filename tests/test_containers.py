@@ -121,9 +121,36 @@ def test_install_podman_uses_apt_not_a_podman_prefix(calls):
 def test_run_container_builds_a_safe_command(calls):
     result = cr.run_container("alpine", "box", ["3000:3000"], ["/tmp/d:/data"])
     assert result["ok"]
-    argv = calls[-1]
+    argv = next(a for a in calls if a[1:2] == ["run"])
     assert argv[0] == "podman" and "--privileged" not in argv
     assert "127.0.0.1:3000:3000" in argv and "/tmp/d:/data" in argv
     assert "no-new-privileges" in argv and argv[-1] == "alpine"
     assert not cr.run_container("alpine", "-x")["ok"]
     assert not cr.run_container("alpine", "box", ["0.0.0.0:1:1"])["ok"]
+
+
+def test_run_passes_the_command_as_argv_after_the_image(calls):
+    cr.run_container("alpine", "box", command=["sleep", "300"])
+    argv = next(a for a in calls if a[1:2] == ["run"])
+    assert argv[-3:] == ["alpine", "sleep", "300"]
+
+
+def test_run_refuses_too_many_command_parts(calls):
+    result = cr.run_container("alpine", "box", command=["x"] * (cr.MAX_COMMAND_ARGS + 1))
+    assert not result["ok"] and "at most" in result["error"]
+    assert not any(a[1:2] == ["run"] for a in calls)
+
+
+def test_run_reports_a_quick_exit_with_its_code(calls):
+    calls.replies["run"] = (0, "cb7e20f7412b\n", "")
+    calls.replies["inspect"] = (0, "exited 3\n", "")
+    result = cr.run_container("alpine", "box")
+    assert result["state"] == "exited" and result["exit_code"] == 3
+    assert "exited with code 3" in result["message"]
+
+
+def test_run_reports_a_running_container(calls):
+    calls.replies["run"] = (0, "cb7e20f7412b\n", "")
+    calls.replies["inspect"] = (0, "running 0\n", "")
+    result = cr.run_container("alpine", "box")
+    assert result["state"] == "running" and "started" in result["message"]

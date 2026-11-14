@@ -130,12 +130,20 @@ function renderContainers() {
     
     const actions = row.querySelector(".manager-actions");
     
-    if (cont.status.includes("running")) {
+    // Podman reports a live container as "Up 2 minutes", and older output as "running".
+    const running = /^up\b|running/i.test(cont.status);
+    if (running) {
       const stopBtn = document.createElement("button");
       stopBtn.className = "ghost";
       stopBtn.textContent = "Stop";
       stopBtn.addEventListener("click", () => stopContainer(cont.id));
       actions.appendChild(stopBtn);
+
+      const execBtn = document.createElement("button");
+      execBtn.className = "ghost";
+      execBtn.textContent = "Run command";
+      execBtn.addEventListener("click", () => openExec(cont.id));
+      actions.appendChild(execBtn);
     } else {
       const startBtn = document.createElement("button");
       startBtn.className = "primary";
@@ -227,19 +235,24 @@ function wireContainers() {
     
     const volumesStr = $("#containers-run-volumes").value;
     const volumes = volumesStr ? volumesStr.split(",").map(s => s.trim()) : [];
+
+    const commandStr = $("#containers-run-command").value.trim();
+    const command = commandStr ? commandStr.split(/\s+/) : [];
     
     const btn = $("#containers-run-submit");
     btn.disabled = true;
     btn.textContent = "Running...";
     
     const { data } = await api("POST", "/api/containers/run", {
-      image, name, ports, volumes
+      image, name, ports, volumes, command
     }, LONG_OP);
     
     btn.disabled = false;
     btn.textContent = "Run Container";
     
-    toast(data.message || data.error || "done", !!data.error);
+    // A container that ran and exited with a non-zero code is a failed run: say so.
+    const failed = !!data.error || (data.ok && data.state === "exited" && data.exit_code !== 0);
+    toast(data.message || data.error || "done", failed);
     if (data.ok) {
       showTab("containers");
       loadContainers();
@@ -251,6 +264,43 @@ function wireContainers() {
     $("#containers-run-custom-image").classList.add("hidden");
     showTab("images");
   });
+}
+
+// Run one diagnostic command inside a running container. The server allows only a fixed
+// list of programs and never uses a shell, so the input is split on spaces, not parsed.
+function openExec(id) {
+  const modal = document.createElement("div");
+  modal.className = "modal";
+  modal.innerHTML =
+    '<div class="modal-content">' +
+    '<h3>Run a command in ' + esc(id) + '</h3>' +
+    '<p class="muted">Only diagnostic programs are allowed (for example ping, curl, dig, ls, cat, grep, nmap). No shell syntax; spaces separate the parts.</p>' +
+    '<div class="field"><label for="exec-cmd">Command</label>' +
+    '<input id="exec-cmd" type="text" placeholder="ls /"></div>' +
+    '<pre class="logs" id="exec-out" aria-live="polite"></pre>' +
+    '<div class="actions">' +
+    '<button class="primary" id="exec-run" type="button">Run</button>' +
+    '<button class="ghost" id="exec-close" type="button">Close</button>' +
+    '</div></div>';
+  document.body.appendChild(modal);
+  const input = modal.querySelector("#exec-cmd");
+  const out = modal.querySelector("#exec-out");
+  const run = modal.querySelector("#exec-run");
+  input.focus();
+  const send = async () => {
+    const parts = input.value.trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) { toast("Enter a command first", true); return; }
+    run.disabled = true;
+    out.textContent = "Running…";
+    const { data } = await api("POST", "/api/containers/" + encodeURIComponent(id) + "/exec", { cmd: parts }, LONG_OP);
+    run.disabled = false;
+    if (data && data.error) { out.textContent = data.error; return; }
+    const stderr = data.stderr ? "\n[stderr]\n" + data.stderr : "";
+    out.textContent = "$ " + parts.join(" ") + "\n(exit " + (data.rc ?? "?") + ")\n\n" + (data.stdout || "") + stderr;
+  };
+  run.addEventListener("click", send);
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
+  modal.querySelector("#exec-close").addEventListener("click", () => modal.remove());
 }
 
 async function startContainer(id) {

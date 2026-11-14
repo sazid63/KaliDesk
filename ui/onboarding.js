@@ -161,7 +161,12 @@ function wire() {
   $("#onboarding-next").addEventListener("click", () => {
     if (step < STEPS.length - 1) { step++; render(); } else { finish(); }
   });
-  $("#onboarding-skip").addEventListener("click", () => { clearTimeout(timer); gen++; showPanel("home"); });
+  $("#onboarding-skip").addEventListener("click", () => {
+    clearTimeout(timer); gen++;
+    // Remember the choice so the guide does not open by itself next time. It stays in the Views list.
+    api("POST", "/api/onboarding/skip", {});
+    showPanel("home");
+  });
 }
 
 wire();

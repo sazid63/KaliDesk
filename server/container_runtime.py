@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from pathlib import PurePosixPath
 from typing import Any
 
@@ -293,13 +294,40 @@ def exec_in_container(container_id: str, cmd: list[str]) -> dict[str, Any]:
     return {k: result[k] for k in ("ok", "stdout", "stderr", "rc")}
 
 
+MAX_COMMAND_ARGS = 32
+
+
+def _container_state(container_id: str, wait: float = 1.5) -> tuple[str, int | None]:
+    """The container's state and exit code, after a short wait so a quick exit is seen."""
+    if not container_id:
+        return "unknown", None
+    deadline = time.monotonic() + wait
+    state, code = "unknown", None
+    while True:
+        fmt = "{{.State.Status}} {{.State.ExitCode}}"
+        result = _podman(["inspect", "--format", fmt, container_id], timeout=20)
+        if result["ok"]:
+            parts = result["stdout"].split()
+            if parts:
+                state = parts[0]
+                code = int(parts[1]) if len(parts) > 1 and parts[1].lstrip("-").isdigit() else None
+        if state != "running" or time.monotonic() >= deadline:
+            return state, code
+        time.sleep(0.3)
+
+
 def run_container(
     image: str,
     name: str,
     ports: list[str] | None = None,
     volumes: list[str] | None = None,
+    command: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Run a detached container. Never privileged; ports bind to loopback only."""
+    """Run a detached container. Never privileged; ports bind to loopback only.
+
+    ``command`` is passed to the container as argv (no shell). Without one, the image's own
+    default command runs, which for many images exits at once.
+    """
     valid, reason = validate_image_name(image)
     if not valid:
         return {"ok": False, "error": f"Invalid image name: {reason}"}
@@ -317,14 +345,29 @@ def run_container(
         if not valid:
             return {"ok": False, "error": f"Invalid volume {spec!r}: {reason}"}
         args += ["-v", str(spec)]
+    if command:
+        if len(command) > MAX_COMMAND_ARGS or not all(
+            isinstance(a, str) and len(a) <= 1024 and "\x00" not in a for a in command
+        ):
+            return {"ok": False, "error": f"The command may have at most {MAX_COMMAND_ARGS} parts"}
     args.append(image)
+    args.extend(command or [])
 
     result = _podman(args, timeout=300)
     if result["ok"]:
         container_id = result["stdout"].strip()
+        state, exit_code = _container_state(container_id)
+        if state == "exited" and exit_code == 0:
+            message = f"Container {name} ran and exited with code 0"
+        elif state == "exited":
+            message = f"Container {name} exited with code {exit_code}. Use Logs to see why."
+        else:
+            message = f"Container {name} started"
         return {
             "ok": True,
-            "message": f"Container {name} started",
+            "message": message,
             "container_id": container_id[:12] if container_id else None,
+            "state": state,
+            "exit_code": exit_code,
         }
     return {"ok": False, "error": f"Failed to run container {name}", "detail": result["stderr"]}

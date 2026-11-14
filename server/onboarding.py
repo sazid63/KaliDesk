@@ -20,3 +20,15 @@ def finish_onboarding(accepted: bool) -> bool:
 
 def is_onboarding_needed() -> bool:
     return db.get_setting("onboarding_complete", "") != "1"
+
+
+def mark_skipped() -> None:
+    """The user chose "Skip for now": do not open the guide automatically again.
+
+    It stays available from the Views list. Finishing it still records consent.
+    """
+    db.set_setting("onboarding_skipped", "1")
+
+
+def is_skipped() -> bool:
+    return db.get_setting("onboarding_skipped", "") == "1"

@@ -1613,7 +1613,7 @@ async function init() {
   // The catalog and runtime status are independent: load them together.
   await Promise.all([refreshRuntime(), loadCatalog()]);
   const first = await api("GET", "/api/onboarding/status");
-  if (first.ok && first.data.needed) showPanel("onboarding-panel");
+  if (first.ok && first.data.needed && !first.data.skipped) showPanel("onboarding-panel");
   renderChat();
   setInterval(refreshRuntime, 20000);
 }

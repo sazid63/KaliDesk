@@ -334,6 +334,11 @@
             <input id="containers-run-volumes" type="text" placeholder="/tmp/data:/data (host path under /tmp)">
             <p class="muted">Example: /tmp/data:/data</p>
           </div>
+          <div class="field">
+            <label for="containers-run-command">Command (optional)</label>
+            <input id="containers-run-command" type="text" placeholder="sleep 300">
+            <p class="muted">Replaces the image's default command. Spaces separate the parts; no quoting or shell syntax. Images such as Alpine exit at once unless given a long-running command.</p>
+          </div>
           <div class="actions">
             <button type="button" class="success" id="containers-run-submit">Run Container</button>
             <button type="button" class="ghost" id="containers-run-cancel">Cancel</button>
