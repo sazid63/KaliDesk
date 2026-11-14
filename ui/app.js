@@ -328,6 +328,59 @@ async function refreshEvidence() {
   state.evidence = data.files || [];
 }
 
+// "Add file" control next to an evidence picker: uploads a file from the user's
+// computer into the evidence folder and selects it. The file name goes in a header,
+// URL-encoded, so it never appears in a URL.
+function evidenceUploader(select) {
+  const wrap = document.createElement("div");
+  wrap.className = "evidence-add";
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "ghost";
+  button.textContent = "Add file from my computer…";
+  const picker = document.createElement("input");
+  picker.type = "file";
+  picker.hidden = true;
+  const note = document.createElement("span");
+  note.className = "muted";
+  button.addEventListener("click", () => picker.click());
+  picker.addEventListener("change", async () => {
+    const file = picker.files && picker.files[0];
+    picker.value = "";
+    if (!file) return;
+    note.textContent = "Uploading " + file.name + "…";
+    try {
+      const resp = await fetch("/api/evidence/upload", {
+        method: "POST", credentials: "include",
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "X-KWS-CSRF": csrf(),
+          "X-KWS-Filename": encodeURIComponent(file.name),
+        },
+        body: file,
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || !data.ok) throw new Error(data.error || "upload failed (" + resp.status + ")");
+      state.evidence = data.files || [];
+      select.innerHTML = "";
+      state.evidence.forEach((name) => {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        select.appendChild(opt);
+      });
+      select.value = data.name;
+      note.textContent = "Added " + data.name + ".";
+      toast("Added " + data.name);
+    } catch (err) {
+      note.textContent = err.message || "Upload failed";
+      toast(note.textContent, true);
+    }
+  });
+  wrap.append(button, picker, note);
+  return wrap;
+}
+
 async function openTool(id) {
   const tool = state.tools.find((t) => t.id === id);
   if (!tool) return;
@@ -514,6 +567,7 @@ function renderToolForm(tool) {
       else input.value = kept[field.k];
     }
     form.appendChild(input);
+    if (field.type === "evidence") form.appendChild(evidenceUploader(input));
   });
 
   const confirmWrap = document.createElement("div");

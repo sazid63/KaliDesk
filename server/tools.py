@@ -23,6 +23,7 @@ import kws.paths as kws_paths
 import kws.secrets as kws_secrets
 import server.catalog as catalog
 import server.commands as commands
+import server.evidence as evidence
 import server.history as history
 import server.security as security
 
@@ -567,4 +568,4 @@ def evidence_files() -> list[str]:
     ev = kws_paths.evidence_dir()
     if not ev.exists():
         return []
-    return sorted(p.name for p in ev.iterdir() if p.is_file())
+    return sorted(p.name for p in ev.iterdir() if evidence.is_listed(p))

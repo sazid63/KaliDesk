@@ -386,6 +386,15 @@ form label {
   font-weight: 600;
 }
 
+form .evidence-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.4rem 0 0.6rem;
+  font-size: 0.875rem;
+}
+
 form .check {
   display: flex;
   gap: 0.5rem;

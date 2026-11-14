@@ -12,6 +12,7 @@ import logging
 import threading
 import time
 from pathlib import Path
+from urllib.parse import unquote
 
 from flask import Flask, jsonify, make_response, redirect, request, send_from_directory
 from werkzeug.exceptions import HTTPException
@@ -25,6 +26,7 @@ import server.cheat_sheets as cheat_sheets
 import server.commands as commands
 import server.container_runtime as container_runtime
 import server.db as db
+import server.evidence as evidence
 import server.history as history
 import server.notebook as notebook
 import server.onboarding as onboarding
@@ -300,6 +302,20 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @security.require_auth
     def api_evidence():
         return jsonify({"path": str(kws_paths.evidence_dir()), "files": tools.evidence_files()})
+
+    @app.post("/api/evidence/upload")
+    @security.require_auth
+    @security.require_csrf
+    def api_evidence_upload():
+        # The raw file is the body; its name travels in a header, URL-encoded, so it
+        # never lands in a URL or in the server log.
+        raw = request.headers.get("X-KWS-Filename", "")
+        try:
+            saved = evidence.store(request.stream, unquote(raw), evidence.MAX_UPLOAD)
+        except evidence.UploadError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 400
+        db.audit("user", "evidence:upload", saved, "ok")
+        return jsonify({"ok": True, "name": saved, "files": tools.evidence_files()})
 
     # --- findings / audit / report ---------------------------------------
     @app.get("/api/findings")
