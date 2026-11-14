@@ -25,6 +25,10 @@ jobs:
     timeout-minutes: 90
     container:
       image: kalilinux/kali-rolling
+      # nmap ships with file capabilities for raw sockets. Without these capabilities in
+      # the container bounding set, the kernel refuses to exec it (EPERM). The app itself
+      # runs nmap inside WSL2, which has them, so the smoke test must grant them too.
+      options: --cap-add=NET_RAW --cap-add=NET_ADMIN --cap-add=SETFCAP
     steps:
       - name: Prepare container
         run: |
