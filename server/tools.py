@@ -196,10 +196,18 @@ def sweep_work_dirs() -> None:
 def _agent_error(exc: Exception):
     """Map a failed agent call to ``(body, status)``: the agent's refusal code, or 503."""
     if isinstance(exc, urllib.error.HTTPError):
-        return {
-            "error": f"the runtime refused the request ({exc.code})",
-            "detail": exc.read().decode(errors="replace"),
-        }, exc.code
+        raw = exc.read().decode(errors="replace")
+        try:
+            agent_msg = str(json.loads(raw).get("error", "")).strip()
+        except (ValueError, AttributeError):
+            agent_msg = ""
+        if exc.code == 404:
+            # A run that the runtime has already cleared: the raw JSON is noise to the user.
+            message = "that run is no longer available (it may have finished and been cleared)"
+            return {"error": message}, exc.code
+        if agent_msg:
+            return {"error": agent_msg, "detail": raw}, exc.code
+        return {"error": f"the runtime refused the request ({exc.code})", "detail": raw}, exc.code
     return {"error": "the runtime is not reachable", "detail": str(exc)}, 503
 
 
