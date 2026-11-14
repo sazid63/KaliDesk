@@ -434,26 +434,10 @@ form .check {
 .tile.not-installed { opacity: 0.78; }
 .tile:focus-visible { outline: 2px solid var(--primary, #6b8f71); outline-offset: 2px; }
 
-.tile::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--accent), var(--info), var(--success));
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
 .tile:hover {
   border-color: rgba(107, 143, 113, 0.4);
   box-shadow: 0 8px 24px -8px rgba(107, 143, 113, 0.25);
   transform: translateY(-4px);
-}
-
-.tile:hover::before {
-  opacity: 1;
 }
 
 .tile:active {
@@ -964,7 +948,6 @@ a { color: var(--accent); }
   align-items: center;
   justify-content: space-between;
   border: 1px solid var(--line);
-  border-left: 4px solid var(--accent);
   background: var(--panel-2);
   border-radius: var(--radius);
   padding: 1rem 1.25rem;
@@ -972,10 +955,10 @@ a { color: var(--accent); }
   font-size: 0.9rem;
 }
 
-.banner.ok { border-left-color: var(--success); }
-.banner.bad { border-left-color: var(--error); }
-.banner.warning { border-left-color: var(--warning); }
-.banner.info { border-left-color: var(--info); }
+.banner.ok { border-color: var(--success); }
+.banner.bad { border-color: var(--error); }
+.banner.warning { border-color: var(--warning); }
+.banner.info { border-color: var(--info); }
 
 .banner .grow {
   flex: 1;
