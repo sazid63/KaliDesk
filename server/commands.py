@@ -114,6 +114,28 @@ def _host(p: dict, key: str, what: str = "target") -> str:
     return value
 
 
+def _is_private_or_local(value: str) -> bool:
+    """True for localhost and private, loopback or link-local addresses (or CIDR ranges of them)."""
+    if value.lower() in ("localhost", "localhost.localdomain"):
+        return True
+    try:
+        net = ipaddress.ip_network(value, strict=False)
+    except ValueError:
+        return False
+    return net.is_private or net.is_loopback or net.is_link_local
+
+
+def _public_domain(p: dict, key: str, tool: str) -> str:
+    """A domain name for tools that enumerate DNS or public sources. Refuses IPs and localhost."""
+    value = _host(p, key, "domain")
+    if _is_private_or_local(value) or re.fullmatch(r"[\d.]+", value):
+        raise BadInput(
+            f"{tool} needs a domain name such as example.com; localhost and IP addresses "
+            "have no public DNS records to enumerate"
+        )
+    return value
+
+
 def _url(p: dict, key: str = "url") -> str:
     value = _s(p, key)
     if not _URL_RE.match(value):
@@ -273,7 +295,13 @@ def _dns(p: dict, ctx: Context) -> list[str]:
 
 
 def _whois(p: dict, ctx: Context) -> list[str]:
-    return ["whois", _word(p, "query", "query")]
+    value = _word(p, "query", "query")
+    if _is_private_or_local(value):
+        raise BadInput(
+            "whois looks up public domains and IP addresses; localhost and private "
+            "addresses have no registry record"
+        )
+    return ["whois", value]
 
 
 def _nmap(p: dict, ctx: Context) -> list[str]:
@@ -316,11 +344,11 @@ def _whatweb(p: dict, ctx: Context) -> list[str]:
 
 
 def _dnsrecon(p: dict, ctx: Context) -> list[str]:
-    return ["dnsrecon", "-d", _host(p, "target", "domain")]
+    return ["dnsrecon", "-d", _public_domain(p, "target", "dnsrecon")]
 
 
 def _theharvester(p: dict, ctx: Context) -> list[str]:
-    return ["theHarvester", "-d", _host(p, "target", "domain"), "-b", "duckduckgo"]
+    return ["theHarvester", "-d", _public_domain(p, "target", "theHarvester"), "-b", "duckduckgo"]
 
 
 def _nikto(p: dict, ctx: Context) -> list[str]:

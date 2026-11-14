@@ -15,6 +15,8 @@ CTX = {
     "evidence": {"a.bin": "/e/a.bin"},
     "work": "/w",
 }
+DOMAIN_TOOLS = {"dnsrecon", "theharvester", "whois"}
+
 GOOD = {
     "target": "10.0.0.1", "url": "https://10.0.0.1/FUZZ", "query": "x", "name": "example.com",
     "file": "a.bin", "user": "u", "users": "u", "passwords": "p", "hashes": "h", "hash": "h",
@@ -42,7 +44,9 @@ def test_builder_binary_matches_the_manifest():
     """argv[0] must equal the binary the agent's allowlist expects, or the run is refused."""
     manifest = _manifest()
     for tool_id in commands.automated_ids():
-        argv = commands.build(tool_id, GOOD, CTX)
+        # Domain-only tools refuse IP targets, so give them a public domain.
+        payload = dict(GOOD, target="example.com") if tool_id in DOMAIN_TOOLS else GOOD
+        argv = commands.build(tool_id, payload, CTX)
         assert argv[0] == manifest[tool_id]["binary"], tool_id
 
 

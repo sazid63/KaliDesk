@@ -397,6 +397,13 @@ async function openTool(id) {
     li.textContent = p;
     prereqs.appendChild(li);
   });
+  // Every tool runs inside the Linux runtime, not on Windows. Say so once, here.
+  const where = document.createElement("li");
+  where.className = "muted";
+  where.textContent = "Runs inside the Linux runtime: 127.0.0.1 and localhost mean the runtime, " +
+    "not Windows, so a service running on this PC is not reachable at those addresses. " +
+    "Output files are saved in the run's work folder.";
+  prereqs.appendChild(where);
 
   const usage = $("#tool-usage");
   usage.innerHTML = "";

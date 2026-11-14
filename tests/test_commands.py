@@ -94,6 +94,8 @@ def test_nothing_returns_a_shell_string():
         ctx = {"files": {"users.txt": "/w/u", "passwords.txt": "/w/p",
                          "hashes.txt": "/w/h", "hash.txt": "/w/h"},
                "evidence": {"a.bin": "/e/a.bin"}, "work": "/w"}
+        if tool_id in ("dnsrecon", "theharvester", "whois"):
+            payload = dict(payload, target="example.com", query="example.com")
         argv = commands.build(tool_id, payload, ctx)
         assert isinstance(argv, list) and argv, tool_id
         assert all(isinstance(part, str) for part in argv), tool_id
