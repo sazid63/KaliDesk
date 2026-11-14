@@ -33,36 +33,6 @@ CREATE TABLE IF NOT EXISTS settings (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS conversations (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    created   TEXT NOT NULL,
-    tool      TEXT NOT NULL DEFAULT '',
-    target    TEXT NOT NULL DEFAULT '',
-    role      TEXT NOT NULL DEFAULT 'user',
-    content   TEXT NOT NULL DEFAULT '',
-    encrypted INTEGER NOT NULL DEFAULT 0
-);
-CREATE TABLE IF NOT EXISTS mcp_servers (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    name      TEXT NOT NULL UNIQUE,
-    type      TEXT NOT NULL,
-    config    TEXT NOT NULL DEFAULT '{}',
-    enabled   INTEGER NOT NULL DEFAULT 1
-);
-CREATE TABLE IF NOT EXISTS skills (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    name      TEXT NOT NULL UNIQUE,
-    description TEXT NOT NULL DEFAULT '',
-    category  TEXT NOT NULL DEFAULT 'general',
-    enabled   INTEGER NOT NULL DEFAULT 1
-);
-CREATE TABLE IF NOT EXISTS scan_profiles (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    name      TEXT NOT NULL,
-    tool      TEXT NOT NULL,
-    config    TEXT NOT NULL DEFAULT '{}',
-    created   TEXT NOT NULL
-);
 CREATE TABLE IF NOT EXISTS run_history (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     created       TEXT NOT NULL,
@@ -73,21 +43,6 @@ CREATE TABLE IF NOT EXISTS run_history (
     duration_ms   INTEGER NOT NULL DEFAULT 0,
     output_preview TEXT NOT NULL DEFAULT '',
     success       INTEGER NOT NULL DEFAULT 1
-);
-CREATE TABLE IF NOT EXISTS workspaces (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    name      TEXT NOT NULL UNIQUE,
-    description TEXT NOT NULL DEFAULT '',
-    created   TEXT NOT NULL
-);
-CREATE TABLE IF NOT EXISTS local_models (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    name          TEXT NOT NULL UNIQUE,
-    path          TEXT NOT NULL,
-    size_mb       REAL NOT NULL DEFAULT 0,
-    quantization  TEXT NOT NULL DEFAULT '',
-    capabilities  TEXT NOT NULL DEFAULT 'chat',
-    loaded        INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS achievements (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -115,22 +70,33 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def connect() -> sqlite3.Connection:
-    conn = sqlite3.connect(_db_path())
+class _Connection(sqlite3.Connection):
+    """``with connect() as conn`` commits (or rolls back) AND closes the connection.
+
+    Plain sqlite3 connections only commit on ``with`` exit and stay open, which leaks a
+    file handle on every call.
+    """
+
+    def __exit__(self, exc_type, exc, tb):
+        try:
+            return super().__exit__(exc_type, exc, tb)
+        finally:
+            self.close()
+
+
+def connect(path: str | None = None) -> sqlite3.Connection:
+    conn = sqlite3.connect(path or _db_path(), factory=_Connection, timeout=10)
     conn.row_factory = sqlite3.Row
+    # Per-connection settings (they are not stored in the database file).
+    conn.execute("PRAGMA busy_timeout=10000")
+    conn.execute("PRAGMA synchronous=NORMAL")
     return conn
 
 
 def init_db(db_path: str | None = None) -> None:
-    # Use the same DB path as connect() (default path)
-    with connect() as conn:
-        # Enable WAL journaling for better concurrency
+    with connect(db_path) as conn:
+        # WAL lets the UI read while a job records its result; it persists in the file.
         conn.execute("PRAGMA journal_mode=WAL")
-        # Set synchronous mode for durability
-        conn.execute("PRAGMA synchronous=NORMAL")
-        # Configure threading mode for thread safety
-        conn.execute("PRAGMA threading_mode=EXCLUSIVE")
-        # Apply the schema
         conn.executescript(_SCHEMA)
 
 
@@ -152,9 +118,21 @@ def add_finding(tool: str, target: str, severity: str, title: str, detail: str =
         return int(cur.lastrowid or 0)
 
 
-def findings(limit: int = 200) -> list[dict[str, Any]]:
+def delete_finding(fid: int) -> bool:
     with connect() as conn:
-        rows = conn.execute("SELECT * FROM findings ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+        cur = conn.execute("DELETE FROM findings WHERE id = ?", (fid,))
+        return cur.rowcount > 0
+
+
+def findings(limit: int | None = 200) -> list[dict[str, Any]]:
+    """Newest findings first. ``limit=None`` returns every finding (used by the report)."""
+    with connect() as conn:
+        if limit is None:
+            rows = conn.execute("SELECT * FROM findings ORDER BY id DESC").fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM findings ORDER BY id DESC LIMIT ?", (limit,)
+            ).fetchall()
     return [dict(r) for r in rows]
 
 

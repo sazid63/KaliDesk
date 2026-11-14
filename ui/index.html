@@ -5,25 +5,45 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kali Linux Windows Substitute</title>
   <link rel="stylesheet" href="/static/styles.css">
-  <link rel="stylesheet" href="/static/strix.css">
-  <script nonce="frontend-nonce">window.NONCE = "frontend-nonce";</script>
+  <link rel="stylesheet" href="/static/containers.css">
 </head>
 <body>
+<svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+<symbol id="i-toolbox" viewBox="0 0 24 24"><path d="M3 8h18v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 8V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/><path d="M3 13h18"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M5 20h14"/></symbol>
+<symbol id="i-bug" viewBox="0 0 24 24"><path d="M8 8a4 4 0 0 1 8 0v6a4 4 0 0 1-8 0z"/><path d="M12 8v12M4 12h4M16 12h4M5 6l3 2M19 6l-3 2M5 19l3-2M19 19l-3-2"/></symbol>
+<symbol id="i-list-check" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1.5 1.5L7 5M3.5 12l1.5 1.5L7 11M3.5 18l1.5 1.5L7 17"/></symbol>
+<symbol id="i-comment" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
+<symbol id="i-history" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="i-book-open" viewBox="0 0 24 24"><path d="M12 6c-2-1.5-5-2-8-2v14c3 0 6 .5 8 2 2-1.5 5-2 8-2V4c-3 0-6 .5-8 2z"/><path d="M12 6v14"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></symbol>
+<symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 17v4M17 19h4"/></symbol>
+<symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6L4 19a1 1 0 0 0 .9 1.5h14.2A1 1 0 0 0 20 19l-6-10V3"/><path d="M7.5 14h9"/></symbol>
+<symbol id="i-box" viewBox="0 0 24 24"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z"/><path d="M5 18a2 2 0 0 1 2-2h12"/></symbol>
+<symbol id="i-circle-play" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l6 3.5-6 3.5z"/></symbol>
+<symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H4v1a4 4 0 0 0 4 4M16 6h4v1a4 4 0 0 1-4 4M12 13v4M8 21h8M10 17h4"/></symbol>
+<symbol id="i-archive" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+<symbol id="i-terminal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M13 15h4"/></symbol>
+<symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></symbol>
+</svg>
   <a href="#main-content" class="skip-link">Skip to main content</a>
   <h1 class="sr-only">Kali Linux Windows Substitute</h1>
 
 <header class="topbar" role="banner">
   <div class="brand">
-    <span class="brand-logo"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span>
+    <span class="brand-logo"><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg></span>
     <span class="prompt">kalidesk</span><span class="colon">:</span><span class="pwd">~</span>$ kali-windows-substitute
   </div>
   <div class="topbar-right">
     <button class="palette-btn ghost" id="cmd-palette-btn" title="Command palette (Ctrl+K)" aria-label="Open command palette (Ctrl+K)">
-      <i class="fa-solid fa-terminal" aria-hidden="true"></i>
+      <svg class="icon" aria-hidden="true"><use href="#i-terminal"/></svg>
       <span class="kbd-hint">Ctrl K</span>
     </button>
     <button class="palette-btn ghost" id="help-btn" title="Keyboard shortcuts (F1)" aria-label="Show keyboard shortcuts (F1)">
-      <i class="fa-solid fa-keyboard" aria-hidden="true"></i>
+      <svg class="icon" aria-hidden="true"><use href="#i-keyboard"/></svg>
     </button>
     <div class="status" role="status" aria-live="polite">
       <span id="runtime-dot" class="dot" aria-hidden="true"></span>
@@ -39,28 +59,25 @@
     <hr>
     <h2>Views</h2>
     <ul id="view-list" role="listbox" aria-label="Panel views">
-      <li data-view="home" class="active" role="option" aria-selected="true" tabindex="0"><i class="fa-solid fa-toolbox nav-icon" aria-hidden="true"></i> All tools</li>
-      <li data-view="manager-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-download nav-icon" aria-hidden="true"></i> Tool manager</li>
-      <li data-view="findings-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-bug nav-icon" aria-hidden="true"></i> Findings</li>
-      <li data-view="audit-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-list-check nav-icon" aria-hidden="true"></i> Audit log</li>
-      <li data-view="chat-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-comment nav-icon" aria-hidden="true"></i> AI chat</li>
-      <li data-view="ai-chat-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-robot nav-icon" aria-hidden="true"></i> AI CyberSecurity</li>
-<li data-view="strix-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-skull nav-icon" aria-hidden="true"></i> Strix Pentest</li>
-      <li data-view="settings-ai-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-brain nav-icon" aria-hidden="true"></i> AI Settings</li>
-      <li data-view="containers-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-box nav-icon" aria-hidden="true"></i> Containers</li>
-      <li data-view="history-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-clock-rotate-left nav-icon" aria-hidden="true"></i> History</li>
-      <li data-view="playground-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-flask nav-icon" aria-hidden="true"></i> Playground</li>
-      <li data-view="cheat-sheets-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-book-open nav-icon" aria-hidden="true"></i> Cheat Sheets</li>
-      <li data-view="notebook-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-book nav-icon" aria-hidden="true"></i> Notebook</li>
-      <li data-view="recordings-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-circle-play nav-icon" aria-hidden="true"></i> Recordings</li>
-      <li data-view="achievements-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-trophy nav-icon" aria-hidden="true"></i> Achievements</li>
-      <li data-view="portable-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-plug nav-icon" aria-hidden="true"></i> Portable</li>
-      <li data-view="settings-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-gear nav-icon" aria-hidden="true"></i> Settings</li>
-      <li data-view="onboarding-panel" role="option" aria-selected="false" tabindex="-1"><i class="fa-solid fa-wand-magic-sparkles nav-icon" aria-hidden="true"></i> Onboarding</li>
+      <li data-view="home" class="active" role="option" aria-selected="true" tabindex="0"><svg class="icon nav-icon" aria-hidden="true"><use href="#i-toolbox"/></svg> All tools</li>
+      <li data-view="manager-panel" role="option" aria-selected="false" tabindex="-1"><svg class="icon nav-icon" aria-hidden="true"><use href="#i-download"/></svg> Tool manager</li>
+      <li data-view="findings-panel" role="option" aria-selected="false" tabindex="-1"><svg class="icon nav-icon" aria-hidden="true"><use href="#i-bug"/></svg> Findings</li>
+      <li data-view="audit-panel" role="option" aria-selected="false" tabindex="-1"><svg class="icon nav-icon" aria-hidden="true"><use href="#i-list-check"/></svg> Audit log</li>
+      <li data-view="chat-panel" role="option" aria-selected="false" tabindex="-1"><svg class="icon nav-icon" aria-hidden="true"><use href="#i-comment"/></svg> AI chat</li>
+      <li data-view="containers-panel" role="option" aria-selected="false" tabindex="-1"><svg class="icon nav-icon" aria-hidden="true"><use href="#i-box"/></svg> Containers</li>
+      <li data-view="history-panel" role="option" aria-selected="false" tabindex="-1"><svg class="icon nav-icon" aria-hidden="true"><use href="#i-history"/></svg> History</li>
+      <li data-view="playground-panel" role="option" aria-selected="false" tabindex="-1"><svg class="icon nav-icon" aria-hidden="true"><use href="#i-flask"/></svg> Playground</li>
+      <li data-view="cheat-sheets-panel" role="option" aria-selected="false" tabindex="-1"><svg class="icon nav-icon" aria-hidden="true"><use href="#i-book-open"/></svg> Cheat Sheets</li>
+      <li data-view="notebook-panel" role="option" aria-selected="false" tabindex="-1"><svg class="icon nav-icon" aria-hidden="true"><use href="#i-book"/></svg> Notebook</li>
+      <li data-view="recordings-panel" role="option" aria-selected="false" tabindex="-1"><svg class="icon nav-icon" aria-hidden="true"><use href="#i-circle-play"/></svg> Recordings</li>
+      <li data-view="achievements-panel" role="option" aria-selected="false" tabindex="-1"><svg class="icon nav-icon" aria-hidden="true"><use href="#i-trophy"/></svg> Achievements</li>
+      <li data-view="backup-panel" role="option" aria-selected="false" tabindex="-1"><svg class="icon nav-icon" aria-hidden="true"><use href="#i-archive"/></svg> Backup</li>
+      <li data-view="settings-panel" role="option" aria-selected="false" tabindex="-1"><svg class="icon nav-icon" aria-hidden="true"><use href="#i-gear"/></svg> Settings</li>
+      <li data-view="onboarding-panel" role="option" aria-selected="false" tabindex="-1"><svg class="icon nav-icon" aria-hidden="true"><use href="#i-sparkles"/></svg> Onboarding</li>
     </ul>
     <hr>
     <button class="palette-btn ghost sidebar-palette" id="cmd-palette-sidebar" aria-label="Open command palette (Ctrl+K)">
-      <i class="fa-solid fa-magnifying-glass nav-icon" aria-hidden="true"></i> Search / command…
+      <svg class="icon nav-icon" aria-hidden="true"><use href="#i-search"/></svg> Search / command…
       <span class="kbd-hint">Ctrl K</span>
     </button>
     <p class="muted note">
@@ -73,7 +90,7 @@
     <div id="view-home">
       <div id="setup-banner" class="banner">
         <span class="grow" id="setup-message">checking runtime…</span>
-        <button class="teal" id="setup-ensure">Set up runtime</button>
+        <button class="teal hidden" id="setup-ensure">Set up runtime</button>
       </div>
 
       <div id="intro" class="card">
@@ -124,8 +141,11 @@
         <div class="actions">
           <button type="button" class="primary" id="tool-run">Run</button>
           <button type="button" class="ghost" id="tool-preview">Preview command</button>
+          <button type="button" class="ghost" id="tool-cheat">Cheat sheet</button>
+          <button type="button" class="ghost hidden" id="tool-cancel">Stop</button>
         </div>
 
+        <p id="tool-status" class="muted" role="status" aria-live="polite"></p>
         <pre id="tool-output" class="hidden"></pre>
 
         <div class="ai">
@@ -145,6 +165,7 @@
         <button class="x" data-close="manager-panel" aria-label="Close tool manager">&times;</button>
       </div>
       <p class="muted">Install or uninstall any tool inside the app's private runtime.</p>
+      <p id="manager-status" class="muted" role="status" aria-live="polite"></p>
       <div class="toolbar">
         <input id="manager-search" class="grow" placeholder="Filter tools…">
         <label class="muted"><input type="checkbox" id="manager-installed"> installed only</label>
@@ -165,7 +186,7 @@
         <button class="ghost" id="report-csv">CSV</button>
       </div>
       <table>
-        <thead><tr><th>Severity</th><th>Tool</th><th>Target</th><th>Title</th><th>When</th></tr></thead>
+        <thead><tr><th>Severity</th><th>Tool</th><th>Target</th><th>Title</th><th>When</th><th><span class="sr-only">Actions</span></th></tr></thead>
         <tbody id="findings-body"></tbody>
       </table>
     </div>
@@ -208,77 +229,39 @@
         <dt>Tool agent</dt><dd id="set-agent">—</dd>
         <dt>Message</dt><dd id="set-message">—</dd>
       </dl>
+      <p><button type="button" class="ghost" id="open-shell">Open a shell in the runtime</button></p>
 
       <h3>AI provider</h3>
       <form id="ai-form">
         <label for="ai-provider">Provider</label>
         <select id="ai-provider">
           <option value="none">None (tools work without it)</option>
-          <option value="ollama">Ollama (local)</option>
-          <option value="openai">OpenAI-compatible (cloud)</option>
+          <option value="ollama">Ollama (local, no key)</option>
+          <option value="openai">OpenAI-compatible (OpenAI, DeepSeek, LM Studio, ...)</option>
+          <option value="anthropic">Anthropic</option>
+          <option value="gemini">Google Gemini</option>
         </select>
 
         <label for="ai-base">Base URL</label>
-        <input id="ai-base" placeholder="http://127.0.0.1:11434 or https://api.example.com/v1">
+        <input id="ai-base" placeholder="leave empty for the provider's default">
 
         <label for="ai-model">Model</label>
-        <input id="ai-model" placeholder="llama3 / gpt-4o-mini / …">
+        <input id="ai-model" list="ai-models" placeholder="model name">
+        <datalist id="ai-models"></datalist>
 
-        <label for="ai-key">API key (cloud only, stored with Windows DPAPI)</label>
-        <input id="ai-key" type="password" placeholder="leave empty to keep the saved key">
+        <div id="ai-key-row">
+          <label for="ai-key">API key (stored with Windows DPAPI, one per provider)</label>
+          <input id="ai-key" type="password" autocomplete="off" placeholder="leave empty to keep the saved key">
+        </div>
 
         <div class="actions">
           <button type="submit" class="primary" id="ai-save">Save AI settings</button>
+          <button type="button" class="ghost" id="ai-test">Test connection</button>
         </div>
       </form>
       <p class="muted" id="ai-status"></p>
     </div>
 
-    <div id="settings-ai-panel" class="panel hidden">
-      <div class="panel-head">
-        <h2>AI Settings</h2>
-        <button class="x" data-close="settings-ai-panel" aria-label="Close AI settings panel">&times;</button>
-      </div>
-
-      <p class="muted">Configure AI providers for chat and tool explanations. API keys are stored securely with Windows DPAPI.</p>
-
-      <div class="toolbar">
-        <select id="ai-provider-select" class="grow" placeholder="Select provider">
-          <option value=""> — Add provider — </option>
-          <option value="none"> — None (tools work without AI) — </option>
-          <option value="openai">OpenAI</option>
-          <option value="anthropic">Anthropic</option>
-          <option value="gemini">Gemini</option>
-          <option value="ollama">Ollama</option>
-          <option value="local">Local AI (GGUF)</option>
-          <option value="opencode">OpenCode</option>
-          <option value="deepseek">DeepSeek Harness</option>
-        </select>
-        <button class="primary" id="ai-provider-save">Save</button>
-        <button class="ghost" id="ai-provider-test">Test</button>
-        <button class="ghost" id="ai-provider-delete">Delete</button>
-      </div>
-
-      <div class="ai-provider-form" id="ai-provider-form">
-        <h3 id="ai-provider-form-title">Provider Settings</h3>
-
-        <!-- Provider forms will be dynamically inserted here -->
-        <div id="ai-provider-form-content"></div>
-
-        <div class="actions">
-          <button class="primary" id="ai-provider-submit">Save</button>
-          <button class="ghost" id="ai-provider-cancel">Cancel</button>
-        </div>
-      </div>
-
-      <div class="ai-providers-list" id="ai-providers-list">
-        <h3>Configured Providers</h3>
-        <div id="ai-providers-container" class="manager"></div>
-      </div>
-    </div>
-
-  </main>
-</div>
 
     <div id="containers-panel" class="panel hidden">
       <div class="panel-head">
@@ -306,7 +289,6 @@
       <div id="containers-images" class="tab-content">
         <h3>Container Images</h3>
         <div class="toolbar">
-          <input id="containers-image-search" class="grow" placeholder="Search images...">
           <button class="ghost" id="containers-pull-custom">Pull Custom</button>
         </div>
         <div id="containers-images-list" class="grid"></div>
@@ -316,7 +298,6 @@
       <div id="containers-containers" class="tab-content hidden">
         <h3>Running Containers</h3>
         <div class="toolbar">
-          <input id="containers-container-search" class="grow" placeholder="Search containers...">
           <button class="ghost" id="containers-refresh-containers">Refresh</button>
         </div>
         <div id="containers-containers-list" class="manager"></div>
@@ -335,7 +316,7 @@
               <option value="custom">Custom...</option>
             </select>
           </div>
-          <div class="field" id="containers-run-custom-image" style="display: none;">
+          <div class="field hidden" id="containers-run-custom-image">
             <label for="containers-run-custom-image-input">Custom Image</label>
             <input id="containers-run-custom-image-input" type="text" placeholder="nginx:latest">
           </div>
@@ -345,17 +326,22 @@
           </div>
           <div class="field">
             <label for="containers-run-ports">Port Mapping (host:container)</label>
-            <input id="containers-run-ports" type="text" placeholder="3000:3000, 8080:80">
+            <input id="containers-run-ports" type="text" placeholder="3000:3000, 8080:80 (bound to 127.0.0.1 only)">
             <p class="muted">Example: 3000:3000, 8080:80</p>
           </div>
           <div class="field">
             <label for="containers-run-volumes">Volume Mapping (host:container)</label>
-            <input id="containers-run-volumes" type="text" placeholder="C:/temp:/data">
-            <p class="muted">Example: C:/temp:/data</p>
+            <input id="containers-run-volumes" type="text" placeholder="/tmp/data:/data (host path under /tmp)">
+            <p class="muted">Example: /tmp/data:/data</p>
+          </div>
+          <div class="field">
+            <label for="containers-run-command">Command (optional)</label>
+            <input id="containers-run-command" type="text" placeholder="sleep 300">
+            <p class="muted">Replaces the image's default command. Spaces separate the parts; no quoting or shell syntax. Images such as Alpine exit at once unless given a long-running command.</p>
           </div>
           <div class="actions">
-            <button class="success" id="containers-run-submit">Run Container</button>
-            <button class="ghost" id="containers-run-cancel">Cancel</button>
+            <button type="button" class="success" id="containers-run-submit">Run Container</button>
+            <button type="button" class="ghost" id="containers-run-cancel">Cancel</button>
           </div>
         </form>
       </div>
@@ -379,19 +365,17 @@
       <table>
         <thead>
           <tr>
+            <th>When</th>
             <th>Tool</th>
             <th>Target</th>
-            <th>RC</th>
+            <th>Exit</th>
             <th>Duration</th>
-            <th>Success</th>
+            <th>Result</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody id="history-table-body"></tbody>
       </table>
-      <div class="toolbar" style="margin-top: 1rem; justify-content: flex-end;">
-        <button class="ghost" id="history-export">Export CSV</button>
-      </div>
     </div>
 
     <div id="playground-panel" class="panel hidden">
@@ -399,14 +383,14 @@
         <h2>Playground</h2>
         <button class="x" data-close="playground-panel" aria-label="Close playground panel">&times;</button>
       </div>
-      <p class="muted warning">A vulnerable http.server app runs on 127.0.0.1:3000 inside WSL2.</p>
+      <p class="muted warning">A deliberately vulnerable practice app runs on 127.0.0.1:3000 inside the runtime. It can only see its own scratch folder.</p>
       <div class="toolbar">
         <span id="playground-status" class="muted">Not running</span>
         <div class="grow"></div>
         <button class="success" id="playground-start">Start</button>
         <button class="error" id="playground-stop">Stop</button>
       </div>
-      <div class="toolbar" style="margin-top: 1rem;">
+      <div class="toolbar mt-1">
         <button class="info" id="playground-open">Open in Browser</button>
       </div>
       <p class="muted" id="playground-text">Start the playground to test security tools.</p>
@@ -445,10 +429,10 @@
         <input id="notebook-search" class="grow" placeholder="Search entries...">
         <button class="ghost" id="notebook-export">Export Markdown</button>
       </div>
-      <div class="toolbar" style="margin-top: 0.5rem;">
+      <div class="toolbar mt-half">
         <button class="purple" id="notebook-add">Add Entry</button>
       </div>
-      <div class="entry-form" id="entry-form" style="display: none;">
+      <div class="entry-form hidden" id="entry-form">
         <div class="field">
           <label for="notebook-type">Type</label>
           <select id="notebook-type">
@@ -476,20 +460,18 @@
 
     <div id="recordings-panel" class="panel hidden">
       <div class="panel-head">
-        <h2>Terminal Recordings</h2>
-        <button class="x" data-close="recordings-panel" aria-label="Close recordings panel">&times;</button>
+        <h2>Run transcripts</h2>
+        <button class="x" data-close="recordings-panel" aria-label="Close transcripts panel">&times;</button>
       </div>
-      <div class="toolbar">
-        <button class="purple" id="recordings-start">Start Recording</button>
-        <button class="error" id="recordings-stop">Stop</button>
-      </div>
+      <p class="muted">Every finished run is saved here with its full output (the last 200 are kept).</p>
       <table>
         <thead>
           <tr>
             <th>Tool</th>
+            <th>Result</th>
             <th>Duration</th>
             <th>Size</th>
-            <th>Date</th>
+            <th>When</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -497,25 +479,30 @@
       </table>
     </div>
 
-    <div id="portable-panel" class="panel hidden">
+    <div id="backup-panel" class="panel hidden">
       <div class="panel-head">
-        <h2>Portable Mode</h2>
-        <button class="x" data-close="portable-panel" aria-label="Close portable panel">&times;</button>
+        <h2>Backup and restore</h2>
+        <button class="x" data-close="backup-panel" aria-label="Close backup panel">&times;</button>
       </div>
-      <p class="muted warning">Switch to USB drive mode. This will move your data to a removable drive.</p>
-      <div id="portable-status" class="muted"></div>
-      <div class="toolbar">
-        <select id="portable-drive-select" class="grow">
-          <option value="">— Select USB drive —</option>
-        </select>
-        <button class="ghost" id="portable-refresh-drives">Refresh</button>
-        <button class="warning" id="portable-switch">Switch to USB</button>
+      <p class="muted">A backup holds your findings, history, settings, evidence files and run
+        transcripts. It never contains API keys (they are tied to this Windows account) or the
+        runtime, which is rebuilt with Set up runtime.</p>
+      <div class="actions">
+        <button class="primary" id="backup-export">Download a backup</button>
       </div>
+      <h3>Restore</h3>
+      <p class="muted">Restoring replaces your current findings, history and settings. The current
+        database is kept next to it as a .before-restore copy. Restart the app afterwards.</p>
+      <div class="actions">
+        <input type="file" id="backup-file" accept=".zip" aria-label="Backup file">
+        <button class="warning" id="backup-import">Restore from file</button>
+      </div>
+      <p id="backup-status" class="muted" role="status" aria-live="polite"></p>
     </div>
 
     <div id="onboarding-panel" class="panel hidden">
       <div class="panel-head">
-        <h2>Onboarding</h2>
+        <h2>Getting started</h2>
         <button class="x" data-close="onboarding-panel" aria-label="Close onboarding panel">&times;</button>
       </div>
       <div class="onboarding-progress">
@@ -524,94 +511,32 @@
       <div id="onboarding-content">
         — Loading onboarding steps —
       </div>
-      <div class="actions" style="margin-top: 1rem;">
+      <div class="actions mt-1">
         <button class="ghost" id="onboarding-prev">Previous</button>
         <button class="success" id="onboarding-next">Next</button>
-        <button class="ghost" id="onboarding-finish">Finish</button>
+        <button class="ghost" id="onboarding-skip">Skip for now</button>
       </div>
     </div>
 
-    <div id="ai-chat-panel" class="panel hidden">
-      <div class="panel-head">
-        <h2>AI CyberSecurity Chat</h2>
-        <button class="x" data-close="ai-chat-panel" aria-label="Close AI chat panel">&times;</button>
-      </div>
 
-      <div class="toolbar">
-        <select id="ai-chat-conversation" class="grow" placeholder="Select conversation...">
-          <option value="new">New conversation</option>
-        </select>
-        <button class="primary" id="ai-chat-new">New chat</button>
-        <button class="ghost" id="ai-chat-delete">Delete</button>
-        <button class="ghost" id="ai-chat-export">Export</button>
-      </div>
 
-      <div id="ai-chat-log" class="chat"></div>
 
-      <div class="chat-input">
-        <textarea id="ai-chat-input" placeholder="Ask about security tools, techniques, or investigations..."></textarea>
-        <div class="ai-row">
-          <button class="info" id="ai-chat-send">Send</button>
-          <label class="muted">
-            <input type="checkbox" id="ai-chat-beginner"> Explain Like I'm Learning
-          </label>
-        </div>
-      </div>
-
-      <div class="tools-strip" id="ai-chat-tools-strip">
-        <!-- Tools chips will be inserted here -->
-      </div>
-    </div>
-
-<div id="strix-panel" class="panel hidden">
-  <div class="panel-head">
-    <h2>Strix AI Pentest</h2>
-    <button class="x" data-close="strix-panel" aria-label="Close Strix panel">&times;</button>
-  </div>
-
-  <div class="strix-header">
-    <div class="strix-status" role="status" aria-live="polite">
-      <span class="dot" id="strix-dot" aria-hidden="true"></span>
-      <span id="strix-text">Checking status...</span>
-    </div>
-    <div class="strix-actions">
-      <button class="primary" id="strix-install" disabled>Install</button>
-      <button class="primary" id="strix-start" disabled>Start</button>
-      <button class="ghost" id="strix-stop" disabled>Stop</button>
-      <button class="ghost" id="strix-refresh">Refresh</button>
-    </div>
-    <button class="ghost" id="strix-info" title="What is Strix?" aria-label="What is Strix?" aria-expanded="false" aria-controls="strix-tooltip">ⓘ</button>
-  </div>
-
-  <div class="strix-tooltip hidden" id="strix-tooltip">
-    Strix is an AI-powered autonomous pentesting agent that runs inside the WSL2 runtime.
-    It can scan, exploit, and report on targets with minimal human intervention.
-    <br><br>
-    <a href="https://github.com/strix-ai/strix" target="_blank">docs</a> |
-    <a href="https://github.com/strix-ai/strix/releases" target="_blank">releases</a>
-  </div>
-
-  <div class="strix-content">
-    <iframe id="strix-iframe" class="strix-iframe hidden" src="about:blank"
-            frameborder="0" allowfullscreen></iframe>
-    <div class="strix-log" id="strix-log"></div>
-  </div>
+  </main>
 </div>
 
 <div id="toast" class="toast hidden" aria-live="polite"></div>
-<script nonce="frontend-nonce" src="/static/utils.js"></script>
-<script nonce="frontend-nonce" src="/static/app.js"></script>
-<script nonce="frontend-nonce" src="/static/strix.js"></script>
+<script src="/static/utils.js"></script>
+<script src="/static/app.js"></script>
 
-<script nonce="frontend-nonce" src="/static/history.js"></script>
-<script nonce="frontend-nonce" src="/static/playground.js"></script>
-<script nonce="frontend-nonce" src="/static/cheat_sheets.js"></script>
-<script nonce="frontend-nonce" src="/static/achievements.js"></script>
-<script nonce="frontend-nonce" src="/static/notebook.js"></script>
-<script nonce="frontend-nonce" src="/static/recordings.js"></script>
-<script nonce="frontend-nonce" src="/static/portable.js"></script>
-<script nonce="frontend-nonce" src="/static/onboarding.js"></script>
-<script nonce="frontend-nonce" src="/static/containers.js"></script>
-<script nonce="frontend-nonce" src="/static/ai-chat.js"></script>
+<script src="/static/history.js"></script>
+<script src="/static/playground.js"></script>
+<script src="/static/cheat_sheets.js"></script>
+<script src="/static/achievements.js"></script>
+<script src="/static/notebook.js"></script>
+<script src="/static/recordings.js"></script>
+<script src="/static/onboarding.js"></script>
+<script src="/static/containers.js"></script>
+</body>
+</html>
 
 </body>

@@ -33,8 +33,9 @@ anywhere in the code. But "local" does not mean "offline":
   of course anything pointed at a remote target). Fully offline tools —
   hashcat, john, binwalk, exiftool and the like — work with no connection.
 - **The optional cloud AI needs internet.** The Ollama (local) provider does
-  not; the OpenAI-compatible provider calls whatever base URL you configure,
-  and only when you ask it something.
+  not. The cloud providers (Anthropic, Google Gemini, and any OpenAI-compatible
+  endpoint) call the base URL you configure, and only when you ask the assistant
+  something.
 - **The runtime image itself** is either built from the Kali/Debian mirrors
   (internet at build time) or downloaded from a pinned URL with a SHA-256
   check, and only if you configure `KWS_ROOTFS_URL`. With a local image
@@ -87,3 +88,21 @@ Dradis or a full engagement report template.
 
 Windows only. macOS and Linux are not supported targets, and the secrets layer
 uses the Windows DPAPI.
+
+## Strix (AI pentest agent)
+
+Strix (`pip install strix-agent`, <https://strix.ai>) is a command-line agent. It needs Python 3.12+,
+Docker and an LLM API key, and it attacks the target you give it autonomously. KaliDesk does not wrap
+it: an earlier version pretended Strix was a web service on port 8080, which it is not. If you want
+to use it, open a shell in the runtime (Settings > *Open a shell in the runtime*), install Docker and
+`pipx install strix-agent`, set `STRIX_LLM` and `LLM_API_KEY`, and run it only against systems you own.
+
+## Containers
+
+The Containers panel uses Podman inside the runtime. Rootless networking in WSL2 is limited, so
+published ports are reachable from the runtime and from Windows only on 127.0.0.1.
+
+## Playground
+
+The practice target is a small Python web app with a real SQL injection, reflected XSS, a contained
+path traversal, a weak token and a weak login. It listens on 127.0.0.1:3000 inside the runtime.

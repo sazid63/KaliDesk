@@ -57,14 +57,19 @@ python app/main.py --check
 - **Never touch another distribution.** Only `cfg.runtime_distro`.
 - **No secrets, no absolute paths, no telemetry.** `.env.example` only.
 - **Escape everything** that comes from a tool before it reaches a report.
-- **Keep the theme.** The terminal-green look is deliberate.
+- **Keep the theme.** The UI uses the soft, bright Sage look (warm neutrals with a
+  sage accent), defined as colour tokens on `:root` in `ui/styles.css`. Add colours
+  as tokens, not as literals, and keep text contrast at WCAG 2.1 AA.
 
 ## Code style
 
 - Python: `ruff` settings in `pyproject.toml`; type hints on public functions;
   `from __future__ import annotations` at the top of modules.
-- JavaScript: no framework, no build step; the CSP forbids inline script, so
-  everything lives in `ui/app.js`.
+- JavaScript: no framework, no build step. The CSP (`script-src 'self'`) forbids
+  inline script, so each script is a file under `ui/`: `utils.js` and `app.js`
+  for the shell and dashboard, plus one script per panel (`history.js`,
+  `playground.js`, `containers.js`, and so on). `index.html` loads them, so a new
+  panel script needs a `<script src>` tag there.
 - Comments explain *why*, not *what*.
 
 ## Commit messages

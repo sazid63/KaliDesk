@@ -19,17 +19,27 @@ The distribution is called `KaliSubstitute` and is the app's own. Hard rules:
 ```
  Windows side
  ┌────────────────────────────────────────────────────────────┐
- │ app/main.py          launcher: token, CSRF, window, --check │
- │ app/runtime.py       WSL2 lifecycle: status/ensure/import    │
- │ ui/                  index.html, app.js, styles.css          │
- │ server/app.py        Flask factory + routes                  │
- │ server/security.py   auth, CSRF, CSP, scope guard            │
- │ server/commands.py   form fields -> argv list                │
- │ server/tools.py      agent transport + install/remove        │
+ │ app/main.py          launcher: backend, launch code, window  │
+ │ app/runtime.py       WSL2 lifecycle: status/setup/import/agent│
+ │ ui/index.html        the single page and its nav views        │
+ │ ui/app.js            dashboard, tool panels, forms, settings  │
+ │ ui/utils.js + panel scripts (history, notebook, containers,  │
+ │   playground, recordings, achievements, cheat_sheets,        │
+ │   onboarding); styles.css and containers.css                 │
+ │ server/app.py        Flask app factory + routes              │
+ │ server/security.py   tokens, CSRF, CSP/headers, scope guard  │
+ │ server/config.py     runtime settings from KWS_* variables   │
+ │ server/commands.py   form fields -> argv list (BUILDERS)     │
+ │ server/tools.py      agent transport, run/install/remove     │
  │ server/catalog.py    reads catalog/tools.yaml                │
  │ server/db.py         sqlite: findings, audit, settings       │
  │ server/report.py     escaped HTML / JSON / CSV reports       │
- │ server/ai.py         optional Ollama / OpenAI-compatible     │
+ │ server/ai.py         optional AI: Ollama, OpenAI-compatible, │
+ │                      Anthropic, Gemini                       │
+ │ server/mcp_server.py MCP server for other AI apps            │
+ │ server/ (also)       backup, container_runtime, playground,  │
+ │   recordings, achievements, history, notebook, onboarding,   │
+ │   cheat_sheets                                               │
  │ kws/paths.py         resource + user-data paths              │
  │ kws/secrets.py       DPAPI-protected secrets                 │
  └────────────────────────────────────────────────────────────┘
@@ -48,11 +58,22 @@ The distribution is called `KaliSubstitute` and is the app's own. Hard rules:
 
 | Boundary | Control |
 | --- | --- |
-| Browser/UI to backend | loopback only; bearer token cookie; CSRF header on writes; strict CSP; `X-Frame-Options: DENY` |
+| Browser/UI to backend | loopback only; HttpOnly session cookie; CSRF token on writes; strict CSP; `X-Frame-Options: DENY` |
 | Backend to agent | loopback only inside the distro; bearer token on every request |
 | Agent to the operating system | argv list with `shell=False`; `argv[0]` must equal the binary declared for that tool in `tools.json`; argument sanity checks; timeout; output cap |
 | Model output to action | the AI can only *propose*; the UI must show a confirm button; the scope guard still applies |
 | Report output to a document | every value is HTML-escaped; reports are served as downloads, so they never run in the app's own origin |
+
+## How the window gets its session
+
+The launcher starts the backend on loopback and opens the window at
+`/?launch=<code>`, where `<code>` is a one-time launch code generated for that
+run. The backend checks the code in constant time, spends it on first use, and
+answers with a redirect to a clean `/` that sets two cookies: an HttpOnly
+session cookie that the page script cannot read, and a CSRF cookie that the UI
+echoes back on every write (double-submit). The session secret therefore never
+appears in the address bar, the browser history or a log. The app does not use a
+`?token=` URL.
 
 ## The scope guard
 
@@ -101,7 +122,7 @@ Everything writable lives under `%LOCALAPPDATA%\KaliWindowsSubstitute`:
 
 ```
 kws.sqlite3     findings, audit log, settings
-secrets/        DPAPI-encrypted blobs (AI key, agent token)
+secrets/        DPAPI-encrypted blobs (one AI key per provider)
 evidence/       files you drop in for the forensics tools
 work/           generated wordlists/hashes the tools consume
 wsl/            the imported distribution's virtual disk

@@ -7,5 +7,5 @@ useDefault = true
 description = "Non-secret placeholders and test fixtures only."
 paths = [
   '''\.env\.example$''',
-  '''tests/fixtures/''',
+  '''tests/dummies/''',
 ]

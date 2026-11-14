@@ -28,7 +28,7 @@ $ photorec /log /d out image.raw
 ## At a glance
 
 - Category: `forensics`
-- Install with: `apt install testdisk`
+- Install with: `apt install photorec testdisk`
 - Baseline: yes
 - Licence: GPL-2.0
 - Upstream: <https://www.cgsecurity.org/wiki/PhotoRec>

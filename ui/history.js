@@ -1,86 +1,91 @@
-/* 
- * Kali Linux Windows Substitute - Run History Panel
- */
+(function () {
+"use strict";
+/* Run history: newest first, filterable, refreshed while the panel is open. */
 
-let history = [];
+let rows = [];
+let wired = false;
+let timer = null;
 
-async function initHistory() {
-  await loadHistory();
-  wireHistory();
-  setInterval(() => {
-    if (!$("#history-panel").classList.contains("hidden")) {
-      loadHistory();
-    }
+function visible() {
+  const tool = ($("#history-filter-tool").value || "").trim().toLowerCase();
+  const ok = $("#history-filter-success").value;
+  return rows.filter((run) =>
+    (!tool || String(run.tool).toLowerCase().includes(tool)) &&
+    (ok === "" || (ok === "true") === !!run.success));
+}
+
+function render() {
+  const body = $("#history-table-body");
+  body.textContent = "";
+  const list = visible();
+  if (!list.length) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 7;
+    td.className = "muted";
+    td.textContent = rows.length ? "No runs match that filter." : "No runs recorded yet.";
+    tr.appendChild(td);
+    body.appendChild(tr);
+    return;
+  }
+  list.forEach((run) => {
+    const tr = document.createElement("tr");
+    [formatWhen(run.created), run.tool, run.target || "—",
+     run.rc === null || run.rc === undefined ? "—" : String(run.rc),
+     formatDuration(run.duration_ms), run.success ? "ok" : "failed"].forEach((text, i) => {
+      const td = document.createElement("td");
+      td.textContent = text;
+      if (i === 5) td.className = run.success ? "ok" : "bad";
+      tr.appendChild(td);
+    });
+    const actions = document.createElement("td");
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "ghost tiny";
+    del.textContent = "Delete";
+    del.addEventListener("click", () => removeRun(run.id));
+    actions.appendChild(del);
+    tr.appendChild(actions);
+    tr.title = run.output_preview || "";
+    body.appendChild(tr);
+  });
+}
+
+async function load() {
+  const { data } = await api("GET", "/api/history?limit=500");
+  rows = (data && data.history) || [];
+  render();
+}
+
+async function removeRun(id) {
+  if (!confirm("Delete this run record?")) return;
+  const { ok, data } = await api("DELETE", "/api/history/" + encodeURIComponent(id));
+  if (!ok) { toast((data && data.error) || "Could not delete that run", true); return; }
+  toast("Run deleted");
+  load();
+}
+
+function wire() {
+  if (wired) return;
+  wired = true;
+  $("#history-filter-tool").addEventListener("input", render);
+  $("#history-filter-success").addEventListener("change", render);
+  $("#history-clear").addEventListener("click", async () => {
+    if (!confirm("Clear the whole run history?")) return;
+    const { ok, data } = await api("POST", "/api/history/clear", {});
+    if (!ok) { toast((data && data.error) || "Could not clear history", true); return; }
+    toast("History cleared");
+    load();
+  });
+  timer = setInterval(() => {
+    if (!$("#history-panel").classList.contains("hidden")) load();
   }, 10000);
 }
 
-async function loadHistory() {
-  const { data } = await api("GET", "/api/history");
-  if (!data || !data.history) return;
-  history = data.history;
-  renderHistory();
+async function initHistory() {
+  wire();
+  await load();
 }
 
-function renderHistory() {
-  const tbody = $("#history-table-body");
-  tbody.innerHTML = "";
-  
-  if (!history.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="muted">No runs recorded.</td></tr>';
-    return;
-  }
-  
-  history.slice().reverse().forEach((run) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML =
-      '<td>' + esc(run.tool) + '</td>' +
-      '<td>' + esc(run.target || "—") + '</td>' +
-      '<td>' + esc(String(run.rc || "—")) + '</td>' +
-      '<td>' + esc(formatDuration(run.duration_ms)) + '</td>' +
-      '<td>' + (run.success ? "Yes" : "No") + '</td>' +
-      '<td>' +
-      '<button class="ghost tiny" data-id="' + run.id + '" data-act="delete">Del</button>' +
-      '</td>';
-    tbody.appendChild(tr);
-  });
-  
-  tbody.querySelectorAll('[data-act="delete"]').forEach((btn) => {
-    btn.addEventListener("click", () => deleteHistory(btn.dataset.id));
-  });
-}
-
-function formatDuration(ms) {
-  if (!ms) return "—";
-  if (ms < 1000) return ms + "ms";
-  const s = (ms / 1000).toFixed(1);
-  return s + "s";
-}
-
-/* esc, toast, api provided globally by utils.js */
-
-function deleteHistory(id) {
-  if (!confirm("Delete this run record?")) return;
-  api("DELETE", "/api/history/" + id).then(() => {
-    loadHistory();
-    toast("Run deleted");
-  });
-}
-
-async function wireHistory() {
-  $("#history-filter-tool").addEventListener("input", renderHistory);
-  $("#history-filter-success").addEventListener("change", renderHistory);
-  $("#history-clear").addEventListener("click", async () => {
-    if (confirm("Clear all run history?")) {
-      await api("POST", "/api/history/clear");
-      loadHistory();
-      toast("History cleared");
-    }
-  });
-}
-
-/* $, $$, esc, toast, api provided globally by utils.js */
-
-function wire() {
-}
-
-wire();
+window.initHistory = initHistory;
+})();

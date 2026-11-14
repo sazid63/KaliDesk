@@ -5,8 +5,8 @@
 
       1. Welcome / prerequisites - checkboxes to enable WSL2 and, optionally,
          install Python 3.
-      2. Install location - choose the folder (and optionally point at a
-         runtime image the app can import later).
+      2. Install location - choose the parent folder. The app goes into
+         <folder>\KaliWindowsSubstitute. Optionally point at a runtime image.
       3. Install - copies the app, creates the shortcut and uninstall entry.
       4. Finish - launches the app.
 
@@ -15,6 +15,11 @@
       Install.ps1   the actual per-user install (silent core)
 
     Quiet mode (-Quiet) skips the UI and just installs, for automation.
+
+    Exit codes (read by SetupStub.cs):
+      0     installed
+      1     the install failed
+      1223  the wizard was cancelled before installing (ERROR_CANCELLED)
 #>
 [CmdletBinding()]
 param(
@@ -27,57 +32,67 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-$AppName       = 'Kali Linux Windows Substitute'
-$FolderName    = 'KaliWindowsSubstitute'
 $Here          = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $Here 'Common.ps1')
+
 $InstallScript = Join-Path $Here 'Install.ps1'
 $PrereqScript  = Join-Path $Here 'Prereqs.ps1'
+$CancelledExit = 1223
 
 if ([string]::IsNullOrWhiteSpace($AppSource)) {
     $AppSource = Join-Path (Split-Path -Parent $Here) 'app'
 }
+# InstallDir is the PARENT folder; Install.ps1 adds \KaliWindowsSubstitute.
 if ([string]::IsNullOrWhiteSpace($InstallDir)) {
-    $InstallDir = Join-Path $env:LOCALAPPDATA "Programs\$FolderName"
+    $InstallDir = Join-Path $env:LOCALAPPDATA 'Programs'
+    # Upgrades default to the folder the app was installed into last time.
+    $previous = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\$FolderName" -ErrorAction SilentlyContinue
+    if ($previous -and $previous.PSObject.Properties['InstallLocation'] -and $previous.InstallLocation) {
+        $InstallDir = Split-Path -Parent $previous.InstallLocation
+    }
 }
+
+# Exit code for the whole wizard. Cancelling (or closing the window) keeps the
+# distinct "cancelled" code; a finished install sets 0 or 1.
+$script:exitCode = $CancelledExit
 
 function Test-WslReady {
     $wsl = Get-Command wsl.exe -ErrorAction SilentlyContinue
     if (-not $wsl) { return $false }
-    & $wsl.Source --status *> $null
-    return ($LASTEXITCODE -eq 0)
+    try {
+        & $wsl.Source --status *> $null
+        return ($LASTEXITCODE -eq 0)
+    } catch {
+        # wsl.exe writing to stderr is a terminating error under -ErrorAction Stop.
+        return $false
+    }
 }
 
-function Test-PythonPresent {
-    if (Get-Command python -ErrorAction SilentlyContinue) { return $true }
-    if (Get-Command py -ErrorAction SilentlyContinue) { return $true }
-    return $false
-}
-
-function Test-Administrator {
-    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $principal = New-Object Security.Principal.WindowsPrincipal($identity)
-    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-}
-
+# Runs Prereqs.ps1 and returns its exit code (0 ok, 1 failed, 3010 restart needed,
+# 1223 the UAC prompt was declined). The caller reads the code; the window
+# is not relied on for the result.
 function Invoke-Prereqs {
     param([bool]$Wsl, [bool]$Python)
     $extra = @()
     if ($Wsl) { $extra += '-Wsl' }
     if ($Python) { $extra += '-Python' }
-    if ($extra.Count -eq 0) { return }
-    if (-not (Test-Path $PrereqScript)) { return }
+    if ($extra.Count -eq 0) { return 0 }
+    if (-not (Test-Path $PrereqScript)) { return 1 }
 
     $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PrereqScript`"") + $extra
     if (Test-Administrator) {
-        & powershell.exe @argList
-        return
+        # Out-Host keeps the child's console text out of the returned value.
+        & powershell.exe @argList | Out-Host
+        return $LASTEXITCODE
     }
     try {
-        Start-Process -FilePath 'powershell.exe' -Verb RunAs -Wait -ArgumentList $argList
+        $proc = Start-Process -FilePath 'powershell.exe' -Verb RunAs -Wait -PassThru -ArgumentList $argList
+        return $proc.ExitCode
+    } catch [System.ComponentModel.Win32Exception] {
+        # 1223 = the user declined the elevation prompt.
+        return $CancelledExit
     } catch {
-        [System.Windows.Forms.MessageBox]::Show(
-            "Could not start the prerequisite step: $($_.Exception.Message)",
-            $AppName, 'OK', 'Warning')
+        return 1
     }
 }
 
@@ -102,7 +117,7 @@ Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
 $wslReady = Test-WslReady
-$hasPython = Test-PythonPresent
+$hasPython = Test-PythonInstalled
 
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "$AppName - Setup"
@@ -195,7 +210,7 @@ $pagePrereq.Controls.Add($btnCancel1)
 $pageDir = New-Page
 
 $lblDirIntro = New-Object System.Windows.Forms.Label
-$lblDirIntro.Text = 'Choose where to install the application.'
+$lblDirIntro.Text = 'Choose the parent folder. The app is installed into a KaliWindowsSubstitute folder inside it.'
 $lblDirIntro.Location = New-Object System.Drawing.Point(4, 4)
 $lblDirIntro.Size = New-Object System.Drawing.Size(560, 20)
 $pageDir.Controls.Add($lblDirIntro)
@@ -227,7 +242,7 @@ $lblNote = New-Object System.Windows.Forms.Label
 $lblNote.ForeColor = [System.Drawing.Color]::DimGray
 $lblNote.Location = New-Object System.Drawing.Point(4, 136)
 $lblNote.Size = New-Object System.Drawing.Size(560, 60)
-$lblNote.Text = 'No image yet? The app can build or download one on first run; see docs/PREREQUISITES.md.'
+$lblNote.Text = 'No image yet? Press ''Set up runtime'' in the app: it downloads and verifies the official Kali WSL image on first run (internet needed).'
 $pageDir.Controls.Add($lblNote)
 
 $btnBack = New-Button -Text '< Back' -X 190 -Y 262
@@ -302,7 +317,7 @@ $btnCancel2.Add_Click({ $form.Close() })
 
 $btnBrowseDir.Add_Click({
     $dlg = New-Object System.Windows.Forms.FolderBrowserDialog
-    $dlg.Description = 'Select the install folder'
+    $dlg.Description = 'Select the parent folder for the app'
     if (Test-Path $txtDir.Text) { $dlg.SelectedPath = $txtDir.Text }
     if ($dlg.ShowDialog() -eq 'OK') { $txtDir.Text = $dlg.SelectedPath }
 })
@@ -318,9 +333,21 @@ $btnNext.Add_Click({
     $btnNext.Enabled = $false
     [System.Windows.Forms.Application]::DoEvents()
     try {
-        Invoke-Prereqs -Wsl $chkWsl.Checked -Python $chkPy.Checked
+        $code = Invoke-Prereqs -Wsl $chkWsl.Checked -Python $chkPy.Checked
     } finally {
         $btnNext.Enabled = $true
+    }
+    if ($code -eq 3010) {
+        [System.Windows.Forms.MessageBox]::Show(
+            'WSL2 was enabled. Restart Windows before using the tools.', $AppName, 'OK', 'Information')
+    } elseif ($code -eq $CancelledExit) {
+        [System.Windows.Forms.MessageBox]::Show(
+            'Administrator approval was declined, so the prerequisites were not changed. You can run enable-wsl.ps1 later.',
+            $AppName, 'OK', 'Warning')
+    } elseif ($code -ne 0) {
+        [System.Windows.Forms.MessageBox]::Show(
+            "The prerequisite step did not finish (exit code $code). The install can continue; run enable-wsl.ps1 from the app folder later.",
+            $AppName, 'OK', 'Warning')
     }
     Show-Page -Page $pageDir
 })
@@ -340,9 +367,10 @@ $btnInstall.Add_Click({
         [System.Windows.Forms.MessageBox]::Show("Cannot use that folder: $($_.Exception.Message)", $AppName)
         return
     }
+    $target = Join-Path $dir $FolderName
 
     Show-Page -Page $pageProgress
-    $lblProgress.Text = "Installing to $dir ..."
+    $lblProgress.Text = "Installing to $target ..."
     $txtLog.Text = ''
     [System.Windows.Forms.Application]::DoEvents()
 
@@ -357,10 +385,10 @@ $btnInstall.Add_Click({
         $coreArgs += @('-RuntimeImage', "`"$img`"")
     }
 
-    $ok = $false
+    $code = 1
     try {
-        $proc = Start-Process -FilePath 'powershell.exe' -ArgumentList $coreArgs -Wait -PassThru
-        $ok = ($proc.ExitCode -eq 0)
+        $proc = Start-Process -FilePath 'powershell.exe' -ArgumentList $coreArgs -Wait -PassThru -WindowStyle Hidden
+        $code = $proc.ExitCode
     } catch {
         $txtLog.AppendText("ERROR: $($_.Exception.Message)`r`n")
     }
@@ -368,18 +396,20 @@ $btnInstall.Add_Click({
         $txtLog.AppendText((Get-Content -Path $logFile -Raw))
         Remove-Item $logFile -Force -ErrorAction SilentlyContinue
     }
+    $ok = ($code -eq 0)
 
     $progressBar.Style = 'Continuous'
     $progressBar.Value = 100
-    $script:installedDir = $dir
-    $script:launchExe = Join-Path $dir "$FolderName.exe"
+    $script:installedDir = $target
+    $script:launchExe = Join-Path $target "$FolderName.exe"
+    $script:exitCode = if ($ok) { 0 } else { 1 }
 
     if (-not $ok) {
-        $lblDone.Text = 'Installation finished with warnings.'
-        $lblDoneNote.Text = 'The app may not have installed correctly. See the log above.'
+        $lblDone.Text = 'Installation finished with errors.'
+        $lblDoneNote.Text = "The install did not complete (exit code $code). See the log above."
     }
-    if ((Test-WslReady) -eq $false) {
-        $lblDoneNote.Text += "`r`n`r`nWSL2 does not look ready yet. Enable it and restart Windows before using the tools."
+    if (-not (Test-WslReady)) {
+        $lblDoneNote.Text += "`r`n`r`nWSL2 does not look ready yet. See INSTALL.txt in the app folder, then enable WSL2 and restart Windows before using the tools."
     }
     Show-Page -Page $pageFinish
 })
@@ -398,3 +428,4 @@ $form.AcceptButton = $btnNext
 
 Show-Page -Page $pagePrereq
 [void]$form.ShowDialog()
+exit $script:exitCode

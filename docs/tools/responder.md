@@ -18,12 +18,12 @@ Answers broadcast name-resolution requests to reveal credentials on a Windows ne
 
 ## How to use it
 
-Responder poisons LLMNR/NBT-NS/mDNS so clients send you their hashes. Only ever run it on an authorised internal assessment; it is disruptive.
+Responder answers LLMNR/NBT-NS/mDNS lookups, which can make clients send you their hashes. The runtime terminal starts it in analyse-only mode (-A): it listens and logs but poisons nothing. Active modes poison traffic, so run them only on an authorised internal assessment; they are disruptive.
 
 ## Examples
 
 ```console
-$ responder -I eth0 -wrf
+$ responder -I eth0 -A
 ```
 
 ## At a glance

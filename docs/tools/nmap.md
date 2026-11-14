@@ -17,7 +17,7 @@ Discovers hosts and services by probing ports on a network you are authorised to
 
 ## How to use it
 
-Pick a profile. Host discovery sends pings to find live hosts; TCP quick scan checks the 1000 most common ports; Service sends version probes; OS tries operating-system fingerprinting (unreliable through WSL2's NAT). Start small: a single host, TCP quick, then narrow down.
+Pick a profile. Host discovery sends pings to find live hosts; TCP quick scan checks the 100 most common ports (nmap -F); Service sends version probes; OS tries operating-system fingerprinting (unreliable through WSL2's NAT). Start small: a single host, TCP quick, then narrow down.
 
 ## Examples
 

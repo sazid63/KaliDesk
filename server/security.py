@@ -13,23 +13,29 @@ import ipaddress
 import secrets
 from collections.abc import Callable
 from functools import wraps
+from urllib.parse import urlsplit
 
 from flask import Response, jsonify, request
 
 import server.config as config
 
-AUTH_COOKIE = "kws_auth"
-CSRF_COOKIE = "kws_csrf"
 CSRF_HEADER = "X-KWS-CSRF"
 
+
+def cookie_names(port: int) -> tuple[str, str]:
+    """Port-specific cookie names, so two copies on different ports do not overwrite each other.
+
+    Returns ``(auth_cookie, csrf_cookie)``, e.g. ``("kws_auth_8765", "kws_csrf_8765")``.
+    """
+    return f"kws_auth_{int(port)}", f"kws_csrf_{int(port)}"
+
 # Deliberately strict. No inline script/style, no framing, no remote origins.
-# Font Awesome CDN allowed for icons.
 CSP = (
     "default-src 'none'; "
     "script-src 'self'; "
-    "style-src 'self' https://cdnjs.cloudflare.com; "
+    "style-src 'self'; "
     "img-src 'self' data:; "
-    "font-src 'self' https://cdnjs.cloudflare.com; "
+    "font-src 'self'; "
     "connect-src 'self'; "
     "form-action 'none'; "
     "frame-ancestors 'none'; "
@@ -59,8 +65,11 @@ def require_auth(view: Callable) -> Callable:
         from flask import current_app
 
         expected = current_app.config.get("KWS_TOKEN", "")
-        supplied = request.cookies.get(AUTH_COOKIE) or ""
-        if not expected or not hmac.compare_digest(str(supplied), str(expected)):
+        supplied = request.cookies.get(current_app.config["KWS_AUTH_COOKIE"]) or ""
+        # Compare bytes: hmac.compare_digest raises TypeError on non-ASCII str.
+        if not expected or not hmac.compare_digest(
+            str(supplied).encode("utf-8"), str(expected).encode("utf-8")
+        ):
             return jsonify({"error": "unauthorised"}), 401
         return view(*args, **kwargs)
 
@@ -70,51 +79,67 @@ def require_auth(view: Callable) -> Callable:
 def require_csrf(view: Callable) -> Callable:
     @wraps(view)
     def wrapper(*args, **kwargs):
-        cookie = request.cookies.get(CSRF_COOKIE) or ""
+        from flask import current_app
+
+        cookie = request.cookies.get(current_app.config["KWS_CSRF_COOKIE"]) or ""
         header = request.headers.get(CSRF_HEADER) or ""
-        if not cookie or not hmac.compare_digest(cookie, header):
+        # Compare bytes: hmac.compare_digest raises TypeError on non-ASCII str.
+        if not cookie or not hmac.compare_digest(cookie.encode("utf-8"), header.encode("utf-8")):
             return jsonify({"error": "CSRF check failed"}), 403
         return view(*args, **kwargs)
 
     return wrapper
 
 
-def _host_of(target: str) -> str:
-    host = (target or "").strip()
-    if "://" in host:
-        host = host.split("://", 1)[1]
-    host = host.split("/", 1)[0].split("?", 1)[0]
-    if "@" in host:
-        host = host.split("@", 1)[1]
-    if host.startswith("["):  # IPv6 literal
-        return host[1 : host.find("]")] if "]" in host else host
-    if ":" in host:
-        host = host.split(":", 1)[0]
-    return host.strip()
+def _ip_is_private(ip, nets) -> bool:
+    if ip.version == 6 and ip.ipv4_mapped is not None:
+        ip = ip.ipv4_mapped
+    return ip.is_loopback or any(ip.version == n.version and ip in n for n in nets)
+
+
+def _net_is_private(net, nets) -> bool:
+    """A network is private only if the *whole* network sits inside a private range."""
+    if net.version == 6 and net.network_address.ipv4_mapped is not None:
+        return False
+    return any(net.version == n.version and net.subnet_of(n) for n in nets)
 
 
 def classify_target(target: str, private_ranges: tuple[str, ...] = config.PRIVATE_RANGES) -> str:
-    """Return 'empty', 'private' or 'public' for a target string."""
-    host = _host_of(target)
-    if not host:
+    """Return 'empty', 'private' or 'public' for a target string.
+
+    Mirrors ``runtime/agent/agent.py::classify_target`` (a test compares them).
+    Anything we cannot parse with certainty is 'public', i.e. needs confirmation.
+    """
+    nets = tuple(ipaddress.ip_network(c, strict=False) for c in private_ranges)
+    text = (target or "").strip()
+    if not text:
         return "empty"
-    if host.lower() in {"localhost", "localhost.localdomain", "::1"}:
+    if any(ch in text for ch in "\\ \t\r\n\x00"):
+        return "public"
+    # Bare IP, bare IPv6 or CIDR (e.g. 10.0.0.0/24, ::1, ::ffff:8.8.8.8).
+    try:
+        if "/" in text:
+            net = ipaddress.ip_network(text, strict=False)
+            return "private" if _net_is_private(net, nets) else "public"
+        return "private" if _ip_is_private(ipaddress.ip_address(text), nets) else "public"
+    except ValueError:
+        pass
+    # URL or host[:port][/path]
+    try:
+        parts = urlsplit(text if "://" in text else "//" + text)
+        host = parts.hostname or ""
+        parts.port  # noqa: B018 - raises ValueError on a malformed port
+    except ValueError:
+        return "public"
+    if not host:
+        return "public"
+    if host.lower() in {"localhost", "localhost.localdomain"}:
         return "private"
     try:
-        ip = ipaddress.ip_address(host)
+        return "private" if _ip_is_private(ipaddress.ip_address(host), nets) else "public"
     except ValueError:
-        # A hostname: we cannot know where it resolves without a lookup, so we
-        # treat it as external and require confirmation.
+        # A hostname: we cannot know where it resolves, so it needs confirmation.
         return "public"
-    if ip.is_loopback:
-        return "private"
-    for cidr in private_ranges:
-        try:
-            if ip in ipaddress.ip_network(cidr, strict=False):
-                return "private"
-        except ValueError:
-            continue
-    return "public"
 
 
 def scope_allows(

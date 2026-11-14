@@ -1,3 +1,5 @@
+(function () {
+"use strict";
 /*
  * Kali Linux Windows Substitute - Containers Panel (Podman Manager)
  */
@@ -5,36 +7,58 @@
 let currentTab = "images";
 let images = [];
 let containers = [];
+let wired = false;
+let refreshTimer = null;
+
+// Installs, pulls, runs and stop/start can take longer than the default 10 s, so no client timeout.
+const LONG_OP = { timeout: 0 };
 
 async function initContainers() {
+  // Wire listeners and start the refresh timer once; reopening the panel only reloads data.
+  if (!wired) {
+    wired = true;
+    wireContainers();
+    // Auto-refresh every 10s when tab is visible
+    refreshTimer = setInterval(() => {
+      if (document.visibilityState === "visible" && !$("#containers-panel").classList.contains("hidden")) {
+        loadContainers();
+      }
+    }, 10000);
+  }
   await loadContainers();
-  wireContainers();
-  // Auto-refresh every 10s when tab is visible
-  setInterval(() => {
-    if (document.visibilityState === "visible" && !$("#containers-panel").classList.contains("hidden")) {
-      loadContainers();
-    }
-  }, 10000);
 }
 
+let loading = false;
+
 async function loadContainers() {
-  const { data } = await api("GET", "/api/containers/status");
-  const status = $("#containers-status");
-  
-  if (data.podman_installed) {
-    status.textContent = "Podman ready";
-    status.classList.remove("error");
-    images = data.images || [];
-    containers = data.containers || [];
+  // Skip overlapping refreshes (the 10 s timer can fire while a slow status call is still open).
+  if (loading) return;
+  loading = true;
+  try {
+    const { ok, data } = await api("GET", "/api/containers/status", undefined, { timeout: 30000 });
+    const status = $("#containers-status");
+
+    if (!ok || !data) {
+      // Keep the last known images and containers; only report that the check failed.
+      status.textContent = "Could not read Podman status: " + ((data && data.error) || "unknown error");
+      status.classList.add("error");
+      return;
+    }
+    if (data.podman_installed) {
+      status.textContent = "Podman ready";
+      status.classList.remove("error");
+      images = data.images || [];
+      containers = data.containers || [];
+    } else {
+      status.textContent = "Podman not installed";
+      status.classList.add("error");
+      images = [];
+      containers = [];
+    }
     renderImages();
     renderContainers();
-  } else {
-    status.textContent = "Podman not installed";
-    status.classList.add("error");
-    images = [];
-    containers = [];
-    renderImages();
-    renderContainers();
+  } finally {
+    loading = false;
   }
 }
 
@@ -66,7 +90,13 @@ function renderImages() {
     runBtn.className = "primary";
     runBtn.textContent = "Run";
     runBtn.addEventListener("click", () => {
-      $("#containers-run-image").value = img.name;
+      // The select only holds fixed options: put the name in the custom-image field and select "custom".
+      const select = $("#containers-run-image");
+      const custom = $("#containers-run-custom-image-input");
+      if (select) select.value = "custom";
+      if (custom) custom.value = img.name;
+      const customDiv = $("#containers-run-custom-image");
+      if (customDiv) customDiv.classList.remove("hidden");
       showTab("run");
     });
     actions.appendChild(runBtn);
@@ -100,12 +130,20 @@ function renderContainers() {
     
     const actions = row.querySelector(".manager-actions");
     
-    if (cont.status.includes("running")) {
+    // Podman reports a live container as "Up 2 minutes", and older output as "running".
+    const running = /^up\b|running/i.test(cont.status);
+    if (running) {
       const stopBtn = document.createElement("button");
       stopBtn.className = "ghost";
       stopBtn.textContent = "Stop";
       stopBtn.addEventListener("click", () => stopContainer(cont.id));
       actions.appendChild(stopBtn);
+
+      const execBtn = document.createElement("button");
+      execBtn.className = "ghost";
+      execBtn.textContent = "Run command";
+      execBtn.addEventListener("click", () => openExec(cont.id));
+      actions.appendChild(execBtn);
     } else {
       const startBtn = document.createElement("button");
       startBtn.className = "primary";
@@ -155,7 +193,7 @@ function wireContainers() {
     const btn = $("#containers-install-podman");
     btn.disabled = true;
     btn.textContent = "Installing...";
-    const { data } = await api("POST", "/api/containers/podman/install");
+    const { data } = await api("POST", "/api/containers/podman/install", undefined, LONG_OP);
     btn.disabled = false;
     btn.textContent = "Install Podman";
     toast(data.message || data.error || "done", !!data.error);
@@ -166,7 +204,7 @@ function wireContainers() {
   $("#containers-pull-custom").addEventListener("click", async () => {
     const name = prompt("Enter image name (e.g., nginx:latest):");
     if (!name) return;
-    const { data } = await api("POST", "/api/containers/images/pull", { name });
+    const { data } = await api("POST", "/api/containers/images/pull", { name }, LONG_OP);
     toast(data.message || data.error || "done", !!data.error);
     loadContainers();
   });
@@ -174,7 +212,7 @@ function wireContainers() {
   // Run container form
   $("#containers-run-image").addEventListener("change", () => {
     const customDiv = $("#containers-run-custom-image");
-    customDiv.style.display = $("#containers-run-image").value === "custom" ? "block" : "none";
+    customDiv.classList.toggle("hidden", $("#containers-run-image").value !== "custom");
   });
   
   $("#containers-run-submit").addEventListener("click", async () => {
@@ -197,19 +235,24 @@ function wireContainers() {
     
     const volumesStr = $("#containers-run-volumes").value;
     const volumes = volumesStr ? volumesStr.split(",").map(s => s.trim()) : [];
+
+    const commandStr = $("#containers-run-command").value.trim();
+    const command = commandStr ? commandStr.split(/\s+/) : [];
     
     const btn = $("#containers-run-submit");
     btn.disabled = true;
     btn.textContent = "Running...";
     
     const { data } = await api("POST", "/api/containers/run", {
-      image, name, ports, volumes
-    });
+      image, name, ports, volumes, command
+    }, LONG_OP);
     
     btn.disabled = false;
     btn.textContent = "Run Container";
     
-    toast(data.message || data.error || "done", !!data.error);
+    // A container that ran and exited with a non-zero code is a failed run: say so.
+    const failed = !!data.error || (data.ok && data.state === "exited" && data.exit_code !== 0);
+    toast(data.message || data.error || "done", failed);
     if (data.ok) {
       showTab("containers");
       loadContainers();
@@ -218,39 +261,76 @@ function wireContainers() {
   
   $("#containers-run-cancel").addEventListener("click", () => {
     $("#containers-run-form").reset();
-    $("#containers-run-custom-image").style.display = "none";
+    $("#containers-run-custom-image").classList.add("hidden");
     showTab("images");
   });
 }
 
+// Run one diagnostic command inside a running container. The server allows only a fixed
+// list of programs and never uses a shell, so the input is split on spaces, not parsed.
+function openExec(id) {
+  const modal = document.createElement("div");
+  modal.className = "modal";
+  modal.innerHTML =
+    '<div class="modal-content">' +
+    '<h3>Run a command in ' + esc(id) + '</h3>' +
+    '<p class="muted">Only diagnostic programs are allowed (for example ping, curl, dig, ls, cat, grep, nmap). No shell syntax; spaces separate the parts.</p>' +
+    '<div class="field"><label for="exec-cmd">Command</label>' +
+    '<input id="exec-cmd" type="text" placeholder="ls /"></div>' +
+    '<pre class="logs" id="exec-out" aria-live="polite"></pre>' +
+    '<div class="actions">' +
+    '<button class="primary" id="exec-run" type="button">Run</button>' +
+    '<button class="ghost" id="exec-close" type="button">Close</button>' +
+    '</div></div>';
+  document.body.appendChild(modal);
+  const input = modal.querySelector("#exec-cmd");
+  const out = modal.querySelector("#exec-out");
+  const run = modal.querySelector("#exec-run");
+  input.focus();
+  const send = async () => {
+    const parts = input.value.trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) { toast("Enter a command first", true); return; }
+    run.disabled = true;
+    out.textContent = "Running…";
+    const { data } = await api("POST", "/api/containers/" + encodeURIComponent(id) + "/exec", { cmd: parts }, LONG_OP);
+    run.disabled = false;
+    if (data && data.error) { out.textContent = data.error; return; }
+    const stderr = data.stderr ? "\n[stderr]\n" + data.stderr : "";
+    out.textContent = "$ " + parts.join(" ") + "\n(exit " + (data.rc ?? "?") + ")\n\n" + (data.stdout || "") + stderr;
+  };
+  run.addEventListener("click", send);
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
+  modal.querySelector("#exec-close").addEventListener("click", () => modal.remove());
+}
+
 async function startContainer(id) {
-  const { data } = await api("POST", "/api/containers/" + id + "/start");
+  const { data } = await api("POST", "/api/containers/" + id + "/start", undefined, LONG_OP);
   toast(data.message || data.error || "done", !!data.error);
   loadContainers();
 }
 
 async function stopContainer(id) {
-  const { data } = await api("POST", "/api/containers/" + id + "/stop");
+  const { data } = await api("POST", "/api/containers/" + id + "/stop", undefined, LONG_OP);
   toast(data.message || data.error || "done", !!data.error);
   loadContainers();
 }
 
 async function removeContainer(id) {
   if (!confirm("Remove container " + id + "?")) return;
-  const { data } = await api("DELETE", "/api/containers/" + id);
+  const { data } = await api("DELETE", "/api/containers/" + id, undefined, LONG_OP);
   toast(data.message || data.error || "done", !!data.error);
   loadContainers();
 }
 
 async function viewLogs(id) {
-  const { data } = await api("GET", "/api/containers/" + id + "/logs");
+  const { data } = await api("GET", "/api/containers/" + encodeURIComponent(id) + "/logs");
   if (data.ok) {
     // Show logs in a modal
     const modal = document.createElement("div");
     modal.className = "modal";
     modal.innerHTML =
       '<div class="modal-content">' +
-      '<h3>Logs: ' + id + '</h3>' +
+      '<h3>Logs: ' + esc(id) + '</h3>' +
       '<pre class="logs">' + esc(data.logs) + '</pre>' +
       '<div class="actions"><button class="primary" id="modal-close">Close</button></div>' +
       '</div>';
@@ -263,7 +343,10 @@ async function viewLogs(id) {
 
 /* api, esc, toast provided globally by utils.js */
 
-function wire() {
+function wireContainersPanel() {
 }
 
-wire();
+wireContainersPanel();
+
+  window.initContainers = initContainers;
+})();

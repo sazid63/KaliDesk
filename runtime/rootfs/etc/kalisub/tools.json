@@ -19,7 +19,7 @@
       "packages": [
         "bettercap"
       ],
-      "repo": "debian",
+      "repo": "kali",
       "baseline": false,
       "max_args": 32
     },
@@ -292,6 +292,7 @@
       "name": "PhotoRec",
       "binary": "photorec",
       "packages": [
+        "photorec",
         "testdisk"
       ],
       "repo": "debian",
@@ -348,7 +349,7 @@
         "sleuthkit"
       ],
       "repo": "debian",
-      "baseline": false,
+      "baseline": true,
       "max_args": 32
     },
     {
@@ -433,11 +434,53 @@
       "name": "Volatility 3",
       "binary": "vol",
       "packages": [
-        "volatility3"
+        "python3-venv",
+        "python3-pip"
       ],
-      "repo": "kali",
+      "repo": "pypi",
       "baseline": false,
-      "max_args": 32
+      "max_args": 32,
+      "install_steps": [
+        [
+          "apt-get",
+          "update",
+          "-qq"
+        ],
+        [
+          "apt-get",
+          "install",
+          "-y",
+          "--no-install-recommends",
+          "python3-venv",
+          "python3-pip"
+        ],
+        [
+          "python3",
+          "-m",
+          "venv",
+          "/opt/volatility3"
+        ],
+        [
+          "/opt/volatility3/bin/pip",
+          "install",
+          "--no-cache-dir",
+          "volatility3"
+        ],
+        [
+          "ln",
+          "-sf",
+          "/opt/volatility3/bin/vol",
+          "/usr/local/bin/vol"
+        ]
+      ],
+      "remove_steps": [
+        [
+          "rm",
+          "-rf",
+          "/opt/volatility3",
+          "/usr/local/bin/vol"
+        ]
+      ]
     },
     {
       "id": "wapiti",
@@ -490,7 +533,7 @@
       "packages": [
         "wifite"
       ],
-      "repo": "debian",
+      "repo": "kali",
       "baseline": false,
       "max_args": 32
     },

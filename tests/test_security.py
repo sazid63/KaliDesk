@@ -1,48 +1,23 @@
-"""Security behaviour: auth, CSRF, headers and the scope guard."""
+"""Security behaviour: auth, CSRF, headers and the port-specific cookie names.
+
+Classification of targets is covered once, in tests/test_scope.py.
+"""
 from __future__ import annotations
 
+import re
+
+import pytest
+
+import server.app as app_module
+import server.config as config
 import server.security as security
-from server.config import load as load_config
-
-PRIVATE = load_config().private_ranges
 
 
-def test_classify_private_targets():
-    for target in ("192.168.1.10", "10.1.2.3", "172.16.0.9", "127.0.0.1", "localhost"):
-        assert security.classify_target(target, PRIVATE) == "private", target
-
-
-def test_classify_public_targets():
-    for target in ("8.8.8.8", "example.com", "https://example.com/path?x=1", "1.1.1.1"):
-        assert security.classify_target(target, PRIVATE) == "public", target
-
-
-def test_classify_empty():
-    assert security.classify_target("", PRIVATE) == "empty"
-    assert security.classify_target("   ", PRIVATE) == "empty"
-
-
-def test_public_target_needs_confirmation():
-    allowed, _ = security.scope_allows("8.8.8.8", False, PRIVATE)
-    assert allowed is False
-    allowed, _ = security.scope_allows("8.8.8.8", True, PRIVATE)
-    assert allowed is True
-
-
-def test_private_target_allowed_without_confirmation():
-    allowed, _ = security.scope_allows("192.168.0.5", False, PRIVATE)
-    assert allowed is True
-
-
-def test_url_host_is_extracted():
-    assert security._host_of("https://user@example.com:8443/a?b=1") == "example.com"
-    assert security._host_of("192.168.1.1:22") == "192.168.1.1"
+def test_cookie_names_carry_the_port():
+    assert security.cookie_names(8765) == ("kws_auth_8765", "kws_csrf_8765")
 
 
 def test_unauthenticated_request_is_rejected():
-    import server.app as app_module
-    import server.config as config
-
     application = app_module.create_app(config.load(), "tok", "csrf")
     application.config.update(TESTING=True)
     anonymous = application.test_client()
@@ -74,3 +49,45 @@ def test_security_headers_present(client):
     assert "Content-Security-Policy" in resp.headers
     assert resp.headers["X-Content-Type-Options"] == "nosniff"
     assert resp.headers["X-Frame-Options"] == "DENY"
+
+
+# --- every /api route, checked by its method -------------------------------------
+
+_APP = app_module.create_app(config.load(), "tok-matrix", "csrf-matrix")
+_APP.config.update(TESTING=True)
+
+
+def _api_routes() -> list[tuple[str, str]]:
+    """(method, concrete path) for every /api route; parameters become sample values."""
+    found: list[tuple[str, str]] = []
+    for rule in _APP.url_map.iter_rules():
+        if not rule.rule.startswith("/api/"):
+            continue
+        path = re.sub(r"<(?:\w+:)?\w+>", "1", rule.rule)
+        for method in sorted(rule.methods - {"HEAD", "OPTIONS"}):
+            found.append((method, path))
+    return found
+
+
+ROUTES = _api_routes()
+
+
+def test_the_route_list_is_not_empty():
+    assert len(ROUTES) > 40
+
+
+@pytest.mark.parametrize(("method", "path"), ROUTES)
+def test_every_api_route_returns_401_anonymously(method, path):
+    resp = _APP.test_client().open(path, method=method)
+    assert resp.status_code == 401, f"{method} {path} answered {resp.status_code}"
+
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [(m, p) for m, p in ROUTES if m in ("POST", "DELETE")],
+)
+def test_every_write_route_returns_403_without_csrf(method, path):
+    client = _APP.test_client()
+    client.set_cookie(_APP.config["KWS_AUTH_COOKIE"], "tok-matrix")
+    resp = client.open(path, method=method, json={})
+    assert resp.status_code == 403, f"{method} {path} answered {resp.status_code}"

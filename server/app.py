@@ -8,35 +8,64 @@ single page served from ``ui/``.
 from __future__ import annotations
 
 import hmac
+import logging
+import threading
+import time
 from pathlib import Path
+from urllib.parse import unquote
 
-from flask import Flask, jsonify, make_response, request, send_from_directory
+from flask import Flask, jsonify, make_response, redirect, request, send_from_directory
+from werkzeug.exceptions import HTTPException
 
 import kws.paths as kws_paths
 import server.achievements as achievements
 import server.ai as ai
-import server.ai_chat as ai_chat
-import server.ai_providers as ai_providers
+import server.backup as backup
 import server.catalog as catalog
 import server.cheat_sheets as cheat_sheets
 import server.commands as commands
 import server.container_runtime as container_runtime
 import server.db as db
+import server.evidence as evidence
 import server.history as history
-import server.local_ai as local_ai
-import server.mcp_client as mcp_client
 import server.notebook as notebook
 import server.onboarding as onboarding
 import server.playground as playground
-import server.portable as portable
 import server.recordings as recordings
 import server.report as report
 import server.security as security
-import server.skills as skills
-import server.strix as strix
 import server.tools as tools
 
 UI_DIR = Path(kws_paths.resource("ui"))
+# The launch code works once and only for this long after the app starts.
+LAUNCH_TTL = 600
+
+_LAUNCH_NOTES = {
+    "used": "This launch link was already used. Start the app again to open it.",
+    "expired": "This launch link has expired. Start the app again to open it.",
+}
+
+
+SEVERITIES = ("critical", "high", "medium", "low", "info")
+FINDING_LIMITS = {"tool": 100, "target": 300, "title": 200, "detail": 5000}
+
+
+def _check_finding(data: dict) -> tuple[str, str, str, str, str] | str:
+    """Validate a finding from the browser. Returns the cleaned fields, or an error message."""
+    values = {}
+    for key, limit in FINDING_LIMITS.items():
+        raw = data.get(key, "")
+        if not isinstance(raw, str):
+            return f"{key} must be text"
+        values[key] = raw.strip()
+        if len(values[key]) > limit:
+            return f"{key} can be at most {limit} characters"
+    if not values["title"]:
+        return "a title is required"
+    severity = data.get("severity", "info")
+    if severity not in SEVERITIES:
+        return "severity must be one of: " + ", ".join(SEVERITIES)
+    return values["tool"], values["target"], severity, values["title"], values["detail"]
 
 
 def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
@@ -44,25 +73,74 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     app.config["KWS_TOKEN"] = auth_token
     app.config["KWS_CSRF"] = csrf_token
     app.config["KWS_CFG"] = cfg
+    # Cookie names carry the port, so two copies on different ports do not clash.
+    auth_cookie, csrf_cookie = security.cookie_names(cfg.port)
+    app.config["KWS_AUTH_COOKIE"] = auth_cookie
+    app.config["KWS_CSRF_COOKIE"] = csrf_cookie
+    # One-time code the launcher puts in the first URL. It is spent on first use and expires.
+    app.config["KWS_LAUNCH"] = security.new_token()
+    app.config["KWS_LAUNCH_EXPIRES"] = time.time() + LAUNCH_TTL
+    app.config["KWS_LAUNCH_NOTE"] = ""
     security.install_headers(app)
     db.init_db()
+    tools.sweep_work_dirs()
+
+    log = logging.getLogger("kws")
+    launch_lock = threading.Lock()
+
+    @app.errorhandler(HTTPException)
+    def _http_error(exc: HTTPException):
+        # The UI expects JSON from /api; Flask's default is an HTML page.
+        if request.path.startswith("/api"):
+            return jsonify({"error": exc.description or exc.name}), exc.code
+        return exc
+
+    @app.errorhandler(Exception)
+    def _unexpected_error(exc: Exception):
+        log.exception("unhandled error on %s %s", request.method, request.path)
+        return jsonify({"error": "internal error", "detail": type(exc).__name__}), 500
 
     # --- UI ---------------------------------------------------------------
+    def _spend_launch(launch: str):
+        """Accept the launch code once, or explain why it cannot be used."""
+        with launch_lock:
+            code = app.config.get("KWS_LAUNCH", "")
+            if code and time.time() >= app.config.get("KWS_LAUNCH_EXPIRES", 0):
+                app.config["KWS_LAUNCH"] = ""
+                app.config["KWS_LAUNCH_NOTE"] = "expired"
+                code = ""
+            accepted = bool(code) and hmac.compare_digest(
+                launch.encode("utf-8"), code.encode("utf-8")
+            )
+            if accepted:
+                app.config["KWS_LAUNCH"] = ""  # spent: a second use is refused
+                app.config["KWS_LAUNCH_NOTE"] = "used"
+            note = app.config.get("KWS_LAUNCH_NOTE", "")
+        if not accepted:
+            message = _LAUNCH_NOTES.get(note, "This launch link is not valid.")
+            return make_response(message, 403, {"Content-Type": "text/plain; charset=utf-8"})
+        resp = redirect("/")
+        # The UI is served over plain http on loopback, so Secure would make
+        # some webviews drop the cookies. The auth cookie is HttpOnly; the
+        # CSRF cookie must be readable by the UI script (double-submit
+        # pattern), so it is not.
+        resp.set_cookie(
+            auth_cookie, auth_token, httponly=True, samesite="Strict", path="/", secure=False
+        )
+        resp.set_cookie(
+            csrf_cookie, csrf_token, httponly=False, samesite="Strict", path="/", secure=False
+        )
+        return resp
+
     @app.get("/")
     def index():
-        resp = make_response(send_from_directory(UI_DIR, "index.html"))
-        token = request.args.get("token", "")
-        if token and hmac.compare_digest(token, auth_token):
-            # Set secure cookies (only sent over HTTPS)
-            resp.set_cookie(
-                security.AUTH_COOKIE, token, httponly=True,
-                samesite="Strict", path="/", secure=True
-            )
-            resp.set_cookie(
-                security.CSRF_COOKIE, csrf_token, httponly=True,
-                samesite="Strict", path="/", secure=True
-            )
-        return resp
+        # The launcher opens "/?launch=<one-time code>" so that the session secret never
+        # appears in the address bar, history or a log. The code is spent on first use and
+        # the browser is redirected to a clean "/". The session itself lives in cookies.
+        launch = request.args.get("launch", "")
+        if launch:
+            return _spend_launch(launch)
+        return send_from_directory(UI_DIR, "index.html")
 
     @app.get("/static/<path:filename>")
     def static_files(filename: str):
@@ -90,6 +168,7 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
                 "categories": catalog.categories(),
                 "tools": catalog.tools(),
                 "automated": commands.automated_ids(),
+                "terminal": commands.TERMINAL_COMMANDS,
                 "required": {tid: commands.required_for(tid) for tid in commands.automated_ids()},
             }
         )
@@ -104,15 +183,77 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
         payload = request.get_json(silent=True) or {}
         target = tools_target(payload)
         start = _time.time()
-        result, status = tools.run(cfg, tool_id, payload)
+        result, status = tools.run(cfg, tool_id, payload, user_confirmed=True)
         duration_ms = round((_time.time() - start) * 1000, 1)
-        rc = 0 if status == 200 else status
-        output_preview = ""
-        if isinstance(result, dict):
-            output_preview = str(result.get("output", result.get("detail", "")))[:500]
-        history.record_run(tool_id, target, payload, rc, duration_ms, output_preview, status == 200)
-        db.audit("user", f"tool:{tool_id}", target, "ok" if status == 200 else f"status {status}")
+        # A refused request (bad input, out of scope, unknown tool) never ran: it is not a run.
+        if status not in (400, 403, 404):
+            # Success is the agent's verdict (its exit code), not just an HTTP 200.
+            rc, ok, output_preview = tools.run_outcome(result, status)
+            history.record_run(tool_id, target, payload, rc, duration_ms, output_preview, ok)
+            db.audit("user", f"tool:{tool_id}", target,
+                     "ok" if ok else f"status {status}, rc {rc}")
         return jsonify(result), status
+
+    # --- jobs: streamed, cancellable runs and installs -------------------
+    @app.post("/api/tool/<tool_id>/start")
+    @security.require_auth
+    @security.require_csrf
+    def api_tool_start(tool_id: str):
+        payload = request.get_json(silent=True) or {}
+        result, status = tools.start_job(cfg, tool_id, payload, user_confirmed=True)
+        if status not in (202, 400, 403, 404):  # refused requests are not runs
+            db.audit("user", f"tool:{tool_id}", tools_target(payload), f"status {status}")
+        return jsonify(result), status
+
+    @app.post("/api/tools/<tool_id>/<action>-job")
+    @security.require_auth
+    @security.require_csrf
+    def api_tools_manage_job(tool_id: str, action: str):
+        if action not in ("install", "remove"):
+            return jsonify({"error": "not found"}), 404
+        result, status = tools.start_manage_job(cfg, tool_id, action)
+        return jsonify(result), status
+
+    @app.get("/api/jobs/<job_id>")
+    @security.require_auth
+    def api_job_status(job_id: str):
+        if not tools.valid_job_id(job_id):
+            return jsonify({"error": "unknown job"}), 404
+        since = request.args.get("since", "0")
+        since_n = int(since) if since.isascii() and since.isdigit() else 0
+        result, status = tools.job_status(cfg, job_id, since_n)
+        return jsonify(result), status
+
+    @app.post("/api/jobs/<job_id>/cancel")
+    @security.require_auth
+    @security.require_csrf
+    def api_job_cancel(job_id: str):
+        result, status = tools.job_cancel(cfg, job_id)
+        return jsonify(result), status
+
+    # --- interactive tools: open a runtime terminal -----------------------
+    @app.post("/api/tool/<tool_id>/terminal")
+    @security.require_auth
+    @security.require_csrf
+    def api_tool_terminal(tool_id: str):
+        from app import runtime
+
+        command = commands.TERMINAL_COMMANDS.get(tool_id)
+        if command is None:
+            return jsonify({"error": "this tool does not open in a terminal"}), 404
+        ok, message = runtime.open_terminal(cfg, command)
+        db.audit("user", f"terminal:{tool_id}", "", "ok" if ok else "failed")
+        return jsonify({"ok": ok, "message": message, "command": command}), 200 if ok else 500
+
+    @app.post("/api/runtime/shell")
+    @security.require_auth
+    @security.require_csrf
+    def api_runtime_shell():
+        from app import runtime
+
+        ok, message = runtime.open_terminal(cfg, None)
+        db.audit("user", "terminal:shell", "", "ok" if ok else "failed")
+        return jsonify({"ok": ok, "message": message}), 200 if ok else 500
 
     # --- tool management --------------------------------------------------
     @app.post("/api/tool/<tool_id>/preview")
@@ -166,11 +307,37 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
         db.audit("user", "runtime:ensure", "", "ok" if result.get("ok") else "failed")
         return jsonify(result)
 
+    @app.post("/api/runtime/start")
+    @security.require_auth
+    @security.require_csrf
+    def api_runtime_start():
+        # Starting the agent is an action, so it is a POST. GET /api/runtime only reports.
+        from app import runtime
+
+        started = runtime.autostart(cfg)
+        if started:  # only a real start is audited; a throttled or repeated call is not
+            db.audit("user", "runtime:start", "", "started")
+        return jsonify({"ok": True, "started": started})
+
     # --- evidence ---------------------------------------------------------
     @app.get("/api/evidence")
     @security.require_auth
     def api_evidence():
         return jsonify({"path": str(kws_paths.evidence_dir()), "files": tools.evidence_files()})
+
+    @app.post("/api/evidence/upload")
+    @security.require_auth
+    @security.require_csrf
+    def api_evidence_upload():
+        # The raw file is the body; its name travels in a header, URL-encoded, so it
+        # never lands in a URL or in the server log.
+        raw = request.headers.get("X-KWS-Filename", "")
+        try:
+            saved = evidence.store(request.stream, unquote(raw), evidence.MAX_UPLOAD)
+        except evidence.UploadError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 400
+        db.audit("user", "evidence:upload", saved, "ok")
+        return jsonify({"ok": True, "name": saved, "files": tools.evidence_files()})
 
     # --- findings / audit / report ---------------------------------------
     @app.get("/api/findings")
@@ -183,15 +350,21 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @security.require_csrf
     def api_add_finding():
         data = request.get_json(silent=True) or {}
-        fid = db.add_finding(
-            str(data.get("tool", "")),
-            str(data.get("target", "")),
-            str(data.get("severity", "info")),
-            str(data.get("title", "")),
-            str(data.get("detail", "")),
-        )
-        db.audit("user", "finding:add", str(data.get("target", "")), f"id {fid}")
+        checked = _check_finding(data)
+        if isinstance(checked, str):
+            return jsonify({"ok": False, "error": checked}), 400
+        fid = db.add_finding(*checked)
+        db.audit("user", "finding:add", checked[1], f"id {fid}")
         return jsonify({"ok": True, "id": fid})
+
+    @app.delete("/api/findings/<int:finding_id>")
+    @security.require_auth
+    @security.require_csrf
+    def api_delete_finding(finding_id: int):
+        ok = db.delete_finding(finding_id)
+        if ok:
+            db.audit("user", "finding:delete", "", f"id {finding_id}")
+        return jsonify({"ok": ok}), 200 if ok else 404
 
     @app.get("/api/audit")
     @security.require_auth
@@ -202,7 +375,7 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @security.require_auth
     def api_report():
         fmt = (request.args.get("format") or "html").lower()
-        rows = db.findings()
+        rows = db.findings(limit=None)  # a report lists every finding, not the newest 200
         name = catalog.app_meta().get("name", "Report")
         if fmt == "json":
             body, mime, ext = report.to_json(rows, name), "application/json", "json"
@@ -226,26 +399,28 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @security.require_csrf
     def api_ai_config_set():
         data = request.get_json(silent=True) or {}
-        ai.set_config(
-            str(data.get("provider", "none")),
-            str(data.get("base_url", "")),
-            str(data.get("model", "")),
-        )
+        try:
+            ai.set_config(
+                str(data.get("provider", "none")),
+                str(data.get("base_url", "")),
+                str(data.get("model", "")),
+            )
+        except (ValueError, ai.AIError) as exc:
+            return jsonify({"error": str(exc)}), 400
         return jsonify(ai.get_config())
 
     @app.post("/api/ai/key")
     @security.require_auth
     @security.require_csrf
     def api_ai_key():
-        import kws.secrets as kws_secrets
-
         data = request.get_json(silent=True) or {}
         key = str(data.get("api_key", "")).strip()
-        if key:
-            kws_secrets.set_secret(ai.SECRET_KEY, key)
-        else:
-            kws_secrets.delete_secret(ai.SECRET_KEY)
-        db.audit("user", "ai:key", "", "set" if key else "cleared")
+        provider = str(data.get("provider") or ai.get_config()["provider"])
+        try:
+            ai.set_key(provider, key)
+        except (ValueError, OSError) as exc:
+            return jsonify({"error": str(exc)}), 400
+        db.audit("user", f"ai:key:{provider}", "", "set" if key else "cleared")
         return jsonify(ai.get_config())
 
     @app.post("/api/ai/explain")
@@ -255,317 +430,42 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
         data = request.get_json(silent=True) or {}
         return jsonify(ai.explain(str(data.get("tool", "a tool")), str(data.get("output", ""))))
 
-    # --- AI Providers -------------------------------------------------------
-    @app.get("/api/ai/providers")
-    @security.require_auth
-    def api_ai_providers_list():
-        return jsonify({"providers": ai_providers.list_configured_providers()})
-
-    @app.post("/api/ai/providers")
-    @security.require_auth
-    @security.require_csrf
-    def api_ai_providers_create():
-        data = request.get_json(silent=True) or {}
-        ptype = str(data.get("type", "")).strip()
-        if not ptype:
-            return jsonify({"error": "provider type is required"}), 400
-        config = data.get("config", {})
-        if not isinstance(config, dict):
-            return jsonify({"error": "config must be an object"}), 400
-        ai_providers.save_provider_config(ptype, config)
-        return jsonify({"ok": True, "type": ptype})
-
-    @app.delete("/api/ai/providers/<name>")
-    @security.require_auth
-    @security.require_csrf
-    def api_ai_providers_delete(name: str):
-        ai_providers.delete_provider_config(name)
-        return jsonify({"ok": True})
-
+    # --- AI providers, models and chat -----------------------------------------
     @app.post("/api/ai/test")
     @security.require_auth
     @security.require_csrf
     def api_ai_test():
         data = request.get_json(silent=True) or {}
-        ptype = str(data.get("type", "")).strip()
-        config = data.get("config", {})
-        try:
-            provider = ai_providers.get_provider(ptype, config)
-            ok, msg = provider.test_connection()
-            return jsonify({"ok": ok, "message": msg, "models": provider.list_models()})
-        except Exception as exc:  # noqa: BLE001
-            return jsonify({"ok": False, "message": str(exc)}), 500
+        return jsonify(
+            ai.test(
+                str(data.get("provider", "")),
+                str(data.get("base_url", "")),
+                str(data.get("model", "")),
+                str(data.get("api_key", "")),
+            )
+        )
 
-    # --- AI Chat (enhanced) --------------------------------------------------
     @app.post("/api/ai/chat")
     @security.require_auth
     @security.require_csrf
     def api_ai_chat():
         data = request.get_json(silent=True) or {}
-        messages = data.get("messages") or []
+        messages = data.get("messages")
+        if not isinstance(messages, list):
+            return jsonify({"error": "messages must be a list"}), 400
         clean = [
             {"role": str(m.get("role", "user")), "content": str(m.get("content", ""))}
             for m in messages
             if isinstance(m, dict)
         ]
-        provider_type = str(data.get("provider", "ollama"))
-        provider_config = data.get("provider_config", {})
-        tools_context = data.get("tools_context", [])
-        conversation_id = data.get("conversation_id")
-
-        # Save user message
-        if conversation_id:
-            ai_chat.save_message(
-                "user",
-                clean[-1].get("content", "") if clean else "",
-                conversation_id=conversation_id,
-            )
-
-        # Validate provider type
-        valid_providers = {
-            "openai",
-            "anthropic",
-            "gemini",
-            "ollama",
-            "localai",
-            "deepseek",
-            "opencode",
-            "dsh",
-        }
-        if provider_type not in valid_providers:
-            return jsonify({"error": f"Unknown provider: {provider_type}"}), 400
-
-        # Get completion with optional MCP client
-        mcp = mcp_client.MCPClient.auto_discover() if data.get("use_mcp") else None
-        try:
-            result = ai_chat.complete_with_context(
-                clean, tools_context, provider_type, provider_config, mcp, conversation_id
-            )
-        except Exception as exc:
-            return jsonify({"error": f"AI completion failed: {exc}"}), 503
-        finally:
-            if mcp:
-                mcp.close()
-
-        return jsonify(result)
-
-    # --- Local AI Models -----------------------------------------------------
-    @app.get("/api/ai/models")
-    @security.require_auth
-    def api_ai_models():
-        models = local_ai.scan_models()
-        return jsonify({"models": models})
-
-    @app.post("/api/ai/models/download")
-    @security.require_auth
-    @security.require_csrf
-    def api_ai_models_download():
-        data = request.get_json(silent=True) or {}
-        hf_repo = str(data.get("repo", "")).strip()
-        filename = str(data.get("filename", "")).strip()
-        quantization = str(data.get("quantization", "Q4_K_M")).strip()
-        if not hf_repo or not filename:
-            return jsonify({"error": "repo and filename are required"}), 400
-        result = local_ai.download_model(hf_repo, filename, quantization)
-        return jsonify(result)
-
-    @app.delete("/api/ai/models/<name>")
-    @security.require_auth
-    @security.require_csrf
-    def api_ai_models_delete(name: str):
-        ok = local_ai.delete_model(name)
-        return jsonify({"ok": ok})
-
-    # --- AI Conversations ----------------------------------------------------
-    @app.get("/api/ai/conversations")
-    @security.require_auth
-    def api_ai_conversations_list():
-        limit = int(request.args.get("limit", "100"))
-        return jsonify({"conversations": ai_chat.list_conversations(limit)})
-
-    @app.post("/api/ai/conversations")
-    @security.require_auth
-    @security.require_csrf
-    def api_ai_conversations_create():
-        conv_id = ai_chat.new_conversation()
-        return jsonify({"id": conv_id})
-
-    @app.get("/api/ai/conversations/<int:conv_id>")
-    @security.require_auth
-    def api_ai_conversations_load(conv_id: int):
-        messages = ai_chat.load_conversation(conv_id)
-        return jsonify({"id": conv_id, "messages": messages})
-
-    @app.delete("/api/ai/conversations/<int:conv_id>")
-    @security.require_auth
-    @security.require_csrf
-    def api_ai_conversations_delete(conv_id: int):
-        ok = ai_chat.delete_conversation(conv_id)
-        return jsonify({"ok": ok})
-
-    # --- MCP Servers --------------------------------------------------------
-    @app.get("/api/mcp/servers")
-    @security.require_auth
-    def api_mcp_servers_list():
-        import json as _json
-
-        servers = []
-        for key in ["mcp_servers"]:
-            val = db.get_setting(key, "")
-            if val:
-                try:
-                    servers = _json.loads(val)
-                except _json.JSONDecodeError:
-                    servers = []
-        return jsonify({"servers": servers})
-
-    @app.post("/api/mcp/servers")
-    @security.require_auth
-    @security.require_csrf
-    def api_mcp_servers_create():
-        import json as _json
-
-        data = request.get_json(silent=True) or {}
-        name = str(data.get("name", ""))
-        stype = str(data.get("type", "stdio"))
-        config_val = data.get("config", {})
-        if not name:
-            return jsonify({"error": "name is required"}), 400
-        existing = []
-        current = db.get_setting("mcp_servers", "")
-        if current:
-            try:
-                existing = _json.loads(current)
-            except _json.JSONDecodeError:
-                existing = []
-        existing = [s for s in existing if s.get("name") != name]
-        existing.append({"name": name, "type": stype, "config": config_val})
-        db.set_setting("mcp_servers", _json.dumps(existing))
-        return jsonify({"ok": True})
-
-    @app.delete("/api/mcp/servers/<name>")
-    @security.require_auth
-    @security.require_csrf
-    def api_mcp_servers_delete(name: str):
-        import json as _json
-
-        existing = []
-        current = db.get_setting("mcp_servers", "")
-        if current:
-            try:
-                existing = _json.loads(current)
-            except _json.JSONDecodeError:
-                existing = []
-        existing = [s for s in existing if s.get("name") != name]
-        db.set_setting("mcp_servers", _json.dumps(existing))
-        return jsonify({"ok": True})
-
-    @app.post("/api/mcp/servers/<name>/connect")
-    @security.require_auth
-    @security.require_csrf
-    def api_mcp_servers_connect(name: str):
-        import json as _json
-
-        current = db.get_setting("mcp_servers", "")
-        servers = []
-        if current:
-            try:
-                servers = _json.loads(current)
-            except _json.JSONDecodeError:
-                servers = []
-        server_cfg = None
-        for s in servers:
-            if s.get("name") == name:
-                server_cfg = s
-                break
-        if server_cfg is None:
-            return jsonify({"ok": False, "message": "server not found"}), 404
-        mcp = mcp_client.MCPClient()
-        if server_cfg.get("type") == "http":
-            ok = mcp.connect_http(str(server_cfg.get("config", {}).get("url", "")))
-        else:
-            cmd = server_cfg.get("config", {}).get("command", [])
-            if isinstance(cmd, str):
-                cmd = [cmd]
-            ok = mcp.connect_stdio(cmd)
-        if ok:
-            tools_list = mcp.list_tools()
-            mcp.close()
-            return jsonify({"ok": True, "tools": tools_list})
-        return jsonify({"ok": False, "message": "connection failed"}), 500
-
-    # --- Skills ---------------------------------------------------------------
-    @app.get("/api/skills")
-    @security.require_auth
-    def api_skills_list():
-        all_skills = skills.load_skills()
-        return jsonify({"skills": [s.to_dict() for s in all_skills]})
-
-    @app.post("/api/skills")
-    @security.require_auth
-    @security.require_csrf
-    def api_skills_create():
-        data = request.get_json(silent=True) or {}
-        name = str(data.get("name", ""))
-        if not name:
-            return jsonify({"error": "name is required"}), 400
-        skill = skills.Skill(
-            name=name,
-            description=str(data.get("description", "")),
-            category=str(data.get("category", "general")),
-            tool_id=str(data.get("tool_id", "")),
-            args_template=data.get("args_template", {}),
-        )
-        ok = skills.save_skill(skill)
-        return jsonify({"ok": ok})
-
-    @app.delete("/api/skills/<name>")
-    @security.require_auth
-    @security.require_csrf
-    def api_skills_delete(name: str):
-        ok = skills.delete_skill(name)
-        return jsonify({"ok": ok})
-
-    @app.post("/api/skills/<name>/execute")
-    @security.require_auth
-    @security.require_csrf
-    def api_skills_execute(name: str):
-        data = request.get_json(silent=True) or {}
-        params = data.get("params", {})
-        if not isinstance(params, dict):
-            return jsonify({"error": "params must be an object"}), 400
-        result, status = skills.execute_skill(name, params)
-        db.audit("user", f"skill:{name}", "", "ok" if status == 200 else f"status {status}")
-        return jsonify(result), status
-
-    @app.get("/api/ai/skills/suggest")
-    @security.require_auth
-    def api_ai_skills_suggest():
-        tool_id = str(request.args.get("tool", ""))
-        target = str(request.args.get("target", ""))
-        if tool_id and target:
-            suggestion = ai_chat.suggest_next_skill(tool_id, target)
-            if suggestion:
-                skill = skills.get_skill(suggestion)
-                if skill:
-                    return jsonify({"suggestion": skill.to_dict()})
-        all_skills = skills.load_skills()
-        if all_skills:
-            return jsonify({"suggestion": all_skills[0].to_dict()})
-        return jsonify({"suggestion": None})
+        return jsonify(ai.respond(clean))
 
     # --- Containers ----------------------------------------------------------
 
     @app.get("/api/containers/status")
     @security.require_auth
     def api_containers_status():
-        return jsonify(
-            {
-                "podman_installed": container_runtime.is_podman_installed(),
-                "images": container_runtime.list_images(),
-                "containers": container_runtime.list_containers(all=True),
-            }
-        )
+        return jsonify(container_runtime.status())
 
     @app.post("/api/containers/podman/install")
     @security.require_auth
@@ -616,13 +516,18 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
         data = request.get_json(silent=True) or {}
         image = data.get("image")
         name = data.get("name")
-        ports = data.get("ports", [])
-        volumes = data.get("volumes", [])
+        ports = data.get("ports") or []
+        volumes = data.get("volumes") or []
+        command = data.get("command") or []
 
-        if not image or not name:
+        if not isinstance(image, str) or not isinstance(name, str) or not image or not name:
             return jsonify({"error": "Image and name required"}), 400
+        if not _is_text_list(ports) or not _is_text_list(volumes):
+            return jsonify({"error": "ports and volumes must be lists of text"}), 400
+        if not _is_text_list(command):
+            return jsonify({"error": "command must be a list of text"}), 400
 
-        result = container_runtime.run_container(image, name, ports, volumes)
+        result = container_runtime.run_container(image, name, ports, volumes, command)
         if result["ok"]:
             db.audit("user", "container:run", result.get("container_id", ""), f"image={image}")
         return jsonify(result), 200 if result["ok"] else 500
@@ -679,8 +584,8 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     def api_exec_container(container_id):
         data = request.get_json(silent=True) or {}
         cmd = data.get("cmd", [])
-        if not cmd:
-            return jsonify({"error": "Command required"}), 400
+        if not cmd or not isinstance(cmd, list) or not all(isinstance(a, str) for a in cmd):
+            return jsonify({"error": "Command required (a list of strings)"}), 400
         result = container_runtime.exec_in_container(container_id, cmd)
         db.audit("user", "container:exec", container_id, " ".join(cmd))
         return jsonify(result), 200 if result["ok"] else 500
@@ -689,7 +594,8 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @app.get("/api/history")
     @security.require_auth
     def api_history_list():
-        limit = int(request.args.get("limit", "100"))
+        limit = request.args.get("limit", "100")
+        limit = min(int(limit), 1000) if limit.isdigit() else 100
         tool = request.args.get("tool") or None
         success = request.args.get("success")
         success_val = None
@@ -748,19 +654,11 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
             return jsonify({"error": "cheat sheet not found"}), 404
         return jsonify(sheet)
 
-        # --- Achievements ---
-
+    # --- Achievements ---
     @app.get("/api/achievements")
     @security.require_auth
     def api_achievements_list():
         return jsonify({"achievements": achievements.list_achievements()})
-
-    @app.post("/api/achievements/<key>/unlock")
-    @security.require_auth
-    @security.require_csrf
-    def api_achievements_unlock(key: str):
-        ok = achievements.unlock_achievement(key)
-        return jsonify({"ok": ok, "unlocked": ok})
 
     # --- Notebook ---
     @app.get("/api/notebook/entries")
@@ -768,7 +666,8 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     def api_notebook_list():
         type_filter = request.args.get("type")
         tags_filter = request.args.get("tags")
-        limit = int(request.args.get("limit", "100"))
+        limit = request.args.get("limit", "100")
+        limit = int(limit) if limit.isdigit() else 100
         tags_list = tags_filter.split(",") if tags_filter else None
         entries = notebook.list_entries(type=type_filter, tags=tags_list, limit=limit)
         return jsonify({"entries": entries})
@@ -781,9 +680,14 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
         entry_type = data.get("type", "note")
         content = data.get("content", "")
         tags = data.get("tags", [])
-        if not content:
+        if not isinstance(entry_type, str) or not isinstance(content, str):
+            return jsonify({"error": "type and content must be text"}), 400
+        if not content.strip():
             return jsonify({"error": "content required"}), 400
-        eid = notebook.add_entry(entry_type, content, tags)
+        try:
+            eid = notebook.add_entry(entry_type, content, tags)
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
         return jsonify({"id": eid, "ok": True})
 
     @app.delete("/api/notebook/entries/<int:eid>")
@@ -806,98 +710,83 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
         entries = notebook.search_notebook(query)
         return jsonify({"entries": entries})
 
-    # --- Recordings ---
+    # --- Run transcripts (recordings) ---
     @app.get("/api/recordings")
     @security.require_auth
     def api_recordings_list():
-        limit = min(int(request.args.get("limit", "100")), 1000)
-        return jsonify({"recordings": recordings.list_recordings(limit=limit)})
-
-    @app.post("/api/recordings/start")
-    @security.require_auth
-    @security.require_csrf
-    def api_recordings_start():
-        data = request.get_json(silent=True) or {}
-        tool = data.get("tool", "unknown")
-        argv = data.get("argv", {})
-        rid = recordings.start_recording(tool, argv)
-        return jsonify({"recording_id": rid})
-
-    @app.post("/api/recordings/stop")
-    @security.require_auth
-    @security.require_csrf
-    def api_recordings_stop():
-        data = request.get_json(silent=True) or {}
-        rid = data.get("recording_id")
-        if not rid:
-            return jsonify({"error": "recording_id required"}), 400
-        ok = recordings.stop_recording(rid)
-        return jsonify({"ok": ok})
+        limit = request.args.get("limit", "100")
+        rows = recordings.list_recordings(limit=int(limit) if limit.isdigit() else 100)
+        return jsonify({"recordings": rows})
 
     @app.get("/api/recordings/<rid>")
     @security.require_auth
     def api_recordings_load(rid: str):
-        lines = recordings.load_recording(rid)
-        return jsonify({"lines": lines})
+        found = recordings.load_recording(rid)
+        if found is None:
+            return jsonify({"error": "no such recording"}), 404
+        if request.args.get("download"):
+            resp = make_response(found["text"])
+            resp.headers["Content-Type"] = "text/plain; charset=utf-8"
+            resp.headers["Content-Disposition"] = f"attachment; filename={rid}.txt"
+            return resp
+        return jsonify(found)
 
     @app.delete("/api/recordings/<rid>")
     @security.require_auth
     @security.require_csrf
     def api_recordings_delete(rid: str):
-        ok = recordings.delete_recording(rid)
-        return jsonify({"ok": ok})
+        return jsonify({"ok": recordings.delete_recording(rid)})
 
-    # --- Strix AI Pentest Agent ---
-    @app.get("/api/strix/status")
+    # --- Backup and restore ---
+    @app.get("/api/backup/export")
     @security.require_auth
-    def api_strix_status():
-        return jsonify(strix.status())
+    def api_backup_export():
+        from datetime import datetime
 
-    @app.post("/api/strix/install")
-    @security.require_auth
-    @security.require_csrf
-    def api_strix_install():
-        ok, msg = strix.install_strix()
-        db.audit("user", "strix:install", "", "ok" if ok else "failed")
-        return jsonify({"ok": ok, "message": msg}), 200 if ok else 500
+        data = backup.export_zip()
+        db.audit("user", "backup:export", "", f"{len(data)} bytes")
+        resp = make_response(data)
+        resp.headers["Content-Type"] = "application/zip"
+        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        resp.headers["Content-Disposition"] = f"attachment; filename=kalidesk-backup-{stamp}.zip"
+        return resp
 
-    @app.post("/api/strix/start")
-    @security.require_auth
-    @security.require_csrf
-    def api_strix_start():
-        ok, pid = strix.start_strix()
-        db.audit("user", "strix:start", str(pid), "ok" if ok else "failed")
-        return jsonify({"ok": ok, "pid": pid}), 200 if ok else 500
-
-    @app.post("/api/strix/stop")
+    @app.post("/api/backup/import")
     @security.require_auth
     @security.require_csrf
-    def api_strix_stop():
-        s = strix.status()
-        ok, msg = strix.stop_strix(s.get("pid") or 0)
-        db.audit("user", "strix:stop", "", "ok" if ok else "failed")
-        return jsonify({"ok": ok, "message": msg}), 200 if ok else 500
+    def api_backup_import():
+        data = _read_capped(request.stream, backup.MAX_ZIP)
+        if data is None:
+            return jsonify({"ok": False, "message": "that file is too large"}), 413
+        result = backup.import_zip(data)
+        db.audit("user", "backup:import", "", "ok" if result["ok"] else result["message"][:80])
+        return jsonify(result), 200 if result["ok"] else 400
 
     # --- Onboarding ---
     @app.get("/api/onboarding/status")
     @security.require_auth
     def api_onboarding_status():
-        return jsonify(
-            {
-                "needed": onboarding.is_onboarding_needed(),
-                "steps": onboarding.onboarding_steps(),
-            }
-        )
+        return jsonify({
+            "needed": onboarding.is_onboarding_needed(),
+            "skipped": onboarding.is_skipped(),
+        })
 
     @app.post("/api/onboarding/finish")
     @security.require_auth
     @security.require_csrf
     def api_onboarding_finish():
-        ok = onboarding.finish_onboarding()
-        return jsonify({"ok": ok})
+        data = request.get_json(silent=True) or {}
+        if not onboarding.finish_onboarding(data.get("accepted") is True):
+            return jsonify({"error": "please confirm the acceptable-use statement first"}), 400
+        db.audit("user", "onboarding:finish", "", "accepted acceptable use")
+        return jsonify({"ok": True})
 
-    # --- Portable Mode ---
-    app.register_blueprint(portable.portable_bp, url_prefix="/api/portable")
+    @app.post("/api/onboarding/skip")
+    @security.require_auth
+    @security.require_csrf
+    def api_onboarding_skip():
+        onboarding.mark_skipped()
+        return jsonify({"ok": True})
 
     return app
 
@@ -907,3 +796,28 @@ def tools_target(payload: dict) -> str:
         if payload.get(key):
             return str(payload[key])
     return ""
+
+
+def _is_text_list(value) -> bool:
+    return isinstance(value, list) and all(isinstance(item, str) for item in value)
+
+
+def _read_capped(stream, limit: int) -> bytes | None:
+    """Read a request body up to ``limit`` bytes; None if it is larger.
+
+    Content-Length is checked first, but it can be missing (chunked uploads), so the
+    stream itself is what enforces the cap.
+    """
+    if (request.content_length or 0) > limit:
+        return None
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        chunk = stream.read(64 * 1024)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > limit:
+            return None
+        chunks.append(chunk)
+    return b"".join(chunks)

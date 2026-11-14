@@ -29,7 +29,7 @@ $ vol -f memory.raw linux.bash
 ## At a glance
 
 - Category: `forensics`
-- Install with: `apt install volatility3`
+- Install with: `apt install python3-venv python3-pip`
 - Baseline: no
 - Licence: GPL-2.0
 - Upstream: <https://github.com/volatilityfoundation/volatility3>

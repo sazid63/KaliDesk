@@ -18,7 +18,7 @@ The standard exploitation framework: search, scan with auxiliary modules, and us
 
 ## How to use it
 
-`msfconsole` opens an interactive session. This app wires the auxiliary scanner path so you can run non-destructive checks (e.g. auxiliary/scanner/http/http_version) from a form. Exploit modules are launched in the terminal, deliberately not automated.
+`msfconsole` opens an interactive session. This app wires the auxiliary scanner path so you can run non-destructive checks (e.g. auxiliary/scanner/http/http_version) from a form. Exploit modules are not run from the form and are not automated: if you need one, open the runtime shell and start msfconsole yourself, with authorisation.
 
 ## Examples
 

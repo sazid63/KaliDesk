@@ -1,6 +1,8 @@
-"""Achievement system for KWS.
+"""Achievements: small goals that reward trying the toolkit.
 
-Provides achievement definitions, checking conditions, and unlocking tracking.
+Progress is computed from the run history, so it can't be faked and survives a restart.
+``evaluate()`` runs after every finished tool run and unlocks whatever has been reached;
+there is no way to unlock one by clicking.
 """
 
 from __future__ import annotations
@@ -9,178 +11,114 @@ from typing import Any
 
 import server.db as db
 
-#: Achievement definitions: key -> {name, description, condition_fn}
-#: condition_fn(tool, target, rc, duration_ms) -> bool
+# key -> definition. ``tools`` limits the count to those tool ids (empty = any tool);
+# ``goal`` is how many runs are needed; ``ok_only`` counts only successful runs;
+# ``distinct`` counts different tools instead of runs; ``fast`` needs a run under a second.
 ACHIEVEMENTS: dict[str, dict[str, Any]] = {
     "first_run": {
-        "name": "First Blood",
-        "description": "Run your first tool",
-        "condition_fn": lambda tool, target, rc, duration_ms: True,
+        "name": "First Blood", "description": "Run your first tool", "goal": 1,
     },
     "port_scanner": {
-        "name": "Port Scanner",
-        "description": "Run nmap 5 times",
-        "condition_fn": lambda tool, target, rc, duration_ms: tool == "nmap",
+        "name": "Port Scanner", "description": "Run nmap or masscan 5 times", "goal": 5,
+        "tools": ("nmap", "masscan"),
     },
-    "web_scanner": {
-        "name": "Web Scout",
-        "description": "Run nikto or nuclei 5 times",
-        "condition_fn": lambda tool, target, rc, duration_ms: tool in ("nikto", "nuclei"),
+    "web_scout": {
+        "name": "Web Scout", "description": "Run 5 web scans (nikto, nuclei, whatweb, wapiti)",
+        "goal": 5, "tools": ("nikto", "nuclei", "whatweb", "wapiti", "gobuster", "ffuf"),
     },
-    "password_cracker": {
-        "name": "Hash Breaker",
-        "description": "Run john or hashcat 3 times",
-        "condition_fn": lambda tool, target, rc, duration_ms: tool in ("john", "hashcat"),
+    "hash_breaker": {
+        "name": "Hash Breaker", "description": "Run john or hashcat 3 times", "goal": 3,
+        "tools": ("john", "hashcat"),
     },
     "vuln_hunter": {
-        "name": "Vulnerability Hunter",
-        "description": "Run sqlmap or nuclei with critical/high findings",
-        "condition_fn": lambda tool, target, rc, duration_ms: (
-            tool in ("sqlmap", "nuclei") and rc == 0
-        ),
+        "name": "Vulnerability Hunter", "description": "Finish a sqlmap or nuclei run successfully",
+        "goal": 1, "tools": ("sqlmap", "nuclei"), "ok_only": True,
     },
     "forensics_expert": {
-        "name": "Forensics Expert",
-        "description": "Run volatility, sleuthkit, or foremost",
-        "condition_fn": lambda tool, target, rc, duration_ms: (
-            tool in ("volatility", "sleuthkit", "foremost")
-        ),
+        "name": "Forensics Expert", "description": "Analyse evidence with a forensics tool",
+        "goal": 1,
+        "tools": ("volatility3", "sleuthkit", "foremost", "photorec", "binwalk", "exiftool",
+                  "steghide"),
     },
     "wireless_warrior": {
-        "name": "Wireless Warrior",
-        "description": "Run aircrack-ng, reaver, or wifite",
-        "condition_fn": lambda tool, target, rc, duration_ms: (
-            tool in ("aircrack-ng", "reaver", "wifite")
-        ),
+        "name": "Wireless Warrior", "description": "Run aircrack-ng, hcxtools or wifite",
+        "goal": 1, "tools": ("aircrack-ng", "hcxtools", "wifite"),
     },
     "osint_master": {
-        "name": "OSINT Master",
-        "description": "Run theharvester, amass, or dnsrecon 3 times",
-        "condition_fn": lambda tool, target, rc, duration_ms: (
-            tool in ("theharvester", "amass", "dnsrecon")
-        ),
+        "name": "OSINT Master", "description": "Run theharvester, dnsrecon, dig or whois 3 times",
+        "goal": 3, "tools": ("theharvester", "dnsrecon", "dns", "whois"),
     },
     "speed_demon": {
-        "name": "Speed Demon",
-        "description": "Complete a tool run in under 1 second",
-        "condition_fn": lambda tool, target, rc, duration_ms: duration_ms < 1000 and rc == 0,
+        "name": "Speed Demon", "description": "Finish a run successfully in under 1 second",
+        "goal": 1, "ok_only": True, "fast": True,
     },
     "persistent": {
-        "name": "Persistent",
-        "description": "Run 10 different tools",
-        "condition_fn": lambda tool, target, rc, duration_ms: True,
+        "name": "Persistent", "description": "Run 10 different tools", "goal": 10,
+        "distinct": True,
     },
 }
 
 
-def check_achievements(tool: str, target: str, rc: int, duration_ms: float) -> list[str]:
-    """Check which achievements are triggered by a tool run.
-
-    Args:
-        tool: The tool ID that was run.
-        target: The target of the run.
-        rc: Return code (0 = success).
-        duration_ms: Duration in milliseconds.
-
-    Returns:
-        List of achievement keys that were triggered.
-    """
-    triggered = []
-    # Helper to check if an achievement is already unlocked
-    def is_unlocked(key: str) -> bool:
-        with db.connect() as conn:
-            row = conn.execute("SELECT unlocked FROM achievements WHERE key = ?", (key,)).fetchone()
-            return bool(row and row["unlocked"])
-
-    # first_run: trigger once when the achievement is not already unlocked
-    if not is_unlocked("first_run"):
-        triggered.append("first_run")
-        unlock_achievement("first_run")
-
-    # persistent: trigger when at least 10 distinct tools have been run
-    if not is_unlocked("persistent"):
-        with db.connect() as conn:
-            cnt = conn.execute("SELECT COUNT(DISTINCT tool) FROM run_history").fetchone()[0]
-            if cnt >= 10:
-                triggered.append("persistent")
-                unlock_achievement("persistent")
-
-    # other achievements
-    for key, ach in ACHIEVEMENTS.items():
-        if key in ("first_run", "persistent"):
-            continue
-        try:
-            if ach["condition_fn"](tool, target, rc, duration_ms):
-                if not is_unlocked(key):
-                    triggered.append(key)
-                    unlock_achievement(key)
-        except Exception:
-            pass
-    return triggered
-
-
-def unlock_achievement(key: str) -> bool:
-    """Unlock an achievement if not already unlocked.
-
-    Args:
-        key: Achievement key from ACHIEVEMENTS.
-
-    Returns:
-        True if newly unlocked, False if already unlocked or invalid key.
-    """
-    if key not in ACHIEVEMENTS:
-        return False
-
+def _progress(key: str) -> int:
+    ach = ACHIEVEMENTS[key]
+    clauses, params = [], []
+    tools = ach.get("tools")
+    if tools:
+        clauses.append(f"tool IN ({','.join('?' * len(tools))})")
+        params += list(tools)
+    if ach.get("ok_only"):
+        clauses.append("success = 1")
+    if ach.get("fast"):
+        clauses.append("duration_ms < 1000")
+    where = " WHERE " + " AND ".join(clauses) if clauses else ""
+    what = "COUNT(DISTINCT tool)" if ach.get("distinct") else "COUNT(*)"
     with db.connect() as conn:
-        row = conn.execute("SELECT unlocked FROM achievements WHERE key = ?", (key,)).fetchone()
-        if row and row["unlocked"]:
-            return False
+        return int(conn.execute(f"SELECT {what} FROM run_history{where}", params).fetchone()[0])
 
+
+def _unlocked_keys() -> set[str]:
+    with db.connect() as conn:
+        rows = conn.execute("SELECT key FROM achievements WHERE unlocked = 1").fetchall()
+    return {r["key"] for r in rows}
+
+
+def _unlock(key: str) -> None:
+    ach = ACHIEVEMENTS[key]
+    with db.connect() as conn:
         conn.execute(
             "INSERT INTO achievements (key, name, description, unlocked, unlocked_at) "
             "VALUES (?,?,?,1,datetime('now')) "
             "ON CONFLICT(key) DO UPDATE SET unlocked=1, unlocked_at=datetime('now')",
-            (key, ACHIEVEMENTS[key]["name"], ACHIEVEMENTS[key]["description"]),
+            (key, ach["name"], ach["description"]),
         )
-    return True
+
+
+def evaluate() -> list[str]:
+    """Unlock everything whose goal has been reached. Returns the names newly unlocked."""
+    done = _unlocked_keys()
+    newly = []
+    for key, ach in ACHIEVEMENTS.items():
+        if key not in done and _progress(key) >= ach["goal"]:
+            _unlock(key)
+            newly.append(ach["name"])
+    return newly
 
 
 def list_achievements() -> list[dict[str, Any]]:
-    """List all achievements with their unlock status.
-
-    Returns:
-        List of dicts with key, name, description, unlocked, unlocked_at.
-    """
+    done = _unlocked_keys()
     with db.connect() as conn:
-        rows = conn.execute(
-            "SELECT key, name, description, unlocked, unlocked_at FROM achievements ORDER BY key"
-        ).fetchall()
-
-    result = []
-    for row in rows:
-        key = row["key"]
-        ach = ACHIEVEMENTS.get(key, {})
-        result.append(
-            {
-                "key": key,
-                "name": row["name"] or ach.get("name", key),
-                "description": row["description"] or ach.get("description", ""),
-                "unlocked": bool(row["unlocked"]),
-                "unlocked_at": row["unlocked_at"],
-            }
-        )
-
-    db_keys = {r["key"] for r in result}
+        when = {r["key"]: r["unlocked_at"] for r in conn.execute(
+            "SELECT key, unlocked_at FROM achievements WHERE unlocked = 1")}
+    out = []
     for key, ach in ACHIEVEMENTS.items():
-        if key not in db_keys:
-            result.append(
-                {
-                    "key": key,
-                    "name": ach["name"],
-                    "description": ach["description"],
-                    "unlocked": False,
-                    "unlocked_at": None,
-                }
-            )
-
-    return result
+        unlocked = key in done
+        out.append({
+            "key": key,
+            "name": ach["name"],
+            "description": ach["description"],
+            "unlocked": unlocked,
+            "unlocked_at": when.get(key),
+            "goal": ach["goal"],
+            "progress": ach["goal"] if unlocked else min(_progress(key), ach["goal"]),
+        })
+    return out

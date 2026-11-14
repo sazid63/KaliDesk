@@ -6,6 +6,7 @@ overridden with an environment variable for development or packaging.
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass
 
@@ -33,9 +34,27 @@ class Config:
     private_ranges: tuple[str, ...] = PRIVATE_RANGES
 
 
+DEFAULT_PORT = 8788
+
+
+def _port_from_env() -> int:
+    """KWS_PORT must be a TCP port number. A bad value falls back to the default."""
+    raw = os.environ.get("KWS_PORT", str(DEFAULT_PORT))
+    try:
+        port = int(raw)
+    except ValueError:
+        port = -1
+    if 1 <= port <= 65535:
+        return port
+    logging.getLogger("kws").warning(
+        "KWS_PORT=%r is not a valid port; using %d", raw, DEFAULT_PORT
+    )
+    return DEFAULT_PORT
+
+
 def load() -> Config:
     return Config(
-        port=int(os.environ.get("KWS_PORT", "8788")),
+        port=_port_from_env(),
         agent_url=os.environ.get("KWS_AGENT_URL", "http://127.0.0.1:5055"),
         runtime_distro=os.environ.get("KWS_DISTRO", "KaliSubstitute"),
         rootfs_url=os.environ.get("KWS_ROOTFS_URL", ""),

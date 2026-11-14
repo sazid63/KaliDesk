@@ -11,22 +11,8 @@ from typing import Any
 
 import server.db as db
 
-# Ensure notebook table exists (extend db schema if needed)
-# We use a separate table for notebook entries
-_NOTEBOOK_SCHEMA = """
-CREATE TABLE IF NOT EXISTS notebook (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    created   TEXT NOT NULL,
-    type      TEXT NOT NULL DEFAULT 'note',
-    content   TEXT NOT NULL DEFAULT '',
-    tags      TEXT NOT NULL DEFAULT '[]'
-);
-"""
-
-
-def _init_notebook_table() -> None:
-    # Table already created in db.py
-    pass
+# The notebook table is created in server/db.py.
+MAX_CONTENT = 20000
 
 
 def add_entry(type: str, content: str, tags: list[str] | None = None) -> int:
@@ -40,12 +26,17 @@ def add_entry(type: str, content: str, tags: list[str] | None = None) -> int:
     Returns:
         The inserted row ID.
     """
-    _init_notebook_table()
+    if not isinstance(type, str) or not isinstance(content, str):
+        raise ValueError("type and content must be text")
+    if len(content) > MAX_CONTENT:
+        raise ValueError(f"an entry can be at most {MAX_CONTENT} characters")
     valid_types = {"url", "ip", "finding", "note"}
     if type not in valid_types:
         type = "note"
 
-    tag_json = json.dumps(tags or [])
+    # Tags must be strings: export joins them, so a number or object would raise TypeError.
+    clean_tags = [str(t) for t in tags] if isinstance(tags, list) else []
+    tag_json = json.dumps(clean_tags)
 
     with db.connect() as conn:
         cur = conn.execute(
@@ -70,8 +61,6 @@ def list_entries(
     Returns:
         List of entry dicts.
     """
-    _init_notebook_table()
-
     with db.connect() as conn:
         if type is not None and tags is not None and len(tags) > 0:
             # Filter by type and tags
@@ -108,7 +97,6 @@ def list_entries(
 
 def delete_entry(id: int) -> bool:
     """Delete a notebook entry by ID."""
-    _init_notebook_table()
     with db.connect() as conn:
         cur = conn.execute("DELETE FROM notebook WHERE id = ?", (id,))
         return cur.rowcount > 0
@@ -120,7 +108,6 @@ def export_notebook() -> str:
     Returns:
         Markdown string with all entries.
     """
-    _init_notebook_table()
     entries = list_entries(limit=10000)  # All entries
 
     lines = ["# OSINT Notebook Export", "", f"Generated: {datetime.now().isoformat()}", ""]
@@ -147,7 +134,6 @@ def search_notebook(query: str) -> list[dict[str, Any]]:
     Returns:
         List of matching entry dicts.
     """
-    _init_notebook_table()
     with db.connect() as conn:
         rows = conn.execute(
             "SELECT * FROM notebook WHERE content LIKE ? ORDER BY created DESC",
