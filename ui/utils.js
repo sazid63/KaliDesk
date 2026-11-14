@@ -123,8 +123,11 @@ async function api(method, path, body, options = {}) {
 }
 
 function csrf() {
-  const m = document.cookie.match(/(?:^|;\s*)(kws_csrf(?:_\d+)?)=([^;]+)/);
-  return m ? decodeURIComponent(m[2]) : "";
+  // The server names its cookie after the port it runs on (kws_csrf_<port>). Read that
+  // one: another copy of the app on a different port may have left its cookie behind.
+  const port = window.location.port || "80";
+  const m = document.cookie.match(new RegExp("(?:^|;\\s*)kws_csrf_" + port + "=([^;]+)"));
+  return m ? decodeURIComponent(m[1]) : "";
 }
 
 /* --- Export utilities --------------------------------------------------- */

@@ -90,7 +90,7 @@
     <div id="view-home">
       <div id="setup-banner" class="banner">
         <span class="grow" id="setup-message">checking runtime…</span>
-        <button class="teal" id="setup-ensure">Set up runtime</button>
+        <button class="teal hidden" id="setup-ensure">Set up runtime</button>
       </div>
 
       <div id="intro" class="card">
@@ -186,7 +186,7 @@
         <button class="ghost" id="report-csv">CSV</button>
       </div>
       <table>
-        <thead><tr><th>Severity</th><th>Tool</th><th>Target</th><th>Title</th><th>When</th></tr></thead>
+        <thead><tr><th>Severity</th><th>Tool</th><th>Target</th><th>Title</th><th>When</th><th><span class="sr-only">Actions</span></th></tr></thead>
         <tbody id="findings-body"></tbody>
       </table>
     </div>

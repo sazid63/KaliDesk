@@ -46,6 +46,28 @@ _LAUNCH_NOTES = {
 }
 
 
+SEVERITIES = ("critical", "high", "medium", "low", "info")
+FINDING_LIMITS = {"tool": 100, "target": 300, "title": 200, "detail": 5000}
+
+
+def _check_finding(data: dict) -> tuple[str, str, str, str, str] | str:
+    """Validate a finding from the browser. Returns the cleaned fields, or an error message."""
+    values = {}
+    for key, limit in FINDING_LIMITS.items():
+        raw = data.get(key, "")
+        if not isinstance(raw, str):
+            return f"{key} must be text"
+        values[key] = raw.strip()
+        if len(values[key]) > limit:
+            return f"{key} can be at most {limit} characters"
+    if not values["title"]:
+        return "a title is required"
+    severity = data.get("severity", "info")
+    if severity not in SEVERITIES:
+        return "severity must be one of: " + ", ".join(SEVERITIES)
+    return values["tool"], values["target"], severity, values["title"], values["detail"]
+
+
 def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     app = Flask(__name__, static_folder=None)
     app.config["KWS_TOKEN"] = auth_token
@@ -328,15 +350,21 @@ def create_app(cfg, auth_token: str, csrf_token: str) -> Flask:
     @security.require_csrf
     def api_add_finding():
         data = request.get_json(silent=True) or {}
-        fid = db.add_finding(
-            str(data.get("tool", "")),
-            str(data.get("target", "")),
-            str(data.get("severity", "info")),
-            str(data.get("title", "")),
-            str(data.get("detail", "")),
-        )
-        db.audit("user", "finding:add", str(data.get("target", "")), f"id {fid}")
+        checked = _check_finding(data)
+        if isinstance(checked, str):
+            return jsonify({"ok": False, "error": checked}), 400
+        fid = db.add_finding(*checked)
+        db.audit("user", "finding:add", checked[1], f"id {fid}")
         return jsonify({"ok": True, "id": fid})
+
+    @app.delete("/api/findings/<int:finding_id>")
+    @security.require_auth
+    @security.require_csrf
+    def api_delete_finding(finding_id: int):
+        ok = db.delete_finding(finding_id)
+        if ok:
+            db.audit("user", "finding:delete", "", f"id {finding_id}")
+        return jsonify({"ok": ok}), 200 if ok else 404
 
     @app.get("/api/audit")
     @security.require_auth

@@ -118,6 +118,12 @@ def add_finding(tool: str, target: str, severity: str, title: str, detail: str =
         return int(cur.lastrowid or 0)
 
 
+def delete_finding(fid: int) -> bool:
+    with connect() as conn:
+        cur = conn.execute("DELETE FROM findings WHERE id = ?", (fid,))
+        return cur.rowcount > 0
+
+
 def findings(limit: int | None = 200) -> list[dict[str, Any]]:
     """Newest findings first. ``limit=None`` returns every finding (used by the report)."""
     with connect() as conn:

@@ -157,14 +157,14 @@ async function refreshRuntime() {
     text.textContent = "setting up…";
     banner.classList.remove("hidden", "bad");
     $("#setup-message").textContent = provisionText(prov);
-    if (btn) { btn.disabled = true; btn.textContent = "Setting up…"; }
+    if (btn) { btn.classList.remove("hidden"); btn.disabled = true; btn.textContent = "Setting up…"; }
     scheduleProvisionPoll();
   } else if (data.agent) {
     dot.classList.add("ok");
     text.textContent = "runtime online";
     banner.classList.add("hidden");
     banner.classList.remove("bad");
-    if (btn) { btn.disabled = false; btn.textContent = "Set up runtime"; }
+    if (btn) { btn.classList.add("hidden"); btn.disabled = false; btn.textContent = "Set up runtime"; }
   } else {
     if (!data.wsl) dot.classList.add("bad");
     text.textContent = data.wsl ? "runtime offline" : "WSL2 missing";
@@ -172,7 +172,7 @@ async function refreshRuntime() {
     const failed = !!(prov && prov.error);
     banner.classList.toggle("bad", !data.wsl || failed);
     $("#setup-message").textContent = failed ? prov.message : (data.message || "Runtime is not ready.");
-    if (btn) { btn.disabled = false; btn.textContent = failed ? "Try again" : "Set up runtime"; }
+    if (btn) { btn.classList.remove("hidden"); btn.disabled = false; btn.textContent = failed ? "Try again" : "Set up runtime"; }
   }
   $("#set-wsl").textContent = data.wsl ? "yes" : "no";
   $("#set-installed").textContent = data.installed ? "yes" : "no";
@@ -844,7 +844,7 @@ async function loadFindings() {
   const { data } = await api("GET", "/api/findings");
   const body = $("#findings-body");
   if (!data || data.error) {
-    body.innerHTML = '<tr><td colspan="5" class="muted">Could not load findings.</td></tr>';
+    body.innerHTML = '<tr><td colspan="6" class="muted">Could not load findings.</td></tr>';
     return;
   }
   body.innerHTML = "";
@@ -855,11 +855,12 @@ async function loadFindings() {
       "<td>" + esc(f.tool) + "</td>" +
       "<td>" + esc(f.target) + "</td>" +
       "<td>" + esc(f.title) + "</td>" +
-      "<td>" + esc(f.created) + "</td>";
+      "<td>" + esc(f.created) + "</td>" +
+      '<td><button type="button" class="ghost" data-delete-finding="' + Number(f.id) + '">Delete</button></td>';
     body.appendChild(tr);
   });
   if (!(data.findings || []).length) {
-    body.innerHTML = '<tr><td colspan="5" class="muted">No findings yet.</td></tr>';
+    body.innerHTML = '<tr><td colspan="6" class="muted">No findings yet.</td></tr>';
   }
 }
 
@@ -1196,6 +1197,15 @@ function wireMain() {
   $("#manager-installed").addEventListener("change", renderManager);
 
   $("#finding-new").addEventListener("click", toggleFindingForm);
+  $("#findings-body").addEventListener("click", async (event) => {
+    const btn = event.target.closest("[data-delete-finding]");
+    if (!btn) return;
+    if (!confirm("Delete this finding? It cannot be undone.")) return;
+    const { ok, data } = await api("DELETE", "/api/findings/" + btn.dataset.deleteFinding);
+    if (!ok || !data.ok) { toast((data && data.error) || "Could not delete the finding", true); return; }
+    toast("Finding deleted");
+    loadFindings();
+  });
   $("#report-html").addEventListener("click", () => downloadReport("html"));
   $("#report-json").addEventListener("click", () => downloadReport("json"));
   $("#report-csv").addEventListener("click", () => downloadReport("csv"));

@@ -32,7 +32,7 @@ function render() {
     const tr = document.createElement("tr");
     [formatWhen(run.created), run.tool, run.target || "—",
      run.rc === null || run.rc === undefined ? "—" : String(run.rc),
-     formatDuration(run.duration_ms), run.success ? "ok" : "not ok"].forEach((text, i) => {
+     formatDuration(run.duration_ms), run.success ? "ok" : "failed"].forEach((text, i) => {
       const td = document.createElement("td");
       td.textContent = text;
       if (i === 5) td.className = run.success ? "ok" : "bad";
