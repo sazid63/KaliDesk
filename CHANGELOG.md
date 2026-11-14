@@ -8,6 +8,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Containers: an optional command for new containers; a run that exits at once reports its exit code.
+- Containers: "Run command" on running containers runs one allow-listed diagnostic command.
+- Findings can be deleted. The server checks a finding's title, severity and field lengths.
+- Evidence: "Add file from my computer" copies a file into the evidence folder (2 GiB limit).
 - Test suites for the agent jobs API, AI, backup, cheat sheets, command safety, containers,
   features, install steps, the jobs API, the MCP server, playground, runtime, scope and version.
 - `tools/smoke.py` and the *Tools smoke test* CI workflow; `requirements-build.txt` for the
@@ -21,6 +25,13 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- Actions failed with "CSRF check failed" when another copy of the app had run on a different port.
+- "Set up runtime" is hidden until the runtime is known to need setup.
+- A running container showed Start instead of Stop.
+- "Skip for now" in the onboarding guide is remembered.
+- Domain-only tools (whois, dnsrecon, theHarvester) explain why they refuse localhost and IP addresses.
+- Runtime errors for runs that were already cleared show a plain message.
+- Run history shows "failed" rather than "not ok".
 - **Security:** the window's session is set up by exchanging a one-time launch code
   for HttpOnly cookies, so no session secret is kept in the address bar or history.
   Keys and tokens stay out of URLs and logs.
