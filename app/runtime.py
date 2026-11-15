@@ -410,7 +410,13 @@ def _install_baseline(cfg) -> tuple[bool, str]:
     packages = baseline_packages()
     _ensure_apt_components(cfg)
     env = ["env", "DEBIAN_FRONTEND=noninteractive"]
-    rc, out, err = _in_distro(cfg, [*env, "apt-get", "update", "-qq"], timeout=900)
+    # The Kali image ships apt-file's config, which makes every update download the Contents
+    # indexes (tens of megabytes each). The app never searches them, so turn them off.
+    no_contents = [
+        "-o", "Acquire::IndexTargets::deb::Contents-deb::DefaultEnabled=false",
+        "-o", "Acquire::IndexTargets::deb-src::Contents-dsc::DefaultEnabled=false",
+    ]
+    rc, out, err = _in_distro(cfg, [*env, "apt-get", "update", "-qq", *no_contents], timeout=900)
     if rc != 0:
         return False, f"apt-get update failed: {(err or out).strip()[-300:]}"
     rc, out, err = _in_distro(
@@ -637,7 +643,8 @@ def _provision(cfg, fail) -> None:
         _apply_wsl_conf(cfg)
     # The marker lets a retry after a failed install pick up where it stopped.
     if fresh or _in_distro(cfg, ["test", "-f", BASELINE_MARKER], timeout=30)[0] != 0:
-        _set(phase="installing", message="Installing the baseline tools (a few minutes)...")
+        msg = "Installing the baseline tools (this can take 15 to 30 minutes the first time)..."
+        _set(phase="installing", message=msg)
         ok, detail = _install_baseline(cfg)
         if not ok:
             fail(detail)

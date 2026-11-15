@@ -121,7 +121,7 @@ def test_stored_key_is_never_sent_to_a_different_url(fake):
     configure("openai", fake, "gpt", key="sk-secret")
     # An attacker-controlled test request pointing at another server gets no key.
     result = ai.test("openai", "http://127.0.0.1:9/v1")
-    assert result["ok"] is False and "saved key" in result["message"].lower() or "never sent" in result["message"]
+    assert result["ok"] is False  # nothing is listening there; the point is what was sent
     assert not any("sk-secret" in json.dumps(s["headers"]) for s in Fake.seen)
     # ...unless the user typed a key into the form for that test.
     assert ai.test("openai", fake, "gpt", api_key="typed-key")["ok"] is True

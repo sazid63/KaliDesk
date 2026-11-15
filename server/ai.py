@@ -163,7 +163,10 @@ def resolve(
             key = explicit_key.strip()
         elif _origin(url) == _origin(bound):
             key = kws_secrets.get_secret(_secret_name(provider)) or ""
-        if not key:
+        # A server on this computer (LM Studio, llama.cpp, vLLM, ...) usually needs no key.
+        # The key rule only protects remote hosts, so only they must have one.
+        local = _is_loopback(urlsplit(url).hostname or "")
+        if not key and not local:
             raise AIError(
                 f"no API key available for {info['label']} at {url}. Save the settings with "
                 "a key first (a saved key is never sent to a different URL)."
@@ -231,11 +234,20 @@ def _chat_reply(cfg: dict[str, Any], messages: list[dict[str, str]]) -> str:
         return str(out.get("message", {}).get("content", "")).strip()
 
     if provider == "openai":
+        headers = {"Authorization": f"Bearer {key}"} if key else {}
         out = _http("POST", f"{url}/chat/completions", {
             "model": model, "messages": [{"role": "system", "content": system}, *turns],
-        }, {"Authorization": f"Bearer {key}"})
+        }, headers)
         choices = out.get("choices") or []
-        return str(choices[0].get("message", {}).get("content", "")).strip() if choices else ""
+        text = str(choices[0].get("message", {}).get("content") or "").strip() if choices else ""
+        if not text:
+            # Reasoning models (for example Qwen 3 "thinking" builds) can put their output in a
+            # separate field and leave the answer empty. Say so instead of showing nothing.
+            raise AIError(
+                "the model sent no answer text. Reasoning models may need thinking turned off "
+                "or a larger output limit in the model server; try a non-reasoning model."
+            )
+        return text
 
     if provider == "anthropic":
         out = _http("POST", f"{url}/v1/messages", {
