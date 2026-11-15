@@ -69,3 +69,4 @@ runtime/.work/
 security_audit_report.md
 server/SECURITY_AUDIT.md
 *.spec
+installer/.buildenv/

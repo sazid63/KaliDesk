@@ -37,15 +37,30 @@ function Find-Python {
     return $null
 }
 
-function Invoke-Python {
-    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$PyArgs)
-    if (-not $script:PythonCmd) {
-        $script:PythonCmd = Find-Python
-    }
-    if (-not $script:PythonCmd) {
+# Everything runs in a dedicated build environment. PyInstaller bundles whatever is installed
+# in the Python it runs under, so building with the user's global site-packages leaks
+# unrelated packages (CherryPy, numpy, Pillow, ...) into the installer.
+$BuildEnv = Join-Path $Here '.buildenv'
+$script:BuildPython = $null
+function Get-BuildPython {
+    if ($script:BuildPython) { return $script:BuildPython }
+    $base = Find-Python
+    if (-not $base) {
         throw ('Python 3 was not found (or only the Microsoft Store alias is present). ' +
                'Install Python 3.10+ from https://www.python.org/downloads/ and run this build again.')
     }
+    $venvPython = Join-Path $BuildEnv 'Scripts\python.exe'
+    if (-not (Test-Path -LiteralPath $venvPython)) {
+        & $base -m venv $BuildEnv
+        if ($LASTEXITCODE -ne 0) { throw "could not create the build environment at $BuildEnv" }
+    }
+    $script:BuildPython = $venvPython
+    return $venvPython
+}
+
+function Invoke-Python {
+    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$PyArgs)
+    $script:PythonCmd = Get-BuildPython
     & $script:PythonCmd @PyArgs
     if ($LASTEXITCODE -ne 0) { throw "python $($PyArgs -join ' ') failed with code $LASTEXITCODE" }
 }
